@@ -1,0 +1,105 @@
+@model Pragma.Application.DTOs.Gradebook.CourseGradebookDto
+@{
+    ViewData["Title"] = "Qiymət Jurnalı — " + Model.CourseTitle;
+}
+
+<div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-circle p-2" style="width: 36px; height: 36px;">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <div>
+            <h4 class="fw-bold mb-0">Qiymət Jurnalı (Gradebook) 📊</h4>
+            <small class="text-muted">@Model.CourseTitle</small>
+        </div>
+    </div>
+
+    <!-- ClosedXML 3-vərəqli Excel İxrac Düyməsi -->
+    <div>
+        <a asp-action="ExportExcel" asp-route-id="@Model.CourseId" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm">
+            <i class="fa-solid fa-file-excel me-1.5"></i> Excel (.xlsx) İxrac Et
+        </a>
+    </div>
+</div>
+
+<!-- Statistik Göstəricilər -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Qeydiyyatlı Tələbə Sayı</span>
+            <h3 class="fw-bold mb-0 mt-1">@Model.TotalStudents</h3>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6">
+        <div class="card p-3">
+            <span class="text-muted small fw-semibold text-uppercase">Orta Tamamlanma Faizi</span>
+            <h3 class="fw-bold mb-0 mt-1 text-primary">@Math.Round(Model.AverageCompletionPercentage, 1)%</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Tələbələrin Nəticə Cədvəli -->
+<div class="card p-4">
+    <h6 class="fw-bold mb-3">Tələbə İmtahan və İzləmə Nəticələri</h6>
+
+    @if (Model.Students == null || Model.Students.Count == 0)
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-user-graduate fa-2xl mb-3 opacity-50"></i>
+            <p class="mb-0">Bu kursa hələ heç bir tələbə qeydiyyatdan keçməyib.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small">
+                    <tr>
+                        <th>Tələbə</th>
+                        <th>Email</th>
+                        <th>Qeydiyyat Tarixi</th>
+                        <th>Video Tərəqqisi</th>
+                        <th>Kvizlər / Nəticə</th>
+                        <th>Məzun Statusu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Students)
+                    {
+                        <tr>
+                            <td class="fw-semibold text-dark">@s.FullName</td>
+                            <td class="text-muted small">@s.Email</td>
+                            <td class="small">@s.EnrolledAtUtc.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2" style="width: 140px;">
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: @s.ProgressPercentage%"></div>
+                                    </div>
+                                    <span class="small fw-bold">@Math.Round(s.ProgressPercentage)%</span>
+                                </div>
+                            </td>
+                            <td class="small">
+                                <span class="badge bg-light text-dark border">@s.QuizzesTaken kviz</span>
+                                <span class="fw-semibold ms-1">(@Math.Round(s.AverageQuizScore, 1)%)</span>
+                            </td>
+                            <td>
+                                @if (s.IsCompleted || s.ProgressPercentage >= 100)
+                                {
+                                    <span class="badge badge-soft-success px-2 py-1 rounded-pill">
+                                        🎓 Məzun (100%)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-soft-primary px-2 py-1 rounded-pill">
+                                        Davam Edir
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

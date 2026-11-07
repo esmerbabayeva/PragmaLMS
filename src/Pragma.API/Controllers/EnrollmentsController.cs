@@ -40,6 +40,7 @@ public class EnrollmentsController : BaseApiController
     /// Cari tələbənin qeydiyyatdan keçdiyi bütün kursları və tərəqqi faizlərini qaytarır.
     /// </summary>
     [HttpGet("my-courses")]
+    [HttpGet("/api/courses/my-courses")]
     public async Task<ActionResult<IReadOnlyCollection<EnrollmentDto>>> GetMyEnrollments(CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.UserId;

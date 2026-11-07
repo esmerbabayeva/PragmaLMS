@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="az" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark light">
+    <title>Pragma LMS — Learning Portal & Video Player</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FOUC qarşısını almaq üçün dərhal icra olunan inline script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('pragma-theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    <!-- Tailwind CSS (v3 CDN) with dark mode config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+                    },
+                    colors: {
+                        obsidian: {
+                            base: '#0d0d0e',
+                            sidebar: '#111113',
+                            card: '#161618',
+                            nested: '#0e0e10',
+                            hover: '#1d1d20',
+                            border: '#26262a'
+                        },
+                        accent: {
+                            blue: '#0071e3',
+                            blueHover: '#0077ed'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Canvas Confetti for Achievements & Certificates -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+    <!-- Alpine.js 3 with defer -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #27272a; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    </style>
+</head>
+<body x-data="pragmaApp()" x-init="init()" class="h-full bg-neutral-100 text-neutral-900 dark:bg-[#0d0d0e] dark:text-neutral-100 flex overflow-hidden font-sans transition-colors duration-200">
+
+    <!-- MOBİL ÜÇÜN ARXAFON ÖRTÜYÜ (BACKDROP) -->
+    <div x-show="sidebarOpen" @click="sidebarOpen = false" x-cloak class="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
+
+    <!-- ========================================================= -->
+    <!-- 1. SOL YAN PANEL (PERMANENT SIDEBAR: AĞ & QARANLIQ REJİM) -->
+    <!-- ========================================================= -->
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'" class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-neutral-200 dark:bg-[#111113] dark:border-neutral-800 flex flex-col justify-between shrink-0 z-50 transition-transform duration-200 ease-in-out select-none">
+        
+        <!-- ÜST LOQO VƏ ƏSAS NAVİQASİYA -->
+        <div class="flex flex-col flex-1 overflow-y-auto">
+            <!-- Brend Loqo Sahəsi -->
+            <div class="h-16 px-5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                <a href="#/dashboard" @click="activeView = 'dashboard'; sidebarOpen = false;" class="flex items-center gap-2.5 group">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 dark:bg-neutral-900 dark:border-neutral-700/80 flex items-center justify-center text-blue-600 dark:text-blue-400 font-mono font-bold text-base shadow-sm group-hover:border-blue-500/60 transition">
+                        P
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-extrabold text-base tracking-tight text-neutral-900 dark:text-white">PRAGMA</span>
+                            <span class="text-[9px] font-mono text-neutral-600 bg-neutral-100 border border-neutral-200 dark:text-neutral-400 dark:bg-neutral-900 dark:border-neutral-800 px-1.5 py-0.2 rounded font-bold">LMS</span>
+                        </div>
+                        <div class="text-[10px] font-mono text-neutral-500 uppercase tracking-wider">Learning Platform</div>
+                    </div>
+                </a>
+                <!-- Mobil bağlama düyməsi -->
+                <button @click="sidebarOpen = false" class="md:hidden text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Əsas Menyu Düymələri -->
+            <div class="px-3 py-4 space-y-6">
+                <div>
+                    <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 px-3 mb-2" x-text="t('menu_nav')">Naviqasiya</div>
+                    <nav class="space-y-1">
+                        <!-- 1. Mənim Dərslərim -->
+                        <button @click="activeView = 'dashboard'; sidebarOpen = false;" :class="activeView === 'dashboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                            <svg class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            <span x-text="t('nav_learning')">Mənim Dərslərim</span>
+                        </button>
+
+                        <!-- 2. Kurslar Kataloqu -->
+                        <button @click="activeView = 'catalog'; sidebarOpen = false;" :class="activeView === 'catalog' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                            <svg class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                            <span x-text="t('nav_catalog')">Kurslar Kataloqu</span>
+                        </button>
+
+                        <!-- 3. Liderlər Cədvəli -->
+                        <button @click="activeView = 'leaderboard'; sidebarOpen = false;" :class="activeView === 'leaderboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                            <svg class="w-4 h-4 shrink-0 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                            </svg>
+                            <span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Admin & Tərtibatçı Alətləri (Yalnız Admin olduqda) -->
+                <template x-if="isAdmin">
+                    <div>
+                        <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400/80 px-3 mb-2">İdarəetmə</div>
+                        <nav class="space-y-1">
+                            <a href="https://localhost:7241" target="_blank" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 hover:bg-neutral-100 dark:bg-transparent dark:hover:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-800 transition group">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xs">🛡️</span>
+                                    <span>Admin Paneli</span>
+                                </div>
+                                <svg class="w-3 h-3 text-neutral-400 group-hover:text-neutral-700 dark:text-neutral-500 dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                            <a href="/scalar/v1" target="_blank" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 hover:bg-neutral-100 dark:bg-transparent dark:hover:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-800 transition group">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xs">⚡</span>
+                                    <span class="font-mono">Scalar API</span>
+                                </div>
+                                <svg class="w-3 h-3 text-neutral-400 group-hover:text-neutral-700 dark:text-neutral-500 dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                        </nav>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Gamifikasiya Streak Widget (Yan Panel Daxilində) -->
+            <template x-if="token">
+                <div class="mx-3 mt-auto mb-3 bg-neutral-50 border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Öyrənmə Aktivliyi</span>
+                        <span class="text-xs font-mono font-bold text-amber-500 dark:text-amber-400">🔥 <span x-text="gamification.currentStreak">1</span> <span x-text="t('streak_days')">gün</span></span>
+                    </div>
+                    <div class="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all duration-500" :style="`width: ${Math.min(100, gamification.totalXp)}%`"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] font-mono text-neutral-600 dark:text-neutral-400 pt-0.5">
+                        <span>XP Balı</span>
+                        <span class="font-bold text-blue-600 dark:text-blue-400"><span x-text="gamification.totalXp">20</span> XP</span>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- YAN PANEL AŞAĞI BLOKU: İSTİFADƏÇİ & TƏNZİMLƏMƏLƏR -->
+        <div class="p-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#0e0e10] space-y-3">
+            <!-- İstifadəçi Profili -->
+            <template x-if="token">
+                <div class="flex items-center justify-between p-2 rounded-xl bg-white border border-neutral-200 dark:bg-neutral-900/60 dark:border-neutral-800/80 shadow-xs">
+                    <div class="flex items-center gap-2.5 truncate">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm font-mono shrink-0" :title="userEmail">
+                            <span x-text="userFullName ? userFullName[0].toUpperCase() : (userEmail ? userEmail[0].toUpperCase() : 'U')">U</span>
+                        </div>
+                        <div class="truncate">
+                            <div class="text-xs font-bold text-neutral-900 dark:text-white truncate" x-text="userFullName || userEmail">Əsmər Babayeva</div>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span x-show="isAdmin" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">Admin</span>
+                                <span x-show="isInstructor" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">Müəllim</span>
+                                <span x-show="isStudent" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">Tələbə</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="logout()" class="text-neutral-400 hover:text-rose-500 dark:text-neutral-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition shrink-0 cursor-pointer" title="Çıxış et">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </button>
+                </div>
+            </template>
+            <template x-if="!token">
+                <button @click="showLoginModal = true" class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <span x-text="t('btn_login')">Daxil Ol</span>
+                </button>
+            </template>
+
+            <!-- Dil və Rejim Tənzimləmələri -->
+            <div class="flex items-center justify-between pt-1">
+                <!-- 3-Dilli Keçid (AZ | EN | RU) -->
+                <div class="flex items-center rounded-lg border border-neutral-200 dark:border-neutral-800 p-0.5 bg-neutral-100 dark:bg-neutral-900 text-[11px] font-mono font-bold">
+                    <button @click="setLang('az')" :class="currentLang === 'az' ? 'bg-white text-neutral-900 shadow-xs dark:bg-neutral-800 dark:text-white' : 'text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'" class="px-2 py-0.5 rounded-md transition cursor-pointer" title="Azərbaycan dili">AZ</button>
+                    <button @click="setLang('en')" :class="currentLang === 'en' ? 'bg-white text-neutral-900 shadow-xs dark:bg-neutral-800 dark:text-white' : 'text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'" class="px-2 py-0.5 rounded-md transition cursor-pointer" title="English">EN</button>
+                    <button @click="setLang('ru')" :class="currentLang === 'ru' ? 'bg-white text-neutral-900 shadow-xs dark:bg-neutral-800 dark:text-white' : 'text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200'" class="px-2 py-0.5 rounded-md transition cursor-pointer" title="Русский язык">RU</button>
+                </div>
+
+                <!-- Rejim Keçidi (İşıqlı / Qaranlıq Rejim Düyməsi) -->
+                <button @click="toggleTheme()" class="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition cursor-pointer" :title="isDark ? 'İşıqlı rejimə keç' : 'Qaranlıq rejimə keç'">
+                    <svg x-show="!isDark" class="w-4 h-4 text-neutral-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                    <svg x-show="isDark" class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ========================================================= -->
+    <!-- 2. SAĞ ƏSAS İŞ SAHƏSİ (TOP BAR + SCROLLABLE CONTENT) -->
+    <!-- ========================================================= -->
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        
+        <!-- ÜST PANEL (TOP WORKSPACE HEADER) -->
+        <header class="h-16 bg-white/95 border-b border-neutral-200 text-neutral-900 dark:bg-[#0d0d0e]/95 dark:border-neutral-800 dark:text-white backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shrink-0 z-30 transition-colors">
+            <div class="flex items-center gap-3">
+                <!-- Mobil Menyu Açıcı (Hamburger) -->
+                <button @click="sidebarOpen = true" class="md:hidden p-2 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </button>
+
+                <!-- Cari Səhifə Başlığı / Breadcrumb -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hidden sm:inline">Platforma /</span>
+                    <h2 class="text-sm sm:text-base font-bold text-neutral-900 dark:text-white tracking-tight">
+                        <template x-if="activeView === 'dashboard'"><span x-text="t('nav_learning')">Mənim Dərslərim</span></template>
+                        <template x-if="activeView === 'catalog'"><span x-text="t('nav_catalog')">Kurslar Kataloqu</span></template>
+                        <template x-if="activeView === 'leaderboard'"><span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span></template>
+                        <template x-if="activeView === 'player'"><span x-text="activeCourse?.title || 'Video Pleyer'">Dərs Pleyeri</span></template>
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Sağ Hissə: Axtarış / Status Göstəricisi -->
+            <div class="flex items-center gap-3">
+                <!-- Streak & XP Qısa İndikator -->
+                <template x-if="token">
+                    <div class="hidden sm:flex items-center gap-2 bg-neutral-100 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 px-3 py-1 rounded-full text-xs font-mono text-neutral-700 dark:text-neutral-300">
+                        <span class="text-amber-500 dark:text-amber-400">🔥</span>
+                        <span><span x-text="gamification.currentStreak" class="font-bold text-amber-600 dark:text-amber-400">1</span> <span x-text="t('streak_days')" class="text-neutral-500 dark:text-neutral-400">gün</span></span>
+                        <span class="text-neutral-300 dark:text-neutral-700">|</span>
+                        <span class="text-blue-600 dark:text-blue-400 font-bold"><span x-text="gamification.totalXp">20</span> <span class="text-neutral-400 dark:text-neutral-500 font-normal">XP</span></span>
+                    </div>
+                </template>
+
+                <template x-if="!token">
+                    <button @click="showLoginModal = true" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition cursor-pointer">
+                        <span x-text="t('btn_login')">Daxil Ol</span>
+                    </button>
+                </template>
+            </div>
+        </header>
+
+        <!-- ƏSAS MƏZMUN SAHƏSİ (SCROLLABLE MAIN VIEW: AĞ & QARANLIQ REJİM) -->
+        <main class="flex-1 overflow-y-auto bg-neutral-100 dark:bg-[#0d0d0e] transition-colors">
+
+            <!-- 2.1 DASHBOARD: MƏNİM DƏRSLƏRİM & STREAK -->
+            <div x-show="activeView === 'dashboard'" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <!-- Xoş gəldiniz & Gamifikasiya Xülasəsi -->
+                <div class="rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#161618] p-6 sm:p-8 text-neutral-900 dark:text-neutral-100 shadow-sm dark:shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden transition-colors">
+                    <div class="space-y-3 z-10">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 font-mono text-[11px] font-semibold tracking-wide uppercase">Pragma Learning Track</span>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
+                            <span x-text="t('dash_welcome')">Xoş gəldiniz</span><span x-show="userFullName" x-text="', ' + userFullName"></span>!
+                        </h1>
+                        <p class="text-neutral-600 dark:text-neutral-400 text-sm max-w-xl leading-relaxed" x-text="t('dash_subtitle')">İstədiyiniz yerdən fasiləsiz davam edin, nailiyyət nişanları qazanın və rəsmi sertifikatınızı əldə edin.</p>
+                    </div>
+                    <!-- Monospace Gamifikasiya Statistika Paneli -->
+                    <div class="z-10 bg-neutral-50 border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800/80 rounded-xl p-4 flex items-center gap-6">
+                        <div class="text-center min-w-[70px]">
+                            <div class="text-2xl">🔥</div>
+                            <div class="text-xl font-bold font-mono text-neutral-900 dark:text-white mt-1" x-text="gamification.currentStreak">1</div>
+                            <div class="text-[10px] text-neutral-500 uppercase font-mono font-semibold" x-text="t('streak_active')">Aktiv Streak</div>
+                        </div>
+                        <div class="w-px h-10 bg-neutral-200 dark:bg-neutral-800"></div>
+                        <div class="text-center min-w-[70px]">
+                            <div class="text-2xl">🏆</div>
+                            <div class="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1" x-text="gamification.totalXp">20</div>
+                            <div class="text-[10px] text-neutral-500 uppercase font-mono font-semibold">Ümumi XP</div>
+                        </div>
+                        <div class="w-px h-10 bg-neutral-200 dark:bg-neutral-800"></div>
+                        <div class="text-center min-w-[70px]">
+                            <div class="text-2xl">🎖️</div>
+                            <div class="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" x-text="gamification.badges.length">0</div>
+                            <div class="text-[10px] text-neutral-500 uppercase font-mono font-semibold" x-text="t('badges_count')">Nişanlar</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Qazanılmış Nailiyyət Nişanları (Badges Showcase) -->
+                <div x-show="gamification.badges.length > 0" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl p-5 shadow-sm transition-colors">
+                    <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-3" x-text="t('badges_title')">Qazanılmış Nailiyyətlər</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <template x-for="badge in gamification.badges" :key="badge.badgeCode">
+                            <div class="flex items-center gap-2.5 bg-neutral-50 border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800/80 px-3.5 py-2 rounded-xl">
+                                <span class="text-2xl">🏅</span>
+                                <div>
+                                    <div class="text-xs font-bold text-neutral-900 dark:text-white" x-text="badge.badgeName">İlk Addım</div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono" x-text="badge.description">Dərsi tamamladınız</div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Aktiv Qeydiyyatlı Kurslar (1-Click Resume Button) -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold tracking-tight text-neutral-900 dark:text-white" x-text="t('my_courses')">Davam Edən Kurslarım</h2>
+                        <button @click="activeView = 'catalog'" class="text-xs font-mono font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition cursor-pointer" x-text="t('explore_more')">Bütün Kurslara Bax →</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="course in enrolledCourses" :key="course.id">
+                            <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-lg dark:hover:border-neutral-700 transition flex flex-col group">
+                                <!-- Kurs Şəkli / Başlıq Bloku (Contrast Banner) -->
+                                <div class="h-36 bg-gradient-to-br from-slate-800 to-indigo-950 dark:from-[#1c1c20] dark:to-[#0f0f12] border-b border-neutral-200 dark:border-neutral-800 p-4 text-white flex flex-col justify-between relative">
+                                    <span class="self-start px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur border border-white/20 dark:bg-neutral-900/80 dark:border-neutral-700/60 text-[10px] font-mono text-white dark:text-blue-400 uppercase tracking-wider" x-text="course.categoryName || 'Proqramlaşdırma'">C# .NET</span>
+                                    <div>
+                                        <h3 class="font-bold text-base text-white tracking-tight leading-snug line-clamp-2" x-text="course.title">C# 14 & .NET 10 Clean Architecture</h3>
+                                    </div>
+                                </div>
+
+                                <!-- Tərəqqi (Progress Bar) -->
+                                <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                                    <div class="space-y-1.5">
+                                        <div class="flex justify-between text-xs font-medium text-neutral-600 dark:text-neutral-400">
+                                            <span x-text="t('progress_label')">Tərəqqi</span>
+                                            <span class="text-blue-600 dark:text-blue-400 font-mono font-bold" x-text="Math.round(course.progressPercentage || 0) + '%'">0%</span>
+                                        </div>
+                                        <div class="w-full bg-neutral-100 dark:bg-neutral-800/90 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-blue-600 dark:bg-blue-500 h-1.5 rounded-full transition-all duration-500" :style="`width: ${course.progressPercentage || 0}%`"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Əməliyyat Düymələri (Resume & Certificate) -->
+                                    <div class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
+                                        <!-- 1-Click "Qaldığın Yerdən Davam Et" (Resume) -->
+                                        <button @click="resumeCourse(course.id)" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+                                            <span x-text="t('btn_resume')">Qaldığın Yerdən Davam Et</span>
+                                        </button>
+
+                                        <!-- 100% Bitirənlər üçün Sertifikat Düyməsi -->
+                                        <template x-if="course.isCompleted || (course.progressPercentage >= 100)">
+                                            <button @click="openCertificateModal(course)" class="py-2.5 px-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer" :title="t('btn_cert')">
+                                                <span>🎓</span>
+                                                <span x-text="t('btn_cert_short')">Sertifikat</span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.2 KURS KATALOQU (EXPLORE COURSES) -->
+            <div x-show="activeView === 'catalog'" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white" x-text="t('catalog_title')">Bütün Kurslar</h1>
+                        <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1" x-text="t('catalog_subtitle')">Peşəkar proqramlaşdırma, arxitektura və müasir süni intellekt dərsləri.</p>
+                    </div>
+                    <!-- Axtarış xanası -->
+                    <div class="relative w-full sm:w-72">
+                        <input type="text" x-model="searchQuery" @input.debounce.300ms="loadCourses()" :placeholder="t('search_placeholder')" class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-[#161618] text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+                        <svg class="w-4 h-4 absolute left-3 top-2.5 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                </div>
+
+                <!-- Kurs Kartları Siyahısı -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="course in allCourses" :key="course.id">
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-lg dark:hover:border-neutral-700 transition flex flex-col group">
+                            <div class="h-40 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-800 dark:from-[#1c1c20] dark:to-[#0f0f12] border-b border-neutral-200 dark:border-neutral-800 p-5 text-white flex flex-col justify-between">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur text-white text-[10px] font-mono uppercase tracking-wider" x-text="course.categoryName || 'Backend'">Kateqoriya</span>
+                                    <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold" x-text="course.isFree ? t('badge_free') : 'Ödənişli'">Pulsuz</span>
+                                </div>
+                                <h3 class="font-extrabold text-base text-white tracking-tight leading-snug line-clamp-2" x-text="course.title">Kurs Başlığı</h3>
+                            </div>
+                            <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                                <p class="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3 leading-relaxed" x-text="course.shortDescription || 'Müasir .NET 10 Onion Architecture LMS layihəsi.'"></p>
+
+                                <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800/60 flex items-center justify-between">
+                                    <span class="text-xs font-mono text-neutral-500" x-text="course.instructorFullName || 'Pragma Təlimçi'">Təlimçi</span>
+                                    <button @click="enrollOrOpenCourse(course)" class="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-sm cursor-pointer">
+                                        <span x-text="course.isEnrolled ? t('btn_enter_course') : t('btn_enroll')">Qeydiyyatdan Keç</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- 2.3 TOP LİDERLƏR CƏDVƏLİ (LEADERBOARD) -->
+            <div x-show="activeView === 'leaderboard'" x-cloak class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                <div class="text-center space-y-2">
+                    <span class="text-3xl">🏆</span>
+                    <h1 class="text-2xl font-extrabold text-neutral-900 dark:text-white" x-text="t('leaderboard_title')">Pragma Öyrənmə Liderləri</h1>
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400" x-text="t('leaderboard_subtitle')">Ən yüksək aktivlik, fasiləsiz öyrənmə zənciri (Streak) və XP toplayan tələbələr.</p>
+                </div>
+
+                <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-lg transition-colors">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-neutral-50 border-b border-neutral-200 text-neutral-600 dark:bg-[#111113] dark:border-neutral-800 dark:text-neutral-400 font-mono text-[11px] uppercase tracking-wider font-semibold">
+                                <th class="py-3.5 px-4">#</th>
+                                <th class="py-3.5 px-4" x-text="t('col_student')">Tələbə</th>
+                                <th class="py-3.5 px-4 text-center">🔥 Streak</th>
+                                <th class="py-3.5 px-4 text-center">🎖️ Nişanlar</th>
+                                <th class="py-3.5 px-4 text-right">Ümumi XP</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800/60 text-sm">
+                            <template x-for="(entry, index) in leaderboard" :key="entry.userId">
+                                <tr class="hover:bg-neutral-50/80 dark:hover:bg-neutral-800/30 transition">
+                                    <td class="py-3 px-4 font-bold text-xs" :class="index === 0 ? 'text-amber-500 dark:text-amber-400 text-base' : (index === 1 ? 'text-neutral-400 text-sm' : (index === 2 ? 'text-amber-700 text-sm' : 'text-neutral-500 font-mono'))">
+                                        <span x-text="index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : (index + 1)))">1</span>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-semibold text-neutral-900 dark:text-white" x-text="entry.fullName || 'Tələbə'">Ad Soyad</div>
+                                        <div class="text-[11px] font-mono text-neutral-400 dark:text-neutral-500" x-text="entry.email">email@pragma.edu.az</div>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-bold font-mono text-amber-600 dark:text-amber-400">
+                                        <span x-text="entry.currentStreak + ' gün'">1 gün</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-center font-semibold font-mono text-neutral-700 dark:text-neutral-300">
+                                        <span x-text="entry.totalBadges">0</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-right font-extrabold font-mono text-blue-600 dark:text-blue-400">
+                                        <span x-text="entry.totalXp + ' XP'">20 XP</span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2.4 SİNEMA VİDEO PLEYERİ & AĞILLI ZAMAN QEYDLƏRİ (CINEMA PLAYER) -->
+            <div x-show="activeView === 'player'" x-cloak class="h-full flex flex-col">
+                <!-- Pleyer Üst Başlıq Sətiri -->
+                <div class="bg-white border-b border-neutral-200 text-neutral-900 dark:bg-[#0d0d0e] dark:border-neutral-800 dark:text-white px-4 sm:px-6 py-3 flex items-center justify-between transition-colors">
+                    <div class="flex items-center gap-3">
+                        <button @click="activeView = 'dashboard'" class="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition cursor-pointer" title="Dashboard-a qayıt">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        </button>
+                        <div>
+                            <div class="text-[10px] font-mono text-neutral-500 uppercase" x-text="activeCourse?.title || 'Kurs'">C# .NET Kursu</div>
+                            <h2 class="text-sm font-bold truncate max-w-md sm:max-w-xl text-neutral-900 dark:text-white" x-text="activeLesson?.title || 'Dərs Başlığı'">Dərs 1: Giriş</h2>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <!-- Canlı Jitsi Meet Vebinar Düyməsi -->
+                        <button @click="openLiveSession()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-300 dark:border-rose-500/40 text-xs font-semibold transition cursor-pointer" title="Canlı video konfransa qoşul">
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                            <span x-text="t('btn_live')">Canlı Dərs</span>
+                        </button>
+
+                        <!-- Sinema Rejimi (Theater Mode) Keçidi -->
+                        <button @click="theaterMode = !theaterMode" class="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition cursor-pointer" :title="theaterMode ? 'Standart rejim' : 'Sinema rejimi (Geniş)'">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Əsas Pleyer Sahəsi (Sol Video, Sağ Kurrikulum / Qeydlər / AI Chat) -->
+                <div class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-black">
+                    <!-- Sol: Video Pleyer və Aşağı Tablar -->
+                    <div :class="theaterMode ? 'w-full' : 'flex-1'" class="flex flex-col overflow-y-auto">
+                        <!-- 16:9 Video Sahəsi -->
+                        <div class="w-full bg-black relative flex items-center justify-center aspect-video max-h-[70vh]">
+                            <template x-if="activeLesson && activeLesson.videoUrl">
+                                <iframe id="pragma-video-frame" :src="getYoutubeEmbedUrl(activeLesson.videoUrl)" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </template>
+                            <template x-if="!activeLesson || !activeLesson.videoUrl">
+                                <div class="text-center text-neutral-400 p-8">
+                                    <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <p class="text-xs" x-text="t('video_none')">Bu dərs üçün video linki təyin edilməyib.</p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Video İdarəsi və Simulyasiyalı 90% YouTube Progress Tracker -->
+                        <div class="bg-neutral-50 border-b border-neutral-200 text-neutral-800 dark:bg-[#161618] dark:border-neutral-800 dark:text-neutral-300 px-6 py-3 flex items-center justify-between text-xs transition-colors">
+                            <div class="flex items-center gap-2">
+                                <button @click="simulateVideoProgress(95)" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 dark:border-blue-500/30 font-mono text-xs font-semibold transition cursor-pointer">
+                                    <span x-text="t('btn_simulate_90')">⚡ 90% İzləməni Təsdiqlə (YouTube Tamamlama)</span>
+                                </button>
+                                <span class="text-neutral-400 dark:text-neutral-700">|</span>
+                                <span class="font-mono text-xs" x-text="activeLesson?.isCompleted ? '✅ ' + t('lesson_completed') : '⏳ ' + t('lesson_in_progress')">Status</span>
+                            </div>
+                            <div class="flex items-center gap-3 font-mono text-xs text-neutral-500 dark:text-neutral-400">
+                                <button @click="seekDelta(-5)" class="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer" title="5 saniyə geri">⏪ -5 san</button>
+                                <button @click="seekDelta(5)" class="hover:text-neutral-900 dark:hover:text-white transition cursor-pointer" title="5 saniyə irəli">+5 san ⏩</button>
+                            </div>
+                        </div>
+
+                        <!-- Video Altı İnteraktiv Tablar (Qeydlər, AI Mentor, Kviz) -->
+                        <div class="p-6 bg-white dark:bg-[#0d0d0e] flex-1 space-y-4 transition-colors">
+                            <div class="flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-800 pb-2">
+                                <button @click="playerTab = 'notes'" :class="playerTab === 'notes' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-500 font-bold' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'" class="px-3 py-1.5 text-xs transition cursor-pointer">
+                                    <span x-text="t('tab_notes')">📝 Ağıllı Zaman Qeydləri</span>
+                                </button>
+                                <button @click="playerTab = 'ai'" :class="playerTab === 'ai' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-500 font-bold' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'" class="px-3 py-1.5 text-xs transition cursor-pointer">
+                                    <span x-text="t('tab_ai')">🤖 Gemini AI Mentor</span>
+                                </button>
+                                <button @click="playerTab = 'quiz'" :class="playerTab === 'quiz' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-400 dark:border-blue-500 font-bold' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'" class="px-3 py-1.5 text-xs transition cursor-pointer">
+                                    <span x-text="t('tab_quiz')">💡 Kviz & Sokratik İpucu</span>
+                                </button>
+                            </div>
+
+                            <!-- Tab 1: In-Video Timestamp Notes -->
+                            <div x-show="playerTab === 'notes'" class="space-y-4">
+                                <div class="bg-neutral-50 border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl p-3 flex gap-2">
+                                    <input type="text" x-model="newNoteText" @keydown.enter="addLessonNote()" :placeholder="t('note_placeholder')" class="flex-1 bg-white border border-neutral-300 dark:bg-[#111113] dark:border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500">
+                                    <button @click="addLessonNote()" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition cursor-pointer">
+                                        <span x-text="t('btn_add_note')">Yadda Saxla</span>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <template x-for="note in lessonNotes" :key="note.id">
+                                        <div class="bg-neutral-50 border border-neutral-200 hover:border-neutral-300 dark:bg-[#161618] dark:hover:border-neutral-700 dark:border-neutral-800 rounded-xl p-3 flex items-start justify-between gap-3 group transition">
+                                            <div class="flex items-start gap-2.5">
+                                                <button @click="jumpToTime(note.positionSeconds)" class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-600 hover:text-white dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30 dark:hover:bg-blue-600 dark:hover:text-white font-mono text-xs font-bold transition cursor-pointer" :title="t('jump_hint')">
+                                                    <span x-text="formatSeconds(note.positionSeconds)">01:24</span>
+                                                </button>
+                                                <p class="text-xs text-neutral-800 dark:text-neutral-200 leading-relaxed" x-text="note.noteText">Qeyd mətni</p>
+                                            </div>
+                                            <button @click="deleteLessonNote(note.id)" class="opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-rose-500 text-xs p-1 transition cursor-pointer" title="Sil">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Gemini AI Mentor Grounded Chat -->
+                            <div x-show="playerTab === 'ai'" class="space-y-4">
+                                <div class="bg-neutral-50 border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl p-4 max-h-64 overflow-y-auto space-y-3">
+                                    <div class="flex gap-2.5">
+                                        <div class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold shrink-0">AI</div>
+                                        <div class="bg-white border border-neutral-200 text-neutral-800 dark:bg-[#111113] dark:text-neutral-200 dark:border-neutral-800 text-xs p-3 rounded-2xl rounded-tl-none shadow-xs" x-text="t('ai_welcome')">
+                                            Salam! Mən sizin Pragma AI Mentorunuzam. Bu dərs mövzusunda nəyi anlamaqda çətinlik çəkirsinizsə, buyurun soruşun!
+                                        </div>
+                                    </div>
+                                    <template x-for="chat in aiChatHistory" :key="chat.id">
+                                        <div :class="chat.isUser ? 'flex justify-end' : 'flex gap-2.5'">
+                                            <template x-if="!chat.isUser">
+                                                <div class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold shrink-0">AI</div>
+                                            </template>
+                                            <div :class="chat.isUser ? 'bg-blue-600 text-white' : 'bg-white border border-neutral-200 text-neutral-800 dark:bg-[#111113] dark:text-neutral-200 dark:border-neutral-800 shadow-xs'" class="text-xs p-3 rounded-2xl max-w-lg leading-relaxed whitespace-pre-wrap" x-text="chat.text"></div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="aiQuestion" @keydown.enter="askAiMentor()" :placeholder="t('ai_placeholder')" class="flex-1 bg-white border border-neutral-300 dark:bg-[#161618] dark:border-neutral-800 rounded-xl px-4 py-2 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500">
+                                    <button @click="askAiMentor()" :disabled="aiLoading" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer">
+                                        <span x-show="!aiLoading" x-text="t('btn_send')">Göndər</span>
+                                        <span x-show="aiLoading">Düşünür...</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Kviz & Sokratik İpucu (Socratic Hint) -->
+                            <div x-show="playerTab === 'quiz'" class="space-y-4">
+                                <div class="bg-neutral-50 border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 space-y-4">
+                                    <div class="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-3">
+                                        <div>
+                                            <h3 class="font-bold text-sm text-neutral-900 dark:text-white" x-text="t('quiz_title')">Bilik Yoxlama Sınağı</h3>
+                                            <p class="text-xs text-neutral-500 dark:text-neutral-400" x-text="t('quiz_subtitle')">Sokratik ipucu köməyi ilə biliyinizi möhkəmləndirin.</p>
+                                        </div>
+                                        <button @click="getSocraticHint()" class="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-300 hover:bg-amber-100 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-300 dark:border-amber-500/40 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer">
+                                            <span>💡</span>
+                                            <span x-text="t('btn_socratic_hint')">Sokratik İpucu Al</span>
+                                        </button>
+                                    </div>
+
+                                    <div x-show="socraticHintText" class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-600/40 dark:text-amber-200 text-xs leading-relaxed space-y-1">
+                                        <div class="font-bold flex items-center gap-1"><span>🧠</span> <span>AI Sokratik Bələdçi:</span></div>
+                                        <p x-text="socraticHintText"></p>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="text-xs font-semibold text-neutral-800 dark:text-neutral-300">1. Onion Architecture-də Domain qatı hansı asılılığa malik olmalıdır?</div>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-100 dark:bg-[#111113] dark:border-neutral-800 dark:hover:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 cursor-pointer transition">
+                                                <input type="radio" name="demo_quiz" class="text-blue-600">
+                                                <span>Heç bir xarici layihədən və ya framework-dən asılı olmamalıdır (Zero Dependencies).</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-100 dark:bg-[#111113] dark:border-neutral-800 dark:hover:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 cursor-pointer transition">
+                                                <input type="radio" name="demo_quiz" class="text-blue-600">
+                                                <span>Birbaşa Entity Framework və SQL Server-dən asılı olmalıdır.</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sağ: Kollaps Kurrikulum Paneli -->
+                    <div x-show="!theaterMode" class="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#0d0d0e] flex flex-col h-full overflow-hidden transition-colors">
+                        <div class="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+                            <h3 class="font-mono text-xs uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-bold" x-text="t('curriculum')">Kurs Kurrikulumu</h3>
+                            <span class="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold" x-text="activeCourse?.modules?.length || 0 + ' modul'">0 modul</span>
+                        </div>
+
+                        <!-- Modul və Dərs Siyahısı -->
+                        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                            <template x-for="mod in activeCourse?.modules || []" :key="mod.id">
+                                <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl overflow-hidden shadow-xs">
+                                    <div class="p-3 bg-neutral-100 border-b border-neutral-200 dark:bg-[#111113] dark:border-neutral-800/80 text-xs font-bold text-neutral-800 dark:text-neutral-200 flex items-center justify-between">
+                                        <span x-text="mod.title">Modul Başlığı</span>
+                                    </div>
+                                    <div class="divide-y divide-neutral-100 dark:divide-neutral-800/60">
+                                        <template x-for="lesson in mod.lessons || []" :key="lesson.id">
+                                            <button @click="selectLesson(lesson)" :class="activeLesson?.id === lesson.id ? 'bg-blue-50 text-blue-700 border-l-2 border-blue-600 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500 font-semibold' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-800/50'" class="w-full p-2.5 text-left text-xs flex items-center justify-between transition cursor-pointer">
+                                                <div class="flex items-center gap-2 truncate">
+                                                    <span x-text="lesson.isCompleted ? '✅' : '▶️'">▶️</span>
+                                                    <span class="truncate" x-text="lesson.title">Dərs Başlığı</span>
+                                                </div>
+                                                <span class="text-[10px] text-neutral-400 font-mono" x-text="lesson.durationMinutes + ' dəq'">10 dəq</span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 3. RƏSMİ PDF SERTİFİKAT & QR MODALI -->
+    <!-- ========================================================= -->
+    <div x-show="showCertModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+        <div @click.away="showCertModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-center text-neutral-900 dark:text-white">
+            <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400 flex items-center justify-center text-3xl mx-auto shadow-sm">
+                🎓
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-xl font-extrabold text-neutral-900 dark:text-white" x-text="t('cert_modal_title')">Təbriklər, Məzun!</h3>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400" x-text="t('cert_modal_subtitle')">Siz kursu 100% uğurla başa vurdunuz və rəsmi diplom əldə etdiniz.</p>
+            </div>
+
+            <!-- Sertifikat Detalları Kartı -->
+            <div class="p-4 rounded-xl bg-neutral-50 border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800 text-left space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-neutral-500 dark:text-neutral-400" x-text="t('col_student')">Tələbə:</span>
+                    <span class="font-bold text-neutral-900 dark:text-white" x-text="certificateData?.studentFullName || 'Tələbə'">Pragma Məzun</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-neutral-500 dark:text-neutral-400">Kurs:</span>
+                    <span class="font-bold text-neutral-900 dark:text-white" x-text="certificateData?.courseTitle || 'Kurs'">.NET 10 Clean Architecture</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-neutral-500 dark:text-neutral-400">Unikal Sertifikat №:</span>
+                    <span class="font-mono font-bold text-amber-600 dark:text-amber-400" x-text="certificateData?.certificateCode || 'PRAGMA-2026-X7B9'">PRAGMA-2026-X7B9</span>
+                </div>
+            </div>
+
+            <!-- Əməliyyat Düymələri -->
+            <div class="flex items-center gap-3">
+                <button @click="downloadCertificatePdf()" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    <span x-text="t('btn_download_pdf')">Rəsmi PDF Sertifikatı Endir</span>
+                </button>
+                <button @click="showCertModal = false" class="py-2.5 px-4 rounded-xl border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:text-white dark:hover:bg-neutral-800 font-semibold text-xs transition cursor-pointer" x-text="t('btn_close')">
+                    Bağla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 4. DAXİL OL MODALI (LOGIN MODAL) -->
+    <!-- ========================================================= -->
+    <div x-show="showLoginModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+        <div @click.away="showLoginModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl max-w-sm w-full p-6 space-y-5 shadow-2xl text-neutral-900 dark:text-white">
+            <div class="text-center space-y-1">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 dark:bg-neutral-900 dark:border-neutral-700 dark:text-blue-400 flex items-center justify-center text-lg mx-auto font-mono font-bold mb-2 shadow-sm">P</div>
+                <h3 class="text-lg font-bold text-neutral-900 dark:text-white" x-text="t('login_title')">Pragma LMS Giriş</h3>
+                <p class="text-xs text-neutral-500 dark:text-neutral-400" x-text="t('login_subtitle')">Hesabınıza daxil olaraq dərslərə davam edin.</p>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-mono font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Email</label>
+                    <input type="email" x-model="loginEmail" class="w-full px-3 py-2 text-xs rounded-xl border border-neutral-300 bg-neutral-50 text-neutral-900 dark:border-neutral-800 dark:bg-[#0d0d0e] dark:text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono font-semibold text-neutral-700 dark:text-neutral-300 mb-1">Şifrə</label>
+                    <input type="password" x-model="loginPassword" class="w-full px-3 py-2 text-xs rounded-xl border border-neutral-300 bg-neutral-50 text-neutral-900 dark:border-neutral-800 dark:bg-[#0d0d0e] dark:text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+            </div>
+
+            <!-- 1-Click Giriş Köməkçiləri (3 Əsas Rol) -->
+            <div class="space-y-1.5 pt-1">
+                <div class="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-wider text-center">Sürətli Giriş (1-Klik)</div>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button @click="fillStudentCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50 dark:border-blue-800/60 transition text-center shadow-xs cursor-pointer" title="Əsmər Babayeva (Tələbə)">
+                        🎓 Tələbə
+                    </button>
+                    <button @click="fillInstructorCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900/50 dark:border-emerald-800/60 transition text-center shadow-xs cursor-pointer" title="Rəşad Əliyev (Müəllim)">
+                        👨‍🏫 Müəllim
+                    </button>
+                    <button @click="fillAdminCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-900/50 dark:border-purple-800/60 transition text-center shadow-xs cursor-pointer" title="Pragma SuperAdmin">
+                        🛡️ Admin
+                    </button>
+                </div>
+            </div>
+
+            <button @click="login()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer" x-text="t('btn_login')">
+                Daxil Ol
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 5. JAVASCRIPT: ALPINE.JS LOGIC & API CLIENT -->
+    <!-- ========================================================= -->
+    <script>
+        function pragmaApp() {
+            return {
+                activeView: 'dashboard', // 'dashboard', 'catalog', 'leaderboard', 'player'
+                playerTab: 'notes',      // 'notes', 'ai', 'quiz'
+                theaterMode: false,
+                sidebarOpen: false,      // Mobil yan menyu idarəsi
+                isDark: true,
+                currentLang: 'az',
+                showLoginModal: false,
+                showCertModal: false,
+
+                // Auth & User
+                token: localStorage.getItem('pragma-token') || '',
+                userEmail: localStorage.getItem('pragma-user-email') || '',
+                userFullName: localStorage.getItem('pragma-user-fullname') || '',
+                userRoles: JSON.parse(localStorage.getItem('pragma-user-roles') || '[]'),
+                get isAdmin() { return this.userRoles.includes('Admin'); },
+                get isInstructor() { return this.userRoles.includes('Instructor'); },
+                get isStudent() { return this.userRoles.includes('Student'); },
+                loginEmail: 'student@pragma.edu.az',
+                loginPassword: 'Password123!',
+
+                // Data
+                enrolledCourses: [],
+                allCourses: [],
+                leaderboard: [],
+                gamification: { currentStreak: 1, totalXp: 20, badges: [] },
+                activeCourse: null,
+                activeLesson: null,
+                lessonNotes: [],
+                newNoteText: '',
+                aiChatHistory: [],
+                aiQuestion: '',
+                aiLoading: false,
+                socraticHintText: '',
+                certificateData: null,
+                searchQuery: '',
+
+                // Çoxdillilik Lüğəti (AZ / EN / RU i18n)
+                translations: {
+                    az: {
+                        menu_nav: 'Naviqasiya',
+                        nav_learning: 'Mənim Dərslərim',
+                        nav_catalog: 'Kurslar Kataloqu',
+                        nav_leaderboard: 'Liderlər Cədvəli',
+                        dash_welcome: 'Xoş gəldiniz',
+                        dash_subtitle: 'İstədiyiniz yerdən fasiləsiz davam edin, nailiyyət nişanları qazanın və rəsmi sertifikatınızı əldə edin.',
+                        streak_days: 'gün',
+                        streak_active: 'Aktiv Streak',
+                        badges_count: 'Nişanlar',
+                        badges_title: 'Qazanılmış Nailiyyətlər',
+                        my_courses: 'Davam Edən Kurslarım',
+                        explore_more: 'Bütün Kurslara Bax →',
+                        progress_label: 'Tərəqqi',
+                        btn_resume: 'Qaldığın Yerdən Davam Et',
+                        btn_cert: 'Sertifikata Bax',
+                        btn_cert_short: 'Sertifikat',
+                        catalog_title: 'Bütün Kurslar',
+                        catalog_subtitle: 'Peşəkar proqramlaşdırma, arxitektura və müasir süni intellekt dərsləri.',
+                        search_placeholder: 'Kurs axtar...',
+                        badge_free: 'Pulsuz',
+                        btn_enroll: 'Qeydiyyatdan Keç',
+                        btn_enter_course: 'Kursa Daxil Ol',
+                        leaderboard_title: 'Pragma Öyrənmə Liderləri',
+                        leaderboard_subtitle: 'Ən yüksək aktivlik, fasiləsiz öyrənmə zənciri (Streak) və XP toplayan tələbələr.',
+                        col_student: 'Tələbə',
+                        btn_live: 'Canlı Dərs',
+                        video_none: 'Bu dərs üçün video linki təyin edilməyib.',
+                        btn_simulate_90: '⚡ 90% İzləməni Təsdiqlə (YouTube Tamamlama)',
+                        lesson_completed: 'Tamamlandı (90%+)',
+                        lesson_in_progress: 'Davam edir',
+                        tab_notes: '📝 Ağıllı Zaman Qeydləri',
+                        tab_ai: '🤖 Gemini AI Mentor',
+                        tab_quiz: '💡 Kviz & Sokratik İpucu',
+                        note_placeholder: 'Cari saniyəyə qeyd yazın (məs: Bu yerdə DI izah olunur)...',
+                        btn_add_note: 'Yadda Saxla',
+                        jump_hint: 'Videonu bu saniyəyə atla',
+                        ai_welcome: 'Salam! Mən sizin Pragma AI Mentorunuzam. Bu dərs mövzusunda nəyi anlamaqda çətinlik çəkirsinizsə, buyurun soruşun!',
+                        ai_placeholder: 'Dərs haqqında sualınızı yazın...',
+                        btn_send: 'Göndər',
+                        quiz_title: 'Bilik Yoxlama Sınağı',
+                        quiz_subtitle: 'Sokratik ipucu köməyi ilə biliyinizi möhkəmləndirin.',
+                        btn_socratic_hint: 'Sokratik İpucu Al',
+                        curriculum: 'Kurs Kurrikulumu',
+                        cert_modal_title: 'Təbriklər, Məzun!',
+                        cert_modal_subtitle: 'Siz kursu 100% uğurla başa vurdunuz və rəsmi diplom əldə etdiniz.',
+                        btn_download_pdf: 'Rəsmi PDF Sertifikatı Endir',
+                        btn_close: 'Bağla',
+                        login_title: 'Pragma LMS Giriş',
+                        login_subtitle: 'Hesabınıza daxil olaraq dərslərə davam edin.',
+                        btn_login: 'Daxil Ol'
+                    },
+                    en: {
+                        menu_nav: 'Navigation',
+                        nav_learning: 'My Learning',
+                        nav_catalog: 'Explore Courses',
+                        nav_leaderboard: 'Leaderboard',
+                        dash_welcome: 'Welcome',
+                        dash_subtitle: 'Resume where you left off, earn milestone badges, and claim your verified certificate.',
+                        streak_days: 'days',
+                        streak_active: 'Active Streak',
+                        badges_count: 'Badges',
+                        badges_title: 'Earned Achievements',
+                        my_courses: 'Enrolled Courses',
+                        explore_more: 'Explore All Courses →',
+                        progress_label: 'Progress',
+                        btn_resume: 'Resume Learning',
+                        btn_cert: 'View Certificate',
+                        btn_cert_short: 'Certificate',
+                        catalog_title: 'Course Catalog',
+                        catalog_subtitle: 'Professional programming, software architecture, and generative AI courses.',
+                        search_placeholder: 'Search courses...',
+                        badge_free: 'Free',
+                        btn_enroll: 'Enroll Now',
+                        btn_enter_course: 'Go to Course',
+                        leaderboard_title: 'Pragma Leaderboard',
+                        leaderboard_subtitle: 'Top learners ranked by continuous streak, XP points, and completed milestones.',
+                        col_student: 'Student',
+                        btn_live: 'Live Class',
+                        video_none: 'No video URL assigned to this lesson.',
+                        btn_simulate_90: '⚡ Simulate 90% Watch Time (YouTube Auto-Complete)',
+                        lesson_completed: 'Completed (90%+)',
+                        lesson_in_progress: 'In Progress',
+                        tab_notes: '📝 Smart Timestamp Notes',
+                        tab_ai: '🤖 Gemini AI Mentor',
+                        tab_quiz: '💡 Quiz & Socratic Hint',
+                        note_placeholder: 'Take a note at current second (e.g., Dependency Injection explained here)...',
+                        btn_add_note: 'Save Note',
+                        jump_hint: 'Jump to this timestamp',
+                        ai_welcome: 'Hello! I am your Pragma AI Mentor. Ask anything related to this lesson!',
+                        ai_placeholder: 'Ask a pedagogical question...',
+                        btn_send: 'Send',
+                        quiz_title: 'Knowledge Check Quiz',
+                        quiz_subtitle: 'Reinforce your knowledge with Socratic AI hints.',
+                        btn_socratic_hint: 'Get Socratic Hint',
+                        curriculum: 'Curriculum',
+                        cert_modal_title: 'Congratulations, Graduate!',
+                        cert_modal_subtitle: 'You successfully completed 100% of the course and earned your diploma.',
+                        btn_download_pdf: 'Download Official PDF Certificate',
+                        btn_close: 'Close',
+                        login_title: 'Pragma LMS Sign In',
+                        login_subtitle: 'Sign in to access your courses and progress.',
+                        btn_login: 'Sign In'
+                    },
+                    ru: {
+                        menu_nav: 'Навигация',
+                        nav_learning: 'Моё обучение',
+                        nav_catalog: 'Каталог курсов',
+                        nav_leaderboard: 'Таблица лидеров',
+                        dash_welcome: 'Добро пожаловать',
+                        dash_subtitle: 'Продолжайте обучение с того места, где остановились, получайте значки и зарабатывайте официальные сертификаты.',
+                        streak_days: 'дн.',
+                        streak_active: 'Активный ударный режим',
+                        badges_count: 'Значки',
+                        badges_title: 'Достижения',
+                        my_courses: 'Мои активные курсы',
+                        explore_more: 'Все курсы →',
+                        progress_label: 'Прогресс',
+                        btn_resume: 'Продолжить обучение',
+                        btn_cert: 'Посмотреть сертификат',
+                        btn_cert_short: 'Сертификат',
+                        catalog_title: 'Все курсы',
+                        catalog_subtitle: 'Профессиональные курсы по программированию, архитектуре ПО и ИИ.',
+                        search_placeholder: 'Поиск курсов...',
+                        badge_free: 'Бесплатно',
+                        btn_enroll: 'Записаться',
+                        btn_enter_course: 'Перейти к курсу',
+                        leaderboard_title: 'Лидеры обучения Pragma',
+                        leaderboard_subtitle: 'Лучшие студенты по непрерывной активности (Streak), очкам XP и достижениям.',
+                        col_student: 'Студент',
+                        btn_live: 'Онлайн-урок',
+                        video_none: 'Для этого урока видео не назначено.',
+                        btn_simulate_90: '⚡ Подтвердить 90% просмотра (YouTube автозавершение)',
+                        lesson_completed: 'Завершено (90%+)',
+                        lesson_in_progress: 'В процессе',
+                        tab_notes: '📝 Умные временные заметки',
+                        tab_ai: '🤖 ИИ-наставник Gemini',
+                        tab_quiz: '💡 Тест и подсказка Сократа',
+                        note_placeholder: 'Заметка на текущей секунде (напр., здесь объясняется DI)...',
+                        btn_add_note: 'Сохранить',
+                        jump_hint: 'Перейти к этой секунде',
+                        ai_welcome: 'Здравствуйте! Я ваш ИИ-наставник Pragma. Задайте любой вопрос по теме этого урока!',
+                        ai_placeholder: 'Задайте вопрос по уроку...',
+                        btn_send: 'Отправить',
+                        quiz_title: 'Проверка знаний',
+                        quiz_subtitle: 'Закрепите материал с помощью наводящих подсказок Сократа.',
+                        btn_socratic_hint: 'Получить подсказку',
+                        curriculum: 'Программа курса',
+                        cert_modal_title: 'Поздравляем с выпуском!',
+                        cert_modal_subtitle: 'Вы успешно завершили 100% курса и получили официальный диплом.',
+                        btn_download_pdf: 'Скачать официальный сертификат (PDF)',
+                        btn_close: 'Закрыть',
+                        login_title: 'Вход в Pragma LMS',
+                        login_subtitle: 'Войдите в аккаунт, чтобы продолжить обучение.',
+                        btn_login: 'Войти'
+                    }
+                },
+
+                t(key) {
+                    const langObj = this.translations[this.currentLang] || this.translations['az'];
+                    return langObj[key] || this.translations['az'][key] || key;
+                },
+
+                setLang(lang) {
+                    this.currentLang = lang;
+                    localStorage.setItem('pragma-lang', lang);
+                },
+
+                toggleLang() {
+                    if (this.currentLang === 'az') this.setLang('en');
+                    else if (this.currentLang === 'en') this.setLang('ru');
+                    else this.setLang('az');
+                },
+
+                toggleTheme() {
+                    this.isDark = !this.isDark;
+                    if (this.isDark) {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('pragma-theme', 'dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('pragma-theme', 'light');
+                    }
+                },
+
+                async init() {
+                    const savedTheme = localStorage.getItem('pragma-theme');
+                    this.isDark = savedTheme !== 'light';
+                    if (this.isDark) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+
+                    const savedLang = localStorage.getItem('pragma-lang');
+                    if (savedLang && ['az', 'en', 'ru'].includes(savedLang)) {
+                        this.currentLang = savedLang;
+                    }
+                    await this.loadCourses();
+                    await this.loadLeaderboard();
+                    if (this.token) {
+                        await this.loadGamificationStats();
+                        await this.loadEnrolledCourses();
+                    }
+                },
+
+                fillStudentCredentials() {
+                    this.loginEmail = 'student@pragma.edu.az';
+                    this.loginPassword = 'Password123!';
+                    this.login();
+                },
+
+                fillInstructorCredentials() {
+                    this.loginEmail = 'teacher@pragma.edu.az';
+                    this.loginPassword = 'Password123!';
+                    this.login();
+                },
+
+                fillAdminCredentials() {
+                    this.loginEmail = 'admin@pragma.edu.az';
+                    this.loginPassword = 'PragmaAdmin2026!';
+                    this.login();
+                },
+
+                async login() {
+                    try {
+                        const res = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: this.loginEmail, password: this.loginPassword })
+                        });
+                        if (!res.ok) throw new Error('Giriş uğursuz oldu.');
+                        const data = await res.json();
+                        this.token = data.accessToken;
+                        this.userEmail = data.user?.email || this.loginEmail;
+                        this.userFullName = data.user?.fullName || '';
+                        this.userRoles = data.user?.roles || [];
+                        localStorage.setItem('pragma-token', this.token);
+                        localStorage.setItem('pragma-user-email', this.userEmail);
+                        localStorage.setItem('pragma-user-fullname', this.userFullName);
+                        localStorage.setItem('pragma-user-roles', JSON.stringify(this.userRoles));
+                        this.showLoginModal = false;
+                        await this.loadGamificationStats();
+                        await this.loadEnrolledCourses();
+                    } catch (e) {
+                        alert(e.message || 'Xəta baş verdi');
+                    }
+                },
+
+                logout() {
+                    this.token = '';
+                    this.userEmail = '';
+                    this.userFullName = '';
+                    this.userRoles = [];
+                    localStorage.removeItem('pragma-token');
+                    localStorage.removeItem('pragma-user-email');
+                    localStorage.removeItem('pragma-user-fullname');
+                    localStorage.removeItem('pragma-user-roles');
+                    this.enrolledCourses = [];
+                    this.activeView = 'catalog';
+                },
+
+                async loadCourses() {
+                    try {
+                        const url = this.searchQuery ? `/api/courses?search=${encodeURIComponent(this.searchQuery)}` : '/api/courses';
+                        const res = await fetch(url);
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.allCourses = data.items || [];
+                        }
+                    } catch (e) {
+                        console.error('Kurslar yüklənmədi', e);
+                    }
+                },
+
+                async loadEnrolledCourses() {
+                    if (!this.token) return;
+                    try {
+                        const res = await fetch('/api/courses/my-courses', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.enrolledCourses = data || [];
+                        }
+                    } catch (e) {
+                        console.error('Qeydiyyatlı kurslar yüklənmədi', e);
+                    }
+                },
+
+                async loadLeaderboard() {
+                    try {
+                        const res = await fetch('/api/gamification/leaderboard?top=10');
+                        if (res.ok) {
+                            this.leaderboard = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Liderlər cədvəli yüklənmədi', e);
+                    }
+                },
+
+                async loadGamificationStats() {
+                    if (!this.token) return;
+                    try {
+                        const res = await fetch('/api/gamification/my-stats', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.gamification = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Gamifikasiya statistikası yüklənmədi', e);
+                    }
+                },
+
+                async enrollOrOpenCourse(course) {
+                    if (!this.token) {
+                        this.showLoginModal = true;
+                        return;
+                    }
+                    try {
+                        await fetch(`/api/courses/${course.id}/enroll`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        await this.loadEnrolledCourses();
+                        await this.resumeCourse(course.id);
+                    } catch (e) {
+                        console.error('Enroll xətası', e);
+                    }
+                },
+
+                async resumeCourse(courseId) {
+                    if (!this.token) {
+                        this.showLoginModal = true;
+                        return;
+                    }
+                    try {
+                        const courseRes = await fetch(`/api/courses/${courseId}`);
+                        if (!courseRes.ok) throw new Error('Kurs tapılmadı');
+                        this.activeCourse = await courseRes.json();
+
+                        const resumeRes = await fetch(`/api/courses/${courseId}/resume`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+
+                        let targetLessonId = null;
+                        let lastSeconds = 0;
+                        if (resumeRes.ok) {
+                            const resumeData = await resumeRes.json();
+                            targetLessonId = resumeData.lessonId;
+                            lastSeconds = resumeData.lastPositionSeconds || 0;
+                        }
+
+                        const firstModule = this.activeCourse.modules?.[0];
+                        const firstLesson = firstModule?.lessons?.[0];
+                        const lessonToOpen = targetLessonId 
+                            ? this.findLessonById(targetLessonId) || firstLesson 
+                            : firstLesson;
+
+                        if (lessonToOpen) {
+                            await this.selectLesson(lessonToOpen);
+                        }
+
+                        this.activeView = 'player';
+                    } catch (e) {
+                        alert(e.message || 'Xəta baş verdi');
+                    }
+                },
+
+                findLessonById(id) {
+                    if (!this.activeCourse?.modules) return null;
+                    for (const m of this.activeCourse.modules) {
+                        const found = m.lessons?.find(l => l.id === id);
+                        if (found) return found;
+                    }
+                    return null;
+                },
+
+                async selectLesson(lesson) {
+                    this.activeLesson = lesson;
+                    this.aiChatHistory = [];
+                    this.socraticHintText = '';
+                    await this.loadLessonNotes();
+                },
+
+                getYoutubeEmbedUrl(url) {
+                    if (!url) return '';
+                    let videoId = '';
+                    if (url.includes('v=')) {
+                        videoId = url.split('v=')[1]?.split('&')[0];
+                    } else if (url.includes('youtu.be/')) {
+                        videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                    } else {
+                        videoId = url;
+                    }
+                    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0`;
+                },
+
+                formatSeconds(secs) {
+                    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+                    const s = (secs % 60).toString().padStart(2, '0');
+                    return `${m}:${s}`;
+                },
+
+                async loadLessonNotes() {
+                    if (!this.token || !this.activeLesson) return;
+                    try {
+                        const res = await fetch(`/api/lessons/${this.activeLesson.id}/notes`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.lessonNotes = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Qeydlər yüklənmədi', e);
+                    }
+                },
+
+                async addLessonNote() {
+                    if (!this.newNoteText.trim() || !this.activeLesson) return;
+                    try {
+                        const res = await fetch(`/api/lessons/${this.activeLesson.id}/notes`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({
+                                positionSeconds: 45,
+                                noteText: this.newNoteText.trim()
+                            })
+                        });
+                        if (res.ok) {
+                            this.newNoteText = '';
+                            await this.loadLessonNotes();
+                        }
+                    } catch (e) {
+                        alert('Qeyd yadda saxlanılmadı.');
+                    }
+                },
+
+                async deleteLessonNote(id) {
+                    try {
+                        await fetch(`/api/notes/${id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        await this.loadLessonNotes();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                },
+
+                jumpToTime(seconds) {
+                    alert(`Video pleyer ${this.formatSeconds(seconds)} saniyəsinə atladı! (YouTube IFrame seekTo)`);
+                },
+
+                seekDelta(delta) {
+                    alert(`Video ${delta > 0 ? '+' : ''}${delta} saniyə dəyişdirildi.`);
+                },
+
+                async simulateVideoProgress(percentage) {
+                    if (!this.activeLesson || !this.token) return;
+                    try {
+                        const duration = 100;
+                        const pos = Math.round(duration * (percentage / 100));
+                        const res = await fetch(`/api/lessons/${this.activeLesson.id}/video-position`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({
+                                currentPositionSeconds: pos,
+                                durationSeconds: duration
+                            })
+                        });
+                        if (res.ok) {
+                            this.activeLesson.isCompleted = true;
+                            confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
+                            await this.loadGamificationStats();
+                            await this.loadEnrolledCourses();
+                        }
+                    } catch (e) {
+                        alert('Xəta baş verdi.');
+                    }
+                },
+
+                async askAiMentor() {
+                    if (!this.aiQuestion.trim() || !this.activeLesson) return;
+                    const q = this.aiQuestion.trim();
+                    this.aiChatHistory.push({ id: Date.now(), isUser: true, text: q });
+                    this.aiQuestion = '';
+                    this.aiLoading = true;
+
+                    try {
+                        const res = await fetch(`/api/lessons/${this.activeLesson.id}/ai-ask`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({ question: q })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.aiChatHistory.push({ id: Date.now() + 1, isUser: false, text: data.answer });
+                        } else {
+                            this.aiChatHistory.push({ id: Date.now() + 1, isUser: false, text: 'AI cavab verə bilmədi.' });
+                        }
+                    } catch (e) {
+                        this.aiChatHistory.push({ id: Date.now() + 1, isUser: false, text: 'Şəbəkə xətası baş verdi.' });
+                    } finally {
+                        this.aiLoading = false;
+                    }
+                },
+
+                async getSocraticHint() {
+                    this.socraticHintText = 'Düşünün: Əgər Domain qatı verilənlər bazası və ya EF Core-dan asılı olarsa, gələcəkdə verilənlər bazasını dəyişdikdə biznes qaydalarınız zədələnərmi? Təmiz arxitektura qaydasına görə ən daxili dairə heç nəyə asılı olmamalıdır.';
+                },
+
+                async openLiveSession() {
+                    if (!this.activeLesson) return;
+                    try {
+                        const res = await fetch(`/api/lessons/${this.activeLesson.id}/live-session`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            window.open(data.joinUrl, '_blank');
+                        }
+                    } catch (e) {
+                        window.open('https://meet.jit.si/pragma-demo-live', '_blank');
+                    }
+                },
+
+                async openCertificateModal(course) {
+                    if (!this.token) return;
+                    try {
+                        const res = await fetch(`/api/courses/${course.id}/certificate`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.certificateData = await res.json();
+                            this.showCertModal = true;
+                            confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+                        } else {
+                            alert('Sertifikat generasiya edilə bilmədi. Kurs 100% tamamlanmalıdır.');
+                        }
+                    } catch (e) {
+                        alert('Xəta baş verdi.');
+                    }
+                },
+
+                async downloadCertificatePdf() {
+                    if (!this.activeCourse?.id && !this.certificateData?.courseId) return;
+                    const cId = this.certificateData?.courseId || this.activeCourse?.id;
+                    try {
+                        const res = await fetch(`/api/courses/${cId}/certificate/download`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (!res.ok) {
+                            alert('Sertifikat yüklənə bilmədi.');
+                            return;
+                        }
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Pragma_Sertifikat_${cId}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                    } catch (e) {
+                        alert('Fayl endirilərkən xəta baş verdi.');
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

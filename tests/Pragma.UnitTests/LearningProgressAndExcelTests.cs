@@ -147,4 +147,49 @@ public class LearningProgressAndExcelTests
         Assert.NotNull(reloadedWb.Worksheet("Kviz Nəticələri"));
         Assert.NotNull(reloadedWb.Worksheet("Dərs İzlənməsi"));
     }
+
+    [Fact]
+    public void CourseGradebookDto_CalculationsAndMapping_ValidatesCorrectly()
+    {
+        // Arrange
+        var student1 = new Pragma.Application.DTOs.Gradebook.StudentGradeSummaryDto(
+            StudentId: Guid.NewGuid(),
+            FullName: "Əli Məmmədov",
+            Email: "ali@pragma.edu.az",
+            EnrolledAtUtc: DateTime.UtcNow.AddDays(-10),
+            ProgressPercentage: 100.0,
+            IsCompleted: true,
+            QuizzesTaken: 2,
+            AverageQuizScore: 95.0
+        );
+
+        var student2 = new Pragma.Application.DTOs.Gradebook.StudentGradeSummaryDto(
+            StudentId: Guid.NewGuid(),
+            FullName: "Aysel Qasımova",
+            Email: "aysel@pragma.edu.az",
+            EnrolledAtUtc: DateTime.UtcNow.AddDays(-5),
+            ProgressPercentage: 60.0,
+            IsCompleted: false,
+            QuizzesTaken: 1,
+            AverageQuizScore: 80.0
+        );
+
+        var students = new List<Pragma.Application.DTOs.Gradebook.StudentGradeSummaryDto> { student1, student2 };
+        var avgProgress = students.Average(s => s.ProgressPercentage);
+
+        // Act
+        var gradebook = new Pragma.Application.DTOs.Gradebook.CourseGradebookDto(
+            CourseId: Guid.NewGuid(),
+            CourseTitle: "C# və .NET 10 Dərinlikləri",
+            TotalStudents: students.Count,
+            AverageCompletionPercentage: Math.Round(avgProgress, 1),
+            Students: students
+        );
+
+        // Assert
+        Assert.Equal(2, gradebook.TotalStudents);
+        Assert.Equal(80.0, gradebook.AverageCompletionPercentage);
+        Assert.True(gradebook.Students.First().IsCompleted);
+        Assert.Equal(95.0, gradebook.Students.First().AverageQuizScore);
+    }
 }

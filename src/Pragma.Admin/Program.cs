@@ -1,29 +1,53 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Pragma.Admin.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. MVC və HttpContextAccessor
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
+
+// 2. Cookie Autentifikasiyası
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/Login";
+        options.Cookie.Name = "Pragma.Admin.Auth";
+        options.Cookie.HttpOnly = true;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
+
+// 3. Typed HttpClient (Pragma.API ilə rabitə)
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5298/api/";
+if (!apiBaseUrl.EndsWith("/")) apiBaseUrl += "/";
+
+builder.Services.AddHttpClient<IPragmaApiClient, PragmaApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 4. HTTP Sorğu Boru Xətti (Pipeline)
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
+    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
 
 app.Run();
