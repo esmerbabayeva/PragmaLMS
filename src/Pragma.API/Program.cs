@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pragma.API.Middlewares;
 using Pragma.Application;
+using Pragma.Domain.Entities;
 using Pragma.Domain.Enums;
 using Pragma.Infrastructure;
 using Pragma.Infrastructure.Identity;
@@ -54,7 +55,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// 7. İlkin Məlumatların (Roles və Admin) Bazaya Doldurulması (Data Seeder)
+// 7. İlkin Məlumatların (Roles, Admin və Kateqoriyalar) Bazaya Doldurulması (Data Seeder)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -93,6 +94,17 @@ using (var scope = app.Services.CreateScope())
 
             await userManager.CreateAsync(adminUser, "PragmaAdmin2026!");
             await userManager.AddToRoleAsync(adminUser, UserRoles.Admin);
+        }
+
+        // İlkin Kateqoriyalar
+        if (!await context.Categories.AnyAsync())
+        {
+            context.Categories.AddRange(
+                new Category { Name = "Backend Proqramlaşdırma", Slug = "backend-proqramlasdirma", Description = "C#, .NET 10, SQL Server və mikroservis arxitekturaları", IconName = "code-bracket", SortOrder = 1 },
+                new Category { Name = "Frontend & UI/UX", Slug = "frontend-ui-ux", Description = "HTML5, Tailwind CSS, Alpine.js və müasir veb texnologiyaları", IconName = "paint-brush", SortOrder = 2 },
+                new Category { Name = "Süni İntellekt & Data", Slug = "suni-intellekt-data", Description = "Google Gemini AI, LLM-lər və böyük məlumat analitikası", IconName = "sparkles", SortOrder = 3 }
+            );
+            await context.SaveChangesAsync();
         }
     }
     catch (Exception ex)
