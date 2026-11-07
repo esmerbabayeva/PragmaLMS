@@ -6,6 +6,10 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.API.Controllers;
 
+/// <summary>
+/// Kurs modullarının idarə edilməsi.
+/// </summary>
+[Route("api/modules")]
 public class ModulesController : BaseApiController
 {
     private readonly IModuleService _moduleService;
@@ -20,7 +24,7 @@ public class ModulesController : BaseApiController
     }
 
     /// <summary>
-    /// Kursa yeni tədris modulunun əlavə edilməsi.
+    /// Kurs daxilində yeni modul yaradır (Nested sub-resource).
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPost("/api/courses/{courseId:guid}/modules")]
@@ -35,7 +39,7 @@ public class ModulesController : BaseApiController
     }
 
     /// <summary>
-    /// Modulun ad və ya təsvirinin redaktəsi.
+    /// Modulun ad və ya təsvirini yeniləyir.
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPut("{id:guid}")]
@@ -50,7 +54,7 @@ public class ModulesController : BaseApiController
     }
 
     /// <summary>
-    /// Modulun silinməsi (və bağlı dərslərin kaskad silinməsi).
+    /// Modulu və ona bağlı bütün dərsləri silir (Soft delete).
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpDelete("{id:guid}")]
@@ -65,7 +69,7 @@ public class ModulesController : BaseApiController
     }
 
     /// <summary>
-    /// SortableJS ilə modul daxilindəki dərslərin ardıcıllığının (OrderIndex) nizamlanması.
+    /// SortableJS ilə modul daxilindəki dərslərin ardıcıllığını (OrderIndex) nizamlayır.
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPut("{id:guid}/lessons/reorder")]

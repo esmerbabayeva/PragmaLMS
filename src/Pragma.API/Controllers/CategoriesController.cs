@@ -8,6 +8,10 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.API.Controllers;
 
+/// <summary>
+/// Kurs kateqoriyalarının idarə edilməsi.
+/// </summary>
+[Route("api/categories")]
 public class CategoriesController : BaseApiController
 {
     private readonly IAppDbContext _context;
@@ -25,6 +29,7 @@ public class CategoriesController : BaseApiController
     {
         var categories = await _context.Categories
             .AsNoTracking()
+            .Where(c => !c.IsDeleted)
             .OrderBy(c => c.SortOrder)
             .Select(c => new CategoryDto(
                 c.Id,
@@ -33,7 +38,7 @@ public class CategoriesController : BaseApiController
                 c.Description,
                 c.IconName,
                 c.SortOrder,
-                c.Courses.Count(course => course.Status == CourseStatus.Published)
+                c.Courses.Count(course => course.Status == CourseStatus.Published && !course.IsDeleted)
             ))
             .ToListAsync(cancellationToken);
 
@@ -41,7 +46,33 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Yeni kateqoriya yaradılması (Yalnız Admin üçün).
+    /// ID-yə görə tək bir kateqoriyanın məlumatlarını qaytarır.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id, CancellationToken cancellationToken)
+    {
+        var category = await _context.Categories
+            .AsNoTracking()
+            .Where(c => c.Id == id && !c.IsDeleted)
+            .Select(c => new CategoryDto(
+                c.Id,
+                c.Name,
+                c.Slug,
+                c.Description,
+                c.IconName,
+                c.SortOrder,
+                c.Courses.Count(course => course.Status == CourseStatus.Published && !course.IsDeleted)
+            ))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (category == null)
+            return NotFound("Kateqoriya tapılmadı.");
+
+        return Ok(category);
+    }
+
+    /// <summary>
+    /// Yeni kurs kateqoriyası yaradır (Yalnız Admin üçün).
     /// </summary>
     [Authorize(Roles = UserRoles.Admin)]
     [HttpPost]
@@ -65,6 +96,23 @@ public class CategoriesController : BaseApiController
         _context.Categories.Add(category);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return CreatedAtAction(nameof(GetCategories), new { id = category.Id }, category.Id);
+        return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category.Id);
+    }
+
+    /// <summary>
+    /// Kateqoriyanı silir (Soft delete, yalnız Admin üçün).
+    /// </summary>
+    [Authorize(Roles = UserRoles.Admin)]
+    [HttpDelete("{id:guid}")]
+    public async Task<ActionResult> DeleteCategory(Guid id, CancellationToken cancellationToken)
+    {
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+        if (category == null)
+            return NotFound("Kateqoriya tapılmadı.");
+
+        category.MarkDeleted();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 }

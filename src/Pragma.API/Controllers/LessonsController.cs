@@ -6,6 +6,10 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.API.Controllers;
 
+/// <summary>
+/// Dərslərin (Video və Markdown) idarə edilməsi.
+/// </summary>
+[Route("api/lessons")]
 public class LessonsController : BaseApiController
 {
     private readonly ILessonService _lessonService;
@@ -20,7 +24,7 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Modula yeni dərs (Video və ya Markdown) əlavə edilməsi.
+    /// Modula yeni dərs (Video və ya Markdown) əlavə edir.
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPost("/api/modules/{moduleId:guid}/lessons")]
@@ -35,7 +39,7 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Dərsin detalları, videosu və ya mətni (Giriş icazəsi: Pulsuz önbaxış və ya kursa enrollment tələb olunur).
+    /// Dərsin detallarını, video linkini və ya mətnini qaytarır (Giriş: Qeydiyyat və ya Pulsuz önbaxış).
     /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<LessonDetailDto>> GetLessonById(Guid id, CancellationToken cancellationToken)
@@ -46,7 +50,7 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Dərs məlumatlarının redaktəsi.
+    /// Dərs məlumatlarını (ad, video URL, mətn) yeniləyir.
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPut("{id:guid}")]
@@ -61,7 +65,7 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Dərsin silinməsi (Soft delete).
+    /// Dərsi silir (Soft delete).
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpDelete("{id:guid}")]

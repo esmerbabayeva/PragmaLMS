@@ -81,6 +81,8 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IUserLookupService, UserLookupService>();
+        services.AddScoped<IExcelExporter, ClosedXMLExcelExporter>();
 
         return services;
     }

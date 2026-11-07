@@ -5,7 +5,11 @@ using Pragma.Application.DTOs.Enrollments;
 
 namespace Pragma.API.Controllers;
 
+/// <summary>
+/// Kurs qeydiyyatı və tələbənin kursları əməliyyatları.
+/// </summary>
 [Authorize]
+[Route("api/enrollments")]
 public class EnrollmentsController : BaseApiController
 {
     private readonly IEnrollmentService _enrollmentService;
@@ -20,7 +24,7 @@ public class EnrollmentsController : BaseApiController
     }
 
     /// <summary>
-    /// Tələbənin dərc olunmuş kursa 1-kliklə qeydiyyatdan keçməsi.
+    /// Kursa 1-kliklə qeydiyyatdan keçir (Enrollment).
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<EnrollmentDto>> Enroll([FromBody] EnrollCourseDto dto, CancellationToken cancellationToken)
@@ -33,7 +37,7 @@ public class EnrollmentsController : BaseApiController
     }
 
     /// <summary>
-    /// Cari tələbənin qeydiyyatdan keçdiyi bütün kurslar və tərəqqi faizləri.
+    /// Cari tələbənin qeydiyyatdan keçdiyi bütün kursları və tərəqqi faizlərini qaytarır.
     /// </summary>
     [HttpGet("my-courses")]
     public async Task<ActionResult<IReadOnlyCollection<EnrollmentDto>>> GetMyEnrollments(CancellationToken cancellationToken)
@@ -46,10 +50,10 @@ public class EnrollmentsController : BaseApiController
     }
 
     /// <summary>
-    /// Cari tələbənin konkret kursa qeydiyyatlı olub-olmadığını yoxlayır.
+    /// Konkret kursa qeydiyyat statusunu yoxlayır (Query parameter üsulu).
     /// </summary>
-    [HttpGet("check/{courseId:guid}")]
-    public async Task<ActionResult<bool>> CheckEnrollment(Guid courseId, CancellationToken cancellationToken)
+    [HttpGet("check")]
+    public async Task<ActionResult<bool>> CheckEnrollment([FromQuery] Guid courseId, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.UserId;
         if (!currentUserId.HasValue) return Ok(false);

@@ -15,7 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-// 2. Controller və JSON konfiqurasiyası
+// 2. Qlobal Lowercase Routing konfiqurasiyası (RESTful standartı)
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+// 3. Controller və JSON konfiqurasiyası
 builder.Services.AddControllers();
 
 // 3. CORS Siyasəti (Frontend və Admin MVC üçün)
@@ -46,9 +49,43 @@ app.MapScalarApiReference(options =>
            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 
-app.UseHttpsRedirection();
+// Rahatlıq üçün ana səhifəni və /scalar ünvanını birbaşa /scalar/v1 səhifəsinə yönləndiririk
+app.MapGet("/", () => Results.Redirect("/scalar/v1"));
+app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
+
+// Scalar və HTTP testləri üçün token tolerantlığı:
+// İstifadəçi 'bearer: <token>' və ya 'Authorization: <token>' (Bearer sözü olmadan) yazsa belə avtomatik düzəldilir
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Headers.ContainsKey("Authorization"))
+    {
+        if (context.Request.Headers.TryGetValue("bearer", out var bearerHeader) ||
+            context.Request.Headers.TryGetValue("token", out bearerHeader))
+        {
+            var val = bearerHeader.ToString().Trim();
+            if (!val.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                val = "Bearer " + val;
+            context.Request.Headers["Authorization"] = val;
+        }
+    }
+    else
+    {
+        var auth = context.Request.Headers["Authorization"].ToString().Trim();
+        if (!string.IsNullOrEmpty(auth) && !auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Request.Headers["Authorization"] = "Bearer " + auth;
+        }
+    }
+
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

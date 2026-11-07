@@ -12,5 +12,7 @@ public interface ICourseService
     Task<Result<Guid>> CreateCourseAsync(CreateCourseDto dto, Guid instructorId, CancellationToken cancellationToken = default);
     Task<Result> UpdateCourseAsync(Guid id, UpdateCourseDto dto, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<Result> DeleteCourseAsync(Guid id, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task<Result> PublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
+    Task<Result> UnpublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<Result> ReorderModulesAsync(Guid courseId, ReorderItemsRequestDto dto, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
 }

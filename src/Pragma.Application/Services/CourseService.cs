@@ -246,6 +246,34 @@ public class CourseService : ICourseService
         return Result.Success();
     }
 
+    public async Task<Result> PublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId && !c.IsDeleted, cancellationToken);
+        if (course == null) return Result.Failure(Error.NotFound("Kurs tapılmadı."));
+
+        if (!isAdmin && course.InstructorId != userId)
+            return Result.Failure(Error.Forbidden("Bu kursu dərc etmək hüququnuz yoxdur."));
+
+        course.Status = CourseStatus.Published;
+        course.MarkUpdated();
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result> UnpublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId && !c.IsDeleted, cancellationToken);
+        if (course == null) return Result.Failure(Error.NotFound("Kurs tapılmadı."));
+
+        if (!isAdmin && course.InstructorId != userId)
+            return Result.Failure(Error.Forbidden("Bu kursu qaralamaya qaytarmaq hüququnuz yoxdur."));
+
+        course.Status = CourseStatus.Draft;
+        course.MarkUpdated();
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
     public async Task<Result> ReorderModulesAsync(Guid courseId, ReorderItemsRequestDto dto, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);

@@ -6,7 +6,11 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.API.Controllers;
 
+/// <summary>
+/// Kviz qurucusu, imtahan vermə və avtomatik qiymətləndirmə.
+/// </summary>
 [Authorize]
+[Route("api/quizzes")]
 public class QuizzesController : BaseApiController
 {
     private readonly IQuizService _quizService;
@@ -21,7 +25,7 @@ public class QuizzesController : BaseApiController
     }
 
     /// <summary>
-    /// Dərs üçün yeni Quiz yaradılması və sualların bağlanması (Təlimçi və ya Admin).
+    /// Dərs üçün yeni Quiz yaradır və sualları bağlayır (Müəllim və ya Admin üçün).
     /// </summary>
     [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
     [HttpPost("/api/lessons/{lessonId:guid}/quiz")]
@@ -36,9 +40,9 @@ public class QuizzesController : BaseApiController
     }
 
     /// <summary>
-    /// İmtahan vermək üçün quiz sualları və variantları.
-    /// TƏHLÜKƏSİZLİK: IsCorrect sahəsi student frontend-inə göndərilmir!
+    /// Tələbənin imtahan verməsi üçün quiz sualları və variantları (isCorrect gizlədilir).
     /// </summary>
+    [HttpGet("{id:guid}")]
     [HttpGet("{id:guid}/for-taking")]
     public async Task<ActionResult<QuizTakingDto>> GetQuizForTaking(Guid id, CancellationToken cancellationToken)
     {
@@ -50,8 +54,7 @@ public class QuizzesController : BaseApiController
     }
 
     /// <summary>
-    /// Tələbənin imtahan cavablarını təhvil verməsi.
-    /// Cavablar serverdə təhlükəsiz şəkildə yoxlanılır, bal hesablanır və cəhd qeydə alınır.
+    /// Tələbənin imtahan cavablarını qəbul edir və server tərəfindən avtomatik qiymətləndirir.
     /// </summary>
     [HttpPost("{id:guid}/submit")]
     public async Task<ActionResult<QuizResultDto>> SubmitQuiz(Guid id, [FromBody] SubmitQuizRequestDto dto, CancellationToken cancellationToken)
@@ -64,7 +67,7 @@ public class QuizzesController : BaseApiController
     }
 
     /// <summary>
-    /// Tələbənin bu quiz üzrə keçmiş imtahan cəhdləri və nəticələri.
+    /// Tələbənin bu kviz üzrə keçmiş imtahan cəhdlərinin siyahısını qaytarır.
     /// </summary>
     [HttpGet("{id:guid}/my-attempts")]
     public async Task<ActionResult<IReadOnlyCollection<QuizAttemptSummaryDto>>> GetMyAttempts(Guid id, CancellationToken cancellationToken)

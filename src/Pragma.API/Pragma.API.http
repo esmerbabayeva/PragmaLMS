@@ -1,6 +1,156 @@
-@Pragma.API_HostAddress = http://localhost:5298
+@baseUrl = http://localhost:5298
 
-GET {{Pragma.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Admin / Müəllim kimi Giriş et və Token əldə et
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
 
-###
+{
+  "email": "admin@pragma.edu.az",
+  "password": "PragmaAdmin2026!"
+}
+
+### Token-i dəyişənə mənimsədirik
+@token = {{loginAdmin.response.body.token}}
+
+### 2. Yeni Müəllim Qeydiyyatı
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Rəşad Əliyev",
+  "email": "instructor@pragma.edu.az",
+  "password": "Password123!",
+  "role": "Instructor"
+}
+
+### 3. Yeni Tələbə Qeydiyyatı
+# @name registerStudent
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Əsmər Babayeva",
+  "email": "student@pragma.edu.az",
+  "password": "Password123!",
+  "role": "Student"
+}
+
+@studentToken = {{registerStudent.response.body.token}}
+
+### 4. Kateqoriya Yarat (Yalnız Admin)
+# @name createCategory
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Proqramlaşdırma",
+  "description": ".NET, C# və Müasir Veb Texnologiyaları"
+}
+
+@categoryId = {{createCategory.response.body.id}}
+
+### 5. Kateqoriyaların Siyahısı
+GET {{baseUrl}}/api/categories
+
+### 6. Yeni Kurs Yarat (Müəllim / Admin)
+# @name createCourse
+POST {{baseUrl}}/api/courses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": ".NET 10 və Clean Architecture Masterclass",
+  "shortDescription": "Senior səviyyəli arxitektura və mikroservislər",
+  "description": "Bu kursda .NET 10, Onion Architecture, EF Core və Scalar tam dərindən öyrədilir.",
+  "thumbnailUrl": "https://pragma.edu.az/images/dotnet10.png",
+  "price": 120,
+  "isFree": false,
+  "level": 3,
+  "categoryId": "{{categoryId}}"
+}
+
+@courseId = {{createCourse.response.body.id}}
+
+### 7. Kursa Modul Əlavə Et
+# @name createModule
+POST {{baseUrl}}/api/courses/{{courseId}}/modules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Modul 1: Onion Architecture Əsasları"
+}
+
+@moduleId = {{createModule.response.body.id}}
+
+### 8. Modula Video Dərs Əlavə Et
+# @name createLesson
+POST {{baseUrl}}/api/modules/{{moduleId}}/lessons
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "1.1 Domain Entity və Value Object Nümunələri",
+  "lessonType": 1,
+  "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "durationSeconds": 600,
+  "isPreview": true
+}
+
+@lessonId = {{createLesson.response.body.id}}
+
+### 9. Dərsə Kviz Əlavə Et
+# @name createQuiz
+POST {{baseUrl}}/api/lessons/{{lessonId}}/quiz
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Onion Architecture Sınaq İmtahanı",
+  "description": "Modul 1 üzrə biliklərin yoxlanılması",
+  "passingScorePercentage": 70,
+  "timeLimitMinutes": 15,
+  "maxAttempts": 3,
+  "questions": [
+    {
+      "text": "Clean / Onion Architecture-də Domain qatı hansı qatdan asılı ola bilər?",
+      "orderIndex": 1,
+      "options": [
+        { "text": "Heç bir qatdan (müstəqildir)", "isCorrect": true, "orderIndex": 1 },
+        { "text": "Yalnız Infrastructure qatından", "isCorrect": false, "orderIndex": 2 },
+        { "text": "Yalnız API qatından", "isCorrect": false, "orderIndex": 3 }
+      ]
+    }
+  ]
+}
+
+@quizId = {{createQuiz.response.body.id}}
+
+### 10. Kursu Dərc Et (Published)
+PUT {{baseUrl}}/api/courses/{{courseId}}/publish
+Authorization: Bearer {{token}}
+
+### 11. Tələbənin Kursa 1 Kliklə Qeydiyyatı (Enrollment)
+POST {{baseUrl}}/api/courses/{{courseId}}/enroll
+Authorization: Bearer {{studentToken}}
+
+### 12. Tələbə Kvizə Baxır (Düzgün cavablar gizlədilir!)
+GET {{baseUrl}}/api/quizzes/{{quizId}}
+Authorization: Bearer {{studentToken}}
+
+### 13. Tələbə Kvizə Cavab Verir və Təhvil Verir (Avtomatik Qiymətləndirmə)
+POST {{baseUrl}}/api/quizzes/{{quizId}}/submit
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "startedAtUtc": "2026-11-07T20:00:00Z",
+  "answers": [
+    {
+      "questionId": "SUAL_ID_BURAYA",
+      "selectedOptionId": "SEÇİLƏN_VARIANT_ID_BURAYA"
+    }
+  ]
+}

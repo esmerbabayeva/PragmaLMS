@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Pragma.Admin/Pragma.Admin.csproj" />
     <Project Path="src/Pragma.API/Pragma.API.csproj" />
+    <Project Path="src/Pragma.Admin/Pragma.Admin.csproj" />
     <Project Path="src/Pragma.Application/Pragma.Application.csproj" />
     <Project Path="src/Pragma.Domain/Pragma.Domain.csproj" />
     <Project Path="src/Pragma.Infrastructure/Pragma.Infrastructure.csproj" />

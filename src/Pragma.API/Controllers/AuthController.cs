@@ -11,8 +11,9 @@ using Pragma.Infrastructure.Identity;
 namespace Pragma.API.Controllers;
 
 /// <summary>
-/// İstifadəçi qeydiyyatı, giriş və autentifikasiya əməliyyatları controller-i.
+/// İstifadəçi qeydiyyatı, giriş və autentifikasiya əməliyyatları.
 /// </summary>
+[Route("api/auth")]
 public class AuthController : BaseApiController
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -98,7 +99,7 @@ public class AuthController : BaseApiController
     }
 
     /// <summary>
-    /// Email və şifrə ilə sistemə daxilolma.
+    /// Email və şifrə ilə sistemə daxilolma və JWT token əldə edilməsi.
     /// </summary>
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto request)
@@ -135,7 +136,7 @@ public class AuthController : BaseApiController
     }
 
     /// <summary>
-    /// Google One-Tap id_token ilə 1 kliklə ani daxilolma və ya avtomatik qeydiyyat.
+    /// Google One-Tap id_token ilə 1-kliklə ani daxilolma və ya avtomatik qeydiyyat.
     /// </summary>
     [HttpPost("google-login")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequestDto request)
