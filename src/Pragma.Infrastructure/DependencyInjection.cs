@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Infrastructure.Identity;
 using Pragma.Infrastructure.Persistence;
@@ -83,6 +84,13 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddScoped<IExcelExporter, ClosedXMLExcelExporter>();
+        services.AddScoped<ICertificateGenerator, QuestPdfCertificateGenerator>();
+
+        var aiSettings = new AiSettings
+        {
+            GeminiApiKey = configuration["Gemini:ApiKey"]
+        };
+        services.AddSingleton(aiSettings);
 
         return services;
     }

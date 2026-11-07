@@ -21,6 +21,11 @@ public static class DependencyInjection
         services.AddScoped<IQuizService, QuizService>();
         services.AddScoped<ILearningProgressService, LearningProgressService>();
         services.AddScoped<ILessonNoteService, LessonNoteService>();
+        services.AddScoped<ICertificateService, CertificateService>();
+        services.AddScoped<IGamificationService, GamificationService>();
+        services.AddScoped<IAiMentorService, AiMentorService>();
+        services.AddScoped<ILiveSessionService, LiveSessionService>();
+        services.AddScoped<IGradebookService, GradebookService>();
 
         return services;
     }
