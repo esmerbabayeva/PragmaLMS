@@ -128,7 +128,7 @@ public class GamificationService : IGamificationService
                 {
                     UserId = userId,
                     BadgeCode = "STREAK_3",
-                    BadgeName = "Alovlu Öyrənən 🔥",
+                    BadgeName = "Alovlu Zəncir 🔥",
                     Description = "Fasiləsiz 3 gün ardıcıl öyrənmə zənciri qurdunuz!",
                     IconName = "fire"
                 });

@@ -6,6 +6,7 @@ public record EnrollmentDto(
     string CourseTitle,
     string CourseSlug,
     string? CourseThumbnailUrl,
+    string? CategoryName,
     string InstructorName,
     DateTime EnrolledAtUtc,
     double ProgressPercentage,

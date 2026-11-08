@@ -6,6 +6,7 @@ public record CertificateDto(
     string CertificateCode,
     string StudentFullName,
     string CourseTitle,
+    string InstructorName,
     double GradePercentage,
     DateTime IssuedAtUtc,
     string VerificationUrl

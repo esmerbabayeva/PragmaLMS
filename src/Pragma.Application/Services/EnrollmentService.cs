@@ -20,6 +20,7 @@ public class EnrollmentService : IEnrollmentService
     {
         var course = await _context.Courses
             .AsNoTracking()
+            .Include(c => c.Category)
             .FirstOrDefaultAsync(c => c.Id == courseId, cancellationToken);
 
         if (course == null)
@@ -61,6 +62,7 @@ public class EnrollmentService : IEnrollmentService
             course.Title,
             course.Slug,
             course.ThumbnailUrl,
+            course.Category?.Name ?? "Ümumi",
             "Təlimçi",
             enrollment.EnrolledAtUtc,
             enrollment.ProgressPercentage,
@@ -76,7 +78,8 @@ public class EnrollmentService : IEnrollmentService
         return await _context.Enrollments
             .AsNoTracking()
             .Include(e => e.Course)
-            .Where(e => e.StudentId == studentId)
+                .ThenInclude(c => c!.Category)
+            .Where(e => e.StudentId == studentId && !e.IsDeleted)
             .OrderByDescending(e => e.EnrolledAtUtc)
             .Select(e => new EnrollmentDto(
                 e.Id,
@@ -84,6 +87,7 @@ public class EnrollmentService : IEnrollmentService
                 e.Course != null ? e.Course.Title : string.Empty,
                 e.Course != null ? e.Course.Slug : string.Empty,
                 e.Course != null ? e.Course.ThumbnailUrl : null,
+                e.Course != null && e.Course.Category != null ? e.Course.Category.Name : "Ümumi",
                 "Təlimçi",
                 e.EnrolledAtUtc,
                 e.ProgressPercentage,

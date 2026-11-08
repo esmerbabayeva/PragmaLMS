@@ -186,9 +186,9 @@
                         <div class="truncate">
                             <div class="text-xs font-bold text-neutral-900 dark:text-white truncate" x-text="userFullName || userEmail">Əsmər Babayeva</div>
                             <div class="flex items-center gap-1.5 mt-0.5">
-                                <span x-show="isAdmin" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">Admin</span>
-                                <span x-show="isInstructor" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">Müəllim</span>
-                                <span x-show="isStudent" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">Tələbə</span>
+                                <span x-show="isAdmin" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60" x-text="t('role_admin')">Admin</span>
+                                <span x-show="isInstructor" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" x-text="t('role_instructor')">Müəllim</span>
+                                <span x-show="isStudent" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60" x-text="t('role_student')">Tələbə</span>
                             </div>
                         </div>
                     </div>
@@ -241,7 +241,7 @@
 
                 <!-- Cari Səhifə Başlığı / Breadcrumb -->
                 <div class="flex items-center gap-2">
-                    <span class="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hidden sm:inline">Platforma /</span>
+                    <span class="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hidden sm:inline" x-text="t('platform_prefix')">Platforma /</span>
                     <h2 class="text-sm sm:text-base font-bold text-neutral-900 dark:text-white tracking-tight">
                         <template x-if="activeView === 'dashboard'"><span x-text="t('nav_learning')">Mənim Dərslərim</span></template>
                         <template x-if="activeView === 'catalog'"><span x-text="t('nav_catalog')">Kurslar Kataloqu</span></template>
@@ -296,7 +296,7 @@
                         <div class="text-center min-w-[70px]">
                             <div class="text-2xl">🏆</div>
                             <div class="text-xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1" x-text="gamification.totalXp">20</div>
-                            <div class="text-[10px] text-neutral-500 uppercase font-mono font-semibold">Ümumi XP</div>
+                            <div class="text-[10px] text-neutral-500 uppercase font-mono font-semibold" x-text="t('total_xp')">Ümumi XP</div>
                         </div>
                         <div class="w-px h-10 bg-neutral-200 dark:bg-neutral-800"></div>
                         <div class="text-center min-w-[70px]">
@@ -313,10 +313,10 @@
                     <div class="flex flex-wrap gap-3">
                         <template x-for="badge in gamification.badges" :key="badge.badgeCode">
                             <div class="flex items-center gap-2.5 bg-neutral-50 border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800/80 px-3.5 py-2 rounded-xl">
-                                <span class="text-2xl">🏅</span>
+                                <span class="text-2xl" x-text="getBadgeIcon(badge)">🏅</span>
                                 <div>
-                                    <div class="text-xs font-bold text-neutral-900 dark:text-white" x-text="badge.badgeName">İlk Addım</div>
-                                    <div class="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono" x-text="badge.description">Dərsi tamamladınız</div>
+                                    <div class="text-xs font-bold text-neutral-900 dark:text-white" x-text="getBadgeName(badge)">İlk Addım</div>
+                                    <div class="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono" x-text="getBadgeDesc(badge)">Dərsi tamamladınız</div>
                                 </div>
                             </div>
                         </template>
@@ -335,9 +335,9 @@
                             <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-lg dark:hover:border-neutral-700 transition flex flex-col group">
                                 <!-- Kurs Şəkli / Başlıq Bloku (Contrast Banner) -->
                                 <div class="h-36 bg-gradient-to-br from-slate-800 to-indigo-950 dark:from-[#1c1c20] dark:to-[#0f0f12] border-b border-neutral-200 dark:border-neutral-800 p-4 text-white flex flex-col justify-between relative">
-                                    <span class="self-start px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur border border-white/20 dark:bg-neutral-900/80 dark:border-neutral-700/60 text-[10px] font-mono text-white dark:text-blue-400 uppercase tracking-wider" x-text="course.categoryName || 'Proqramlaşdırma'">C# .NET</span>
+                                    <span class="self-start px-2.5 py-0.5 rounded-md bg-white/20 backdrop-blur border border-white/20 dark:bg-neutral-900/80 dark:border-neutral-700/60 text-[10px] font-mono text-white dark:text-blue-400 uppercase tracking-wider" x-text="getCategoryName(course.categoryName)">C# .NET</span>
                                     <div>
-                                        <h3 class="font-bold text-base text-white tracking-tight leading-snug line-clamp-2" x-text="course.title">C# 14 & .NET 10 Clean Architecture</h3>
+                                        <h3 class="font-bold text-base text-white tracking-tight leading-snug line-clamp-2" x-text="course.courseTitle || course.title">C# 14 & .NET 10 Clean Architecture</h3>
                                     </div>
                                 </div>
 
@@ -356,7 +356,7 @@
                                     <!-- Əməliyyat Düymələri (Resume & Certificate) -->
                                     <div class="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800/60">
                                         <!-- 1-Click "Qaldığın Yerdən Davam Et" (Resume) -->
-                                        <button @click="resumeCourse(course.id)" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+                                        <button @click="resumeCourse(course.courseId || course.id)" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
                                             <span x-text="t('btn_resume')">Qaldığın Yerdən Davam Et</span>
                                         </button>
@@ -662,41 +662,87 @@
     </div>
 
     <!-- ========================================================= -->
-    <!-- 3. RƏSMİ PDF SERTİFİKAT & QR MODALI -->
+    <!-- 3. RƏSMİ PEŞƏKAR DİPLOM / SERTİFİKAT & QR MODALI -->
     <!-- ========================================================= -->
-    <div x-show="showCertModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
-        <div @click.away="showCertModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-center text-neutral-900 dark:text-white">
-            <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400 flex items-center justify-center text-3xl mx-auto shadow-sm">
-                🎓
-            </div>
-            <div class="space-y-1">
-                <h3 class="text-xl font-extrabold text-neutral-900 dark:text-white" x-text="t('cert_modal_title')">Təbriklər, Məzun!</h3>
-                <p class="text-xs text-neutral-500 dark:text-neutral-400" x-text="t('cert_modal_subtitle')">Siz kursu 100% uğurla başa vurdunuz və rəsmi diplom əldə etdiniz.</p>
-            </div>
+    <div x-show="showCertModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 dark:bg-black/90 backdrop-blur-md">
+        <div @click.away="showCertModal = false" class="bg-gradient-to-br from-amber-50/40 via-white to-amber-100/30 dark:from-[#17171c] dark:via-[#121215] dark:to-[#0a0a0d] border-2 border-amber-500/50 dark:border-amber-400/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl text-center text-neutral-900 dark:text-white relative overflow-hidden">
+            <!-- Arxa Fon Zərif Qızılı Parıltı -->
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            <!-- Sertifikat Detalları Kartı -->
-            <div class="p-4 rounded-xl bg-neutral-50 border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800 text-left space-y-2 text-xs">
-                <div class="flex justify-between">
-                    <span class="text-neutral-500 dark:text-neutral-400" x-text="t('col_student')">Tələbə:</span>
-                    <span class="font-bold text-neutral-900 dark:text-white" x-text="certificateData?.studentFullName || 'Tələbə'">Pragma Məzun</span>
+            <!-- Diplom Daxili Çərçivə (Luxury Certificate Frame) -->
+            <div class="border border-amber-600/30 dark:border-amber-500/30 rounded-2xl p-5 sm:p-7 relative bg-white/60 dark:bg-[#111114]/60 backdrop-blur-xs space-y-4">
+                <!-- Qızılı Medal / Emblem -->
+                <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 font-extrabold flex items-center justify-center text-2xl shadow-lg ring-4 ring-amber-500/20 mx-auto">
+                    🎓
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-neutral-500 dark:text-neutral-400">Kurs:</span>
-                    <span class="font-bold text-neutral-900 dark:text-white" x-text="certificateData?.courseTitle || 'Kurs'">.NET 10 Clean Architecture</span>
+
+                <!-- Akademiya və Başlıq -->
+                <div class="space-y-1">
+                    <div class="text-[10px] font-mono tracking-widest font-extrabold text-amber-600 dark:text-amber-400 uppercase">
+                        ★ PRAGMA ACADEMY OF ADVANCED TECHNOLOGY ★
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight text-neutral-900 dark:text-white uppercase" x-text="t('cert_modal_title')">
+                        Peşəkar Məzuniyyət Diplomu
+                    </h3>
+                    <p class="text-[11px] font-mono font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
+                        Certificate of Completion & Professional Mastery
+                    </p>
                 </div>
-                <div class="flex justify-between">
-                    <span class="text-neutral-500 dark:text-neutral-400">Unikal Sertifikat №:</span>
-                    <span class="font-mono font-bold text-amber-600 dark:text-amber-400" x-text="certificateData?.certificateCode || 'PRAGMA-2026-X7B9'">PRAGMA-2026-X7B9</span>
+
+                <!-- Zərif Qızılı Xətt -->
+                <div class="w-32 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto"></div>
+
+                <!-- Tələbə Adı -->
+                <div class="space-y-1">
+                    <div class="text-xs text-neutral-500 dark:text-neutral-400 italic">Bu rəsmi sənəd təsdiq edir ki,</div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white tracking-tight" x-text="certificateData?.studentFullName || userFullName || 'Əsmər Babayeva'">
+                        Əsmər Babayeva
+                    </div>
+                    <div class="w-48 h-0.5 bg-amber-500/60 mx-auto"></div>
+                </div>
+
+                <!-- Kurs və Nailiyyət -->
+                <div class="space-y-2 pt-1">
+                    <div class="text-xs text-neutral-600 dark:text-neutral-300 max-w-lg mx-auto leading-relaxed">
+                        aşağıdakı peşəkar tədris proqramını bütün praktiki laboratoriya tapşırıqları və yekun imtahanı ilə 100% nəticə ilə uğurla başa vurmuşdur:
+                    </div>
+                    <div class="inline-block px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-sm sm:text-base max-w-xl truncate" x-text="certificateData?.courseTitle || 'C# 14 və .NET 10 ilə Müasir Onion Architecture'">
+                        C# 14 və .NET 10 ilə Müasir Onion Architecture
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <span>✓ 100% Tamamlanma</span>
+                        <span>•</span>
+                        <span>✓ Bütün Quizlər Keçildi</span>
+                        <span>•</span>
+                        <span>✓ Rəsmi Reyestrdə Təsdiqlənmişdir</span>
+                    </div>
+                </div>
+
+                <!-- Diplom Detalları (Grid) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-neutral-200/80 dark:border-neutral-800/80 text-left text-xs font-mono">
+                    <div>
+                        <span class="text-[10px] text-neutral-500 dark:text-neutral-400 block uppercase">Unikal Sertifikat №:</span>
+                        <span class="font-bold text-amber-600 dark:text-amber-400" x-text="certificateData?.certificateCode || 'PRAGMA-2026-X7B9'">PRAGMA-2026-X7B9</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-neutral-500 dark:text-neutral-400 block uppercase">Verilmə Tarixi:</span>
+                        <span class="font-bold text-neutral-800 dark:text-neutral-200" x-text="certificateData?.issuedAtUtc ? new Date(certificateData.issuedAtUtc).toLocaleDateString() : '08.11.2026'">08.11.2026</span>
+                    </div>
+                    <div class="col-span-2 sm:col-span-1 text-left sm:text-right">
+                        <span class="text-[10px] text-neutral-500 dark:text-neutral-400 block uppercase">Təlimçi / Rəhbər:</span>
+                        <span class="font-bold text-neutral-800 dark:text-neutral-200" x-text="(certificateData?.instructorName && certificateData.instructorName !== 'Təlimçi') ? certificateData.instructorName : 'Rəşad Əliyev'">Rəşad Əliyev</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Əməliyyat Düymələri -->
-            <div class="flex items-center gap-3">
-                <button @click="downloadCertificatePdf()" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer">
+            <div class="flex flex-col sm:flex-row items-center gap-3">
+                <button @click="downloadCertificatePdf()" class="w-full sm:flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     <span x-text="t('btn_download_pdf')">Rəsmi PDF Sertifikatı Endir</span>
                 </button>
-                <button @click="showCertModal = false" class="py-2.5 px-4 rounded-xl border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:text-white dark:hover:bg-neutral-800 font-semibold text-xs transition cursor-pointer" x-text="t('btn_close')">
+                <button @click="showCertModal = false" class="w-full sm:w-auto py-3 px-5 rounded-xl border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:text-white dark:hover:bg-neutral-800 font-semibold text-xs transition cursor-pointer" x-text="t('btn_close')">
                     Bağla
                 </button>
             </div>
@@ -835,13 +881,19 @@
                         quiz_subtitle: 'Sokratik ipucu köməyi ilə biliyinizi möhkəmləndirin.',
                         btn_socratic_hint: 'Sokratik İpucu Al',
                         curriculum: 'Kurs Kurrikulumu',
-                        cert_modal_title: 'Təbriklər, Məzun!',
+                        cert_modal_title: 'Peşəkar Məzuniyyət Diplomu',
                         cert_modal_subtitle: 'Siz kursu 100% uğurla başa vurdunuz və rəsmi diplom əldə etdiniz.',
                         btn_download_pdf: 'Rəsmi PDF Sertifikatı Endir',
                         btn_close: 'Bağla',
                         login_title: 'Pragma LMS Giriş',
                         login_subtitle: 'Hesabınıza daxil olaraq dərslərə davam edin.',
-                        btn_login: 'Daxil Ol'
+                        btn_login: 'Daxil Ol',
+                        role_admin: 'Admin',
+                        role_instructor: 'Müəllim',
+                        role_student: 'Tələbə',
+                        platform_prefix: 'Platforma /',
+                        total_xp: 'Ümumi XP',
+                        badge_course: 'Kurs'
                     },
                     en: {
                         menu_nav: 'Navigation',
@@ -887,13 +939,19 @@
                         quiz_subtitle: 'Reinforce your knowledge with Socratic AI hints.',
                         btn_socratic_hint: 'Get Socratic Hint',
                         curriculum: 'Curriculum',
-                        cert_modal_title: 'Congratulations, Graduate!',
-                        cert_modal_subtitle: 'You successfully completed 100% of the course and earned your diploma.',
+                        cert_modal_title: 'Professional Graduation Diploma',
+                        cert_modal_subtitle: 'You successfully completed 100% of the course and earned your verified diploma.',
                         btn_download_pdf: 'Download Official PDF Certificate',
                         btn_close: 'Close',
                         login_title: 'Pragma LMS Sign In',
                         login_subtitle: 'Sign in to access your courses and progress.',
-                        btn_login: 'Sign In'
+                        btn_login: 'Sign In',
+                        role_admin: 'Admin',
+                        role_instructor: 'Instructor',
+                        role_student: 'Student',
+                        platform_prefix: 'Platform /',
+                        total_xp: 'Total XP',
+                        badge_course: 'Course'
                     },
                     ru: {
                         menu_nav: 'Навигация',
@@ -939,14 +997,110 @@
                         quiz_subtitle: 'Закрепите материал с помощью наводящих подсказок Сократа.',
                         btn_socratic_hint: 'Получить подсказку',
                         curriculum: 'Программа курса',
-                        cert_modal_title: 'Поздравляем с выпуском!',
+                        cert_modal_title: 'Профессиональный диплом выпускника',
                         cert_modal_subtitle: 'Вы успешно завершили 100% курса и получили официальный диплом.',
                         btn_download_pdf: 'Скачать официальный сертификат (PDF)',
                         btn_close: 'Закрыть',
                         login_title: 'Вход в Pragma LMS',
                         login_subtitle: 'Войдите в аккаунт, чтобы продолжить обучение.',
-                        btn_login: 'Войти'
+                        btn_login: 'Войти',
+                        role_admin: 'Админ',
+                        role_instructor: 'Преподаватель',
+                        role_student: 'Студент',
+                        platform_prefix: 'Платформа /',
+                        total_xp: 'Всего XP',
+                        badge_course: 'Курс'
                     }
+                },
+
+                // Qamifikasiya Nailiyyətlərinin (Badges) Çoxdilli Lüğəti
+                badgeI18n: {
+                    az: {
+                        'FIRST_LESSON': { name: 'İlk Addım', desc: 'İlk dərsi uğurla tamamladınız', icon: '🚀' },
+                        'FIRST_STEP': { name: 'İlk Addım', desc: 'İlk dərsi uğurla tamamladınız', icon: '🚀' },
+                        'QUIZ_MASTER': { name: 'Quiz Ustası', desc: 'Arxitektura sınağını 100% nəticə ilə keçdiniz', icon: '🏆' },
+                        'GRADUATE': { name: 'Rəsmi Məzun', desc: 'Kursu 100% bitirib təsdiqli diplom qazandınız', icon: '🎓' },
+                        'STREAK_3': { name: 'Alovlu Zəncir', desc: 'Fasiləsiz 3 gün ardıcıl öyrənmə zənciri qurdunuz!', icon: '🔥' },
+                        'STREAK_7': { name: '7 Gün Fasiləsiz', desc: '7 gün ardıcıl olaraq dərs oxudunuz', icon: '🔥' }
+                    },
+                    en: {
+                        'FIRST_LESSON': { name: 'First Step', desc: 'Successfully completed your first lesson', icon: '🚀' },
+                        'FIRST_STEP': { name: 'First Step', desc: 'Successfully completed your first lesson', icon: '🚀' },
+                        'QUIZ_MASTER': { name: 'Quiz Master', desc: 'Passed the quiz with 100% perfect score', icon: '🏆' },
+                        'GRADUATE': { name: 'Official Graduate', desc: 'Completed 100% of the course and earned a verified diploma', icon: '🎓' },
+                        'STREAK_3': { name: '3-Day Streak', desc: 'Maintained a 3-day continuous study streak!', icon: '🔥' },
+                        'STREAK_7': { name: '7-Day Streak', desc: 'Completed lessons 7 days in a row without breaking', icon: '🔥' }
+                    },
+                    ru: {
+                        'FIRST_LESSON': { name: 'Первый шаг', desc: 'Вы успешно завершили свой первый урок', icon: '🚀' },
+                        'FIRST_STEP': { name: 'Первый шаг', desc: 'Вы успешно завершили свой первый урок', icon: '🚀' },
+                        'QUIZ_MASTER': { name: 'Мастер тестов', desc: 'Сдали тест по архитектуре на 100% результат', icon: '🏆' },
+                        'GRADUATE': { name: 'Выпускник', desc: 'Завершили 100% курса и получили диплом', icon: '🎓' },
+                        'STREAK_3': { name: '3 дня подряд', desc: 'Ударный режим: 3 дня непрерывного обучения!', icon: '🔥' },
+                        'STREAK_7': { name: '7 дней подряд', desc: 'Занимались 7 дней подряд без перерыва', icon: '🔥' }
+                    }
+                },
+
+                getBadgeName(badge) {
+                    if (!badge) return '';
+                    const lang = this.currentLang || 'az';
+                    const dict = this.badgeI18n[lang] || this.badgeI18n['az'];
+                    const code = (badge.badgeCode || badge.code || '').toUpperCase();
+                    if (code && dict[code]) return dict[code].name;
+                    const name = (badge.badgeName || '').toLowerCase();
+                    if (name.includes('məzun') || name.includes('graduate') || name.includes('выпускник')) return dict['GRADUATE'].name;
+                    if (name.includes('quiz') || name.includes('kviz') || name.includes('тест')) return dict['QUIZ_MASTER'].name;
+                    if (name.includes('addım') || name.includes('step') || name.includes('шаг')) return dict['FIRST_LESSON'].name;
+                    if (name.includes('7') || name.includes('streak')) return dict['STREAK_7'].name;
+                    if (name.includes('3') || name.includes('alov')) return dict['STREAK_3'].name;
+                    return badge.badgeName || '';
+                },
+
+                getBadgeDesc(badge) {
+                    if (!badge) return '';
+                    const lang = this.currentLang || 'az';
+                    const dict = this.badgeI18n[lang] || this.badgeI18n['az'];
+                    const code = (badge.badgeCode || badge.code || '').toUpperCase();
+                    if (code && dict[code]) return dict[code].desc;
+                    const name = (badge.badgeName || '').toLowerCase();
+                    if (name.includes('məzun') || name.includes('graduate') || name.includes('выпускник')) return dict['GRADUATE'].desc;
+                    if (name.includes('quiz') || name.includes('kviz') || name.includes('тест')) return dict['QUIZ_MASTER'].desc;
+                    if (name.includes('addım') || name.includes('step') || name.includes('шаг')) return dict['FIRST_LESSON'].desc;
+                    if (name.includes('7') || name.includes('streak')) return dict['STREAK_7'].desc;
+                    if (name.includes('3') || name.includes('alov')) return dict['STREAK_3'].desc;
+                    return badge.description || '';
+                },
+
+                getBadgeIcon(badge) {
+                    if (!badge) return '🏅';
+                    const code = (badge.badgeCode || badge.code || '').toUpperCase();
+                    const azDict = this.badgeI18n['az'];
+                    if (code && azDict[code]) return azDict[code].icon;
+                    const name = (badge.badgeName || '').toLowerCase();
+                    if (name.includes('məzun') || name.includes('graduate') || name.includes('выпускник')) return '🎓';
+                    if (name.includes('quiz') || name.includes('kviz') || name.includes('тест')) return '🏆';
+                    if (name.includes('addım') || name.includes('step') || name.includes('шаг')) return '🚀';
+                    if (name.includes('alov') || name.includes('streak') || name.includes('gün')) return '🔥';
+                    return '🏅';
+                },
+
+                getCategoryName(cat) {
+                    if (!cat) return this.t('badge_course') || 'Kurs';
+                    const lang = this.currentLang || 'az';
+                    if (lang === 'az') return cat;
+                    if (lang === 'ru') {
+                        if (cat.includes('Süni İntellekt') || cat.includes('AI') || cat.includes('Data')) return 'ИИ и Данные';
+                        if (cat.includes('Frontend') || cat.includes('UI')) return 'Фронтенд & UI/UX';
+                        if (cat.includes('Backend') || cat.includes('Proqramlaşdırma')) return 'Бэкенд-разработка';
+                        return cat;
+                    }
+                    if (lang === 'en') {
+                        if (cat.includes('Süni İntellekt') || cat.includes('AI') || cat.includes('Data')) return 'AI & Data Science';
+                        if (cat.includes('Frontend') || cat.includes('UI')) return 'Frontend & UI/UX';
+                        if (cat.includes('Backend') || cat.includes('Proqramlaşdırma')) return 'Backend Development';
+                        return cat;
+                    }
+                    return cat;
                 },
 
                 t(key) {
@@ -1330,13 +1484,15 @@
 
                 async openCertificateModal(course) {
                     if (!this.token) return;
+                    const courseId = course.courseId || course.id;
                     try {
-                        const res = await fetch(`/api/courses/${course.id}/certificate`, {
+                        const res = await fetch(`/api/courses/${courseId}/certificate`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${this.token}` }
                         });
                         if (res.ok) {
                             this.certificateData = await res.json();
+                            this.certificateData.courseId = courseId;
                             this.showCertModal = true;
                             confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
                         } else {

@@ -41,21 +41,24 @@ public class CertificateService : ICertificateService
         if (!enrollment.IsCompleted && enrollment.ProgressPercentage < 100.0)
             return Result<CertificateDto>.Failure(Error.Validation("Certificate.NotEligible", "Sertifikat əldə etmək üçün bütün dərsləri 100% tamamlamalısınız."));
 
-        var existingCert = await _context.Certificates
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.CourseId == courseId && c.StudentId == studentId.Value && !c.IsDeleted, cancellationToken);
-
-        if (existingCert != null)
-        {
-            return Result<CertificateDto>.Success(MapToDto(existingCert));
-        }
-
         var course = await _context.Courses
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == courseId && !c.IsDeleted, cancellationToken);
 
         if (course == null)
             return Result<CertificateDto>.Failure(Error.NotFound("Kurs tapılmadı."));
+
+        var instructorInfo = await _userLookup.GetUserByIdAsync(course.InstructorId, cancellationToken);
+        var instructorName = instructorInfo?.FullName ?? "Rəşad Əliyev";
+
+        var existingCert = await _context.Certificates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.CourseId == courseId && c.StudentId == studentId.Value && !c.IsDeleted, cancellationToken);
+
+        if (existingCert != null)
+        {
+            return Result<CertificateDto>.Success(MapToDto(existingCert, instructorName));
+        }
 
         var studentInfo = await _userLookup.GetUserByIdAsync(studentId.Value, cancellationToken);
         var fullName = studentInfo?.FullName ?? "Məzun";
@@ -78,7 +81,7 @@ public class CertificateService : ICertificateService
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return Result<CertificateDto>.Success(MapToDto(cert));
+        return Result<CertificateDto>.Success(MapToDto(cert, instructorName));
     }
 
     public async Task<Result<CertificateFileResult>> DownloadCertificatePdfAsync(Guid courseId, CancellationToken cancellationToken = default)
@@ -157,7 +160,7 @@ public class CertificateService : ICertificateService
             "Rəsmi Pragma LMS sertifikatı təsdiq edildi."));
     }
 
-    private static CertificateDto MapToDto(Certificate cert)
+    private static CertificateDto MapToDto(Certificate cert, string instructorName)
     {
         return new CertificateDto(
             cert.Id,
@@ -165,6 +168,7 @@ public class CertificateService : ICertificateService
             cert.CertificateCode,
             cert.StudentFullName,
             cert.CourseTitle,
+            instructorName,
             cert.GradePercentage,
             cert.IssuedAtUtc,
             $"https://pragma.edu.az/verify/{cert.CertificateCode}"
