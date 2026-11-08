@@ -25,6 +25,12 @@ public interface IAppDbContext
     DbSet<Certificate> Certificates { get; }
     DbSet<UserStreak> UserStreaks { get; }
     DbSet<UserBadge> UserBadges { get; }
+    DbSet<Cohort> Cohorts { get; }
+    DbSet<CohortStudent> CohortStudents { get; }
+    DbSet<LessonSchedule> LessonSchedules { get; }
+    DbSet<AttendanceRecord> AttendanceRecords { get; }
+    DbSet<StudentAssessment> StudentAssessments { get; }
+    DbSet<UserSubscription> UserSubscriptions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -33,6 +33,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<UserStreak> UserStreaks => Set<UserStreak>();
     public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+    public DbSet<Cohort> Cohorts => Set<Cohort>();
+    public DbSet<CohortStudent> CohortStudents => Set<CohortStudent>();
+    public DbSet<LessonSchedule> LessonSchedules => Set<LessonSchedule>();
+    public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
+    public DbSet<StudentAssessment> StudentAssessments => Set<StudentAssessment>();
+    public DbSet<UserSubscription> UserSubscriptions => Set<UserSubscription>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -181,6 +187,71 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<Certificate>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<UserStreak>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<UserBadge>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Cohort>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<CohortStudent>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<LessonSchedule>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<AttendanceRecord>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<StudentAssessment>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<UserSubscription>().HasQueryFilter(e => !e.IsDeleted);
+
+        builder.Entity<Cohort>(entity =>
+        {
+            entity.HasIndex(c => c.Code).IsUnique();
+            entity.Property(c => c.Name).HasMaxLength(150).IsRequired();
+            entity.Property(c => c.Code).HasMaxLength(50).IsRequired();
+            entity.HasOne(c => c.Course)
+                  .WithMany()
+                  .HasForeignKey(c => c.CourseId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<CohortStudent>(entity =>
+        {
+            entity.HasIndex(cs => new { cs.CohortId, cs.StudentId }).IsUnique();
+            entity.HasOne(cs => cs.Cohort)
+                  .WithMany(c => c.Students)
+                  .HasForeignKey(cs => cs.CohortId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LessonSchedule>(entity =>
+        {
+            entity.HasOne(ls => ls.Cohort)
+                  .WithMany(c => c.Schedules)
+                  .HasForeignKey(ls => ls.CohortId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(ls => ls.Lesson)
+                  .WithMany()
+                  .HasForeignKey(ls => ls.LessonId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<AttendanceRecord>(entity =>
+        {
+            entity.HasIndex(ar => new { ar.LessonScheduleId, ar.CohortStudentId }).IsUnique();
+            entity.HasOne(ar => ar.LessonSchedule)
+                  .WithMany(ls => ls.AttendanceRecords)
+                  .HasForeignKey(ar => ar.LessonScheduleId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(ar => ar.CohortStudent)
+                  .WithMany(cs => cs.AttendanceRecords)
+                  .HasForeignKey(ar => ar.CohortStudentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<StudentAssessment>(entity =>
+        {
+            entity.HasOne(sa => sa.CohortStudent)
+                  .WithMany(cs => cs.Assessments)
+                  .HasForeignKey(sa => sa.CohortStudentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(sa => sa.Title).HasMaxLength(200).IsRequired();
+        });
+
+        builder.Entity<UserSubscription>(entity =>
+        {
+            entity.HasIndex(us => us.UserId).IsUnique();
+        });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
