@@ -51,7 +51,7 @@ public class PragmaApiClient : IPragmaApiClient
     public async Task<PagedResult<CourseSummaryDto>?> GetCoursesAsync(string? search = null, int pageNumber = 1, int pageSize = 50, CancellationToken ct = default)
     {
         AttachBearerToken();
-        var url = $"courses?pageNumber={pageNumber}&pageSize={pageSize}";
+        var url = $"courses?pageNumber={pageNumber}&pageSize={pageSize}&includeAllStatuses=true";
         if (!string.IsNullOrWhiteSpace(search))
             url += $"&search={Uri.EscapeDataString(search)}";
 

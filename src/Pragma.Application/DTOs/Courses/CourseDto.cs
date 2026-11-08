@@ -76,5 +76,7 @@ public record CourseFilterDto(
     Guid? CategoryId = null,
     CourseLevel? Level = null,
     bool? IsFree = null,
-    string? SortBy = "newest" // "newest", "price_asc", "price_desc", "rating"
+    string? SortBy = "newest", // "newest", "price_asc", "price_desc", "rating"
+    CourseStatus? Status = null,
+    bool IncludeAllStatuses = false
 );

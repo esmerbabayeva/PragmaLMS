@@ -38,7 +38,16 @@ public class CourseService : ICourseService
             .Include(c => c.Reviews)
             .Include(c => c.Modules)
             .ThenInclude(m => m.Lessons)
-            .Where(c => c.Status == CourseStatus.Published);
+            .AsQueryable();
+
+        if (filter.Status.HasValue)
+        {
+            query = query.Where(c => c.Status == filter.Status.Value);
+        }
+        else if (!filter.IncludeAllStatuses)
+        {
+            query = query.Where(c => c.Status == CourseStatus.Published);
+        }
 
         // Axtarış
         if (!string.IsNullOrWhiteSpace(filter.Search))
