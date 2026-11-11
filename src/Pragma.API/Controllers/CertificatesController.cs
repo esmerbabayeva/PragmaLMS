@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Certificates;
 
@@ -20,9 +21,9 @@ public class CertificatesController : BaseApiController
     }
 
     /// <summary>
-    /// Kursu 100% bitirən tələbə üçün rəsmi sertifikat generasiya edir.
+    /// Kursu 100% bitirən tələbə üçün rəsmi sertifikat generasiya edir (Yalnız Student).
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.RequireStudent)]
     [HttpPost("courses/{courseId:guid}/certificate")]
     public async Task<ActionResult<CertificateDto>> GenerateCertificate(Guid courseId, CancellationToken cancellationToken)
     {
@@ -31,9 +32,9 @@ public class CertificatesController : BaseApiController
     }
 
     /// <summary>
-    /// Rəsmi PDF sertifikatı endirir (QuestPDF və QR kodlu).
+    /// Rəsmi PDF sertifikatı endirir (QuestPDF və QR kodlu, Yalnız Student).
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.RequireStudent)]
     [HttpGet("courses/{courseId:guid}/certificate/download")]
     public async Task<IActionResult> DownloadCertificatePdf(Guid courseId, CancellationToken cancellationToken)
     {

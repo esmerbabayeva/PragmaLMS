@@ -6,7 +6,7 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.Admin.Controllers;
 
-[Authorize]
+[Authorize(Roles = UserRoles.Admin)]
 public class DashboardController : Controller
 {
     private readonly IPragmaApiClient _apiClient;

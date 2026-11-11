@@ -49,11 +49,19 @@ public class CourseService : ICourseService
             query = query.Where(c => c.Status == CourseStatus.Published);
         }
 
-        // Axtarış
+        // Axtarış (Transliterasiya və Azərbaycan simvolları dözümlü axtarış)
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            var search = filter.Search.Trim().ToLower();
-            query = query.Where(c => c.Title.ToLower().Contains(search) || (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(search)));
+            var searchTerms = SearchNormalizationHelper.GetSearchTerms(filter.Search);
+            var term1 = searchTerms.ElementAtOrDefault(0);
+            var term2 = searchTerms.ElementAtOrDefault(1);
+            var term3 = searchTerms.ElementAtOrDefault(2);
+
+            query = query.Where(c =>
+                (term1 != null && (c.Title.ToLower().Contains(term1) || (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term1)))) ||
+                (term2 != null && (c.Title.ToLower().Contains(term2) || (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term2)))) ||
+                (term3 != null && (c.Title.ToLower().Contains(term3) || (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term3))))
+            );
         }
 
         // Kateqoriya filteri
@@ -72,6 +80,12 @@ public class CourseService : ICourseService
         if (filter.IsFree.HasValue)
         {
             query = query.Where(c => c.IsFree == filter.IsFree.Value);
+        }
+
+        // Instructor filteri
+        if (filter.InstructorId.HasValue)
+        {
+            query = query.Where(c => c.InstructorId == filter.InstructorId.Value);
         }
 
         // Sıralama
@@ -104,12 +118,13 @@ public class CourseService : ICourseService
                 c.CategoryId,
                 c.Category != null ? c.Category.Name : string.Empty,
                 c.InstructorId,
-                "Təlimçi",
+                "Instructor",
                 c.Reviews.Any() ? Math.Round(c.Reviews.Average(r => r.Rating), 1) : 5.0,
                 c.Reviews.Count,
                 c.Modules.SelectMany(m => m.Lessons).Count(),
                 c.Modules.SelectMany(m => m.Lessons).Sum(l => l.DurationSeconds) / 60,
-                c.CreatedAtUtc
+                c.CreatedAtUtc,
+                c.Status == CourseStatus.Published
             ))
             .ToListAsync(cancellationToken);
 
@@ -342,7 +357,7 @@ public class CourseService : ICourseService
             course.CategoryId,
             course.Category?.Name ?? string.Empty,
             course.InstructorId,
-            "Təlimçi",
+            "Instructor",
             avgRating,
             course.Reviews.Count,
             course.Enrollments.Count,

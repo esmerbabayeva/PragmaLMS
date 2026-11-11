@@ -47,10 +47,62 @@ public class QuizService : IQuizService
             return Result<Guid>.Failure(Error.Forbidden("Course.Forbidden", "Bu dərsə quiz əlavə etmək icazəniz yoxdur."));
         }
 
-        var existingQuiz = await _context.Quizzes.AnyAsync(q => q.LessonId == lessonId, cancellationToken);
-        if (existingQuiz)
+        var existingQuiz = await _context.Quizzes
+            .Include(q => q.Questions)
+                .ThenInclude(qu => qu.Options)
+            .FirstOrDefaultAsync(q => q.LessonId == lessonId, cancellationToken);
+
+        if (existingQuiz != null)
         {
-            return Result<Guid>.Failure(Error.Conflict("Quiz.AlreadyExists", "Bu dərsə artıq bir quiz bağlanıb."));
+            existingQuiz.Title = dto.Title.Trim();
+            existingQuiz.Description = dto.Description;
+            existingQuiz.PassingScorePercentage = dto.PassingScorePercentage;
+            existingQuiz.TimeLimitMinutes = dto.TimeLimitMinutes;
+            existingQuiz.MaxAttempts = dto.MaxAttempts;
+
+            var oldQuestions = existingQuiz.Questions.ToList();
+            var oldQuestionIds = oldQuestions.Select(q => q.Id).ToList();
+            var oldAnswers = await _context.QuizAttemptAnswers.Where(a => oldQuestionIds.Contains(a.QuestionId)).ToListAsync(cancellationToken);
+            if (oldAnswers.Count > 0)
+            {
+                _context.QuizAttemptAnswers.RemoveRange(oldAnswers);
+            }
+
+            var oldOptions = oldQuestions.SelectMany(q => q.Options).ToList();
+            if (oldOptions.Count > 0)
+            {
+                _context.AnswerOptions.RemoveRange(oldOptions);
+            }
+            if (oldQuestions.Count > 0)
+            {
+                _context.Questions.RemoveRange(oldQuestions);
+            }
+
+            foreach (var qDto in dto.Questions)
+            {
+                var question = new Question
+                {
+                    Text = qDto.Text.Trim(),
+                    Points = qDto.Points,
+                    OrderIndex = qDto.OrderIndex,
+                    Explanation = qDto.Explanation,
+                    QuizId = existingQuiz.Id
+                };
+
+                foreach (var optDto in qDto.Options)
+                {
+                    question.Options.Add(new AnswerOption
+                    {
+                        Text = optDto.Text.Trim(),
+                        IsCorrect = optDto.IsCorrect
+                    });
+                }
+
+                _context.Questions.Add(question);
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result<Guid>.Success(existingQuiz.Id);
         }
 
         var quiz = new Quiz
@@ -91,6 +143,130 @@ public class QuizService : IQuizService
         return Result<Guid>.Success(quiz.Id);
     }
 
+    public async Task<Result<QuizDetailDto>> GetQuizForManagementAsync(Guid quizId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var quiz = await _context.Quizzes
+            .AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Module)
+            .Include(q => q.Questions.OrderBy(qu => qu.OrderIndex))
+                .ThenInclude(qu => qu.Options)
+            .FirstOrDefaultAsync(q => q.Id == quizId, cancellationToken);
+
+        if (quiz == null)
+        {
+            return Result<QuizDetailDto>.Failure(Error.NotFound("Quiz.NotFound", "Quiz tapılmadı."));
+        }
+
+        var courseId = quiz.Lesson?.Module?.CourseId ?? Guid.Empty;
+        var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);
+        if (!canManage)
+        {
+            return Result<QuizDetailDto>.Failure(Error.Forbidden("Quiz.Forbidden", "Bu kvizə baxmaq və ya idarə etmək səlahiyyətiniz yoxdur."));
+        }
+
+        var detail = new QuizDetailDto(
+            quiz.Id,
+            quiz.LessonId,
+            quiz.Title,
+            quiz.Description,
+            quiz.PassingScorePercentage,
+            quiz.TimeLimitMinutes,
+            quiz.MaxAttempts,
+            quiz.Questions.Select(qu => new QuestionDetailDto(
+                qu.Id,
+                qu.Text,
+                qu.Points,
+                qu.OrderIndex,
+                qu.Explanation,
+                qu.Options.Select(o => new AnswerOptionDetailDto(o.Id, o.Text, o.IsCorrect)).ToList()
+            )).ToList()
+        );
+
+        return Result<QuizDetailDto>.Success(detail);
+    }
+
+    public async Task<Result<Guid>> UpdateQuizAsync(Guid quizId, UpdateQuizDto dto, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var quiz = await _context.Quizzes
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Module)
+            .Include(q => q.Questions)
+                .ThenInclude(qu => qu.Options)
+            .FirstOrDefaultAsync(q => q.Id == quizId, cancellationToken);
+
+        if (quiz == null)
+        {
+            return Result<Guid>.Failure(Error.NotFound("Quiz.NotFound", "Quiz tapılmadı."));
+        }
+
+        var courseId = quiz.Lesson?.Module?.CourseId ?? Guid.Empty;
+        var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);
+        if (!canManage)
+        {
+            return Result<Guid>.Failure(Error.Forbidden("Quiz.Forbidden", "Bu kvizi redaktə etmək səlahiyyətiniz yoxdur."));
+        }
+
+        quiz.Title = dto.Title.Trim();
+        quiz.Description = dto.Description;
+        quiz.PassingScorePercentage = dto.PassingScorePercentage;
+        quiz.TimeLimitMinutes = dto.TimeLimitMinutes;
+        quiz.MaxAttempts = dto.MaxAttempts;
+
+        // Sualları yenilə
+        _context.QuizAttemptAnswers.RemoveRange(_context.QuizAttemptAnswers.Where(a => quiz.Questions.Select(qu => qu.Id).Contains(a.QuestionId)));
+        quiz.Questions.Clear();
+
+        foreach (var qDto in dto.Questions)
+        {
+            var question = new Question
+            {
+                Text = qDto.Text.Trim(),
+                Points = qDto.Points,
+                OrderIndex = qDto.OrderIndex,
+                Explanation = qDto.Explanation
+            };
+
+            foreach (var optDto in qDto.Options)
+            {
+                question.Options.Add(new AnswerOption
+                {
+                    Text = optDto.Text.Trim(),
+                    IsCorrect = optDto.IsCorrect
+                });
+            }
+
+            quiz.Questions.Add(question);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<Guid>.Success(quiz.Id);
+    }
+
+    public async Task<Result<bool>> DeleteQuizAsync(Guid quizId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var quiz = await _context.Quizzes
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Module)
+            .FirstOrDefaultAsync(q => q.Id == quizId, cancellationToken);
+
+        if (quiz == null)
+        {
+            return Result<bool>.Failure(Error.NotFound("Quiz.NotFound", "Quiz tapılmadı."));
+        }
+
+        var courseId = quiz.Lesson?.Module?.CourseId ?? Guid.Empty;
+        var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);
+        if (!canManage)
+        {
+            return Result<bool>.Failure(Error.Forbidden("Quiz.Forbidden", "Bu kvizi silmək səlahiyyətiniz yoxdur."));
+        }
+
+        quiz.MarkDeleted();
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<bool>.Success(true);
+    }
+
     public async Task<Result<QuizTakingDto>> GetQuizForTakingAsync(Guid quizId, Guid studentId, CancellationToken cancellationToken = default)
     {
         var quiz = await _context.Quizzes
@@ -129,7 +305,8 @@ public class QuizService : IQuizService
             q.Text,
             q.Points,
             q.OrderIndex,
-            q.Options.Select(o => new AnswerOptionTakingDto(o.Id, o.Text)).ToList()
+            q.Options.Select(o => new AnswerOptionTakingDto(o.Id, o.Text)).ToList(),
+            q.Options.Count(o => o.IsCorrect) > 1
         )).ToList();
 
         var takingDto = new QuizTakingDto(
@@ -145,6 +322,22 @@ public class QuizService : IQuizService
         );
 
         return Result<QuizTakingDto>.Success(takingDto);
+    }
+
+    public async Task<Result<QuizTakingDto>> GetQuizByLessonIdAsync(Guid lessonId, Guid studentId, CancellationToken cancellationToken = default)
+    {
+        var quizId = await _context.Quizzes
+            .AsNoTracking()
+            .Where(q => q.LessonId == lessonId)
+            .Select(q => (Guid?)q.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (!quizId.HasValue)
+        {
+            return Result<QuizTakingDto>.Failure(Error.NotFound("Quiz.NotFound", "Bu dərs üçün kviz tapılmadı."));
+        }
+
+        return await GetQuizForTakingAsync(quizId.Value, studentId, cancellationToken);
     }
 
     public async Task<Result<QuizResultDto>> SubmitQuizAsync(Guid quizId, Guid studentId, SubmitQuizRequestDto dto, CancellationToken cancellationToken = default)
@@ -189,9 +382,14 @@ public class QuizService : IQuizService
         {
             var studentAnswer = dto.Answers.FirstOrDefault(a => a.QuestionId == question.Id);
             var selectedOptionId = studentAnswer?.SelectedOptionId;
+            var selectedOptionIds = studentAnswer?.SelectedOptionIds?.ToHashSet() ?? new HashSet<Guid>();
+            if (selectedOptionId.HasValue)
+            {
+                selectedOptionIds.Add(selectedOptionId.Value);
+            }
 
-            var correctOption = question.Options.FirstOrDefault(o => o.IsCorrect);
-            bool isCorrect = selectedOptionId.HasValue && correctOption != null && selectedOptionId.Value == correctOption.Id;
+            var correctOptionIds = question.Options.Where(o => o.IsCorrect).Select(o => o.Id).ToHashSet();
+            bool isCorrect = correctOptionIds.Count > 0 && correctOptionIds.SetEquals(selectedOptionIds);
 
             if (isCorrect)
             {
@@ -202,15 +400,15 @@ public class QuizService : IQuizService
             attempt.Answers.Add(new QuizAttemptAnswer
             {
                 QuestionId = question.Id,
-                SelectedOptionId = selectedOptionId,
+                SelectedOptionId = selectedOptionId ?? selectedOptionIds.FirstOrDefault(),
                 IsCorrect = isCorrect
             });
 
             reviews.Add(new QuestionReviewDto(
                 question.Id,
                 question.Text,
-                selectedOptionId,
-                correctOption?.Id,
+                selectedOptionId ?? selectedOptionIds.FirstOrDefault(),
+                correctOptionIds.FirstOrDefault(),
                 isCorrect,
                 question.Explanation
             ));

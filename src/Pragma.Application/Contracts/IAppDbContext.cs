@@ -3,9 +3,6 @@ using Pragma.Domain.Entities;
 
 namespace Pragma.Application.Contracts;
 
-/// <summary>
-/// Verilənlər bazası konteksti üçün tətbiq qatı abstraksiyası (DIP prinsipi).
-/// </summary>
 public interface IAppDbContext
 {
     DbSet<Category> Categories { get; }
@@ -25,6 +22,9 @@ public interface IAppDbContext
     DbSet<Certificate> Certificates { get; }
     DbSet<UserStreak> UserStreaks { get; }
     DbSet<UserBadge> UserBadges { get; }
+    DbSet<AuthChallenge> AuthChallenges { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<AuditLog> AuditLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

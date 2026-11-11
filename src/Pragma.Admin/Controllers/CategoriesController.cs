@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Pragma.Admin.Models;
 using Pragma.Admin.Services;
 using Pragma.Application.DTOs.Categories;
+using Pragma.Domain.Enums;
 
 namespace Pragma.Admin.Controllers;
 
-[Authorize]
+[Authorize(Roles = UserRoles.Admin)]
 public class CategoriesController : Controller
 {
     private readonly IPragmaApiClient _apiClient;

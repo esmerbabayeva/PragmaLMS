@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Categories;
 using Pragma.Domain.Entities;
@@ -72,9 +73,9 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Yeni kurs kateqoriyası yaradır (Yalnız Admin üçün).
+    /// Yeni kurs kateqoriyası yaradır (Yalnız Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = UserRoles.Admin)]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPost]
     public async Task<ActionResult<Guid>> CreateCategory([FromBody] CreateCategoryDto dto, CancellationToken cancellationToken)
     {
@@ -100,9 +101,9 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Kateqoriyanı silir (Soft delete, yalnız Admin üçün).
+    /// Kateqoriyanı silir (Soft delete, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = UserRoles.Admin)]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteCategory(Guid id, CancellationToken cancellationToken)
     {

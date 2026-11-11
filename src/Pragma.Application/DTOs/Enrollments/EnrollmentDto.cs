@@ -17,3 +17,8 @@ public record EnrollmentDto(
 public record EnrollCourseDto(
     Guid CourseId
 );
+
+public record ManageEnrollmentDto(
+    Guid CourseId,
+    Guid StudentId
+);

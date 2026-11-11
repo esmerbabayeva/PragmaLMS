@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Gradebook;
 using Pragma.Domain.Enums;
@@ -9,7 +10,7 @@ namespace Pragma.API.Controllers;
 /// <summary>
 /// Müəllimlər və Adminlər üçün qiymət cədvəli və tələbə analitikası ixracı.
 /// </summary>
-[Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+[Authorize(Policy = AuthorizationPolicies.CanViewResults)]
 [ApiController]
 [Route("api/courses/{id:guid}/gradebook")]
 public class GradebookController : BaseApiController

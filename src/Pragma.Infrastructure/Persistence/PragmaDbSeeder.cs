@@ -13,18 +13,47 @@ namespace Pragma.Infrastructure.Persistence;
 /// </summary>
 public static class PragmaDbSeeder
 {
+    private static readonly SemaphoreSlim SeedLock = new(1, 1);
+
     public static async Task SeedAsync(
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         ILogger logger)
     {
+        await SeedLock.WaitAsync();
         try
         {
             await context.Database.EnsureCreatedAsync();
 
+            // Ensure AuditLogs table exists for existing relational databases
+            if (context.Database.IsRelational())
+            {
+                await context.Database.ExecuteSqlRawAsync(@"
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AuditLogs')
+                    BEGIN
+                        CREATE TABLE [AuditLogs] (
+                            [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+                            [UserId] UNIQUEIDENTIFIER NULL,
+                            [UserEmail] NVARCHAR(256) NULL,
+                            [Action] NVARCHAR(100) NOT NULL,
+                            [EntityName] NVARCHAR(100) NOT NULL,
+                            [EntityId] NVARCHAR(100) NOT NULL,
+                            [Details] NVARCHAR(MAX) NOT NULL,
+                            [IpAddress] NVARCHAR(64) NULL,
+                            [CreatedAtUtc] DATETIME2 NOT NULL,
+                            [UpdatedAtUtc] DATETIME2 NULL,
+                            [IsDeleted] BIT NOT NULL DEFAULT 0,
+                            [RowVersion] ROWVERSION NOT NULL
+                        );
+                        CREATE INDEX [IX_AuditLogs_CreatedAtUtc] ON [AuditLogs] ([CreatedAtUtc]);
+                        CREATE INDEX [IX_AuditLogs_UserId] ON [AuditLogs] ([UserId]);
+                    END
+                ");
+            }
+
             // 1. Rolların yaradılması
-            string[] roles = [UserRoles.Admin, UserRoles.Instructor, UserRoles.Student];
+            string[] roles = [UserRoles.Admin, UserRoles.Instructor, UserRoles.Teacher, UserRoles.Student, UserRoles.Moderator];
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
@@ -35,8 +64,38 @@ public static class PragmaDbSeeder
 
             // 2. İstifadəçilərin yaradılması (Admin, Müəllimlər və Tələbələr)
             var adminUser = await EnsureUserAsync(userManager, "admin@pragma.edu.az", "PragmaAdmin2026!", "Pragma", "SuperAdmin", UserRoles.Admin);
-            var teacherUser = await EnsureUserAsync(userManager, "teacher@pragma.edu.az", "Password123!", "Rəşad", "Əliyev", UserRoles.Instructor);
-            await EnsureUserAsync(userManager, "instructor@pragma.edu.az", "Password123!", "Rəşad", "Əliyev", UserRoles.Instructor);
+            var teacherUser = await EnsureUserAsync(userManager, "teacher@pragma.edu.az", "Password123!", "Rəşad", "Əliyev", UserRoles.Teacher);
+            if (await userManager.IsInRoleAsync(teacherUser, UserRoles.Instructor))
+            {
+                await userManager.RemoveFromRoleAsync(teacherUser, UserRoles.Instructor);
+            }
+            if (!await userManager.IsInRoleAsync(teacherUser, UserRoles.Teacher))
+            {
+                await userManager.AddToRoleAsync(teacherUser, UserRoles.Teacher);
+            }
+
+            var instructorUser = await EnsureUserAsync(userManager, "instructor@pragma.edu.az", "Password123!", "Kənan", "Məmmədov", UserRoles.Instructor);
+            if (await userManager.IsInRoleAsync(instructorUser, UserRoles.Teacher))
+            {
+                await userManager.RemoveFromRoleAsync(instructorUser, UserRoles.Teacher);
+            }
+            if (!await userManager.IsInRoleAsync(instructorUser, UserRoles.Instructor))
+            {
+                await userManager.AddToRoleAsync(instructorUser, UserRoles.Instructor);
+            }
+
+            // Remove any streaks/badges attached to non-student accounts (Admin, Instructor, Teacher)
+            var nonStudentUserIds = new[] { adminUser.Id, teacherUser.Id, instructorUser.Id };
+            var nonStudentStreaks = await context.UserStreaks.Where(s => nonStudentUserIds.Contains(s.UserId)).ToListAsync();
+            if (nonStudentStreaks.Count > 0)
+            {
+                context.UserStreaks.RemoveRange(nonStudentStreaks);
+            }
+            var nonStudentBadges = await context.UserBadges.Where(b => nonStudentUserIds.Contains(b.UserId)).ToListAsync();
+            if (nonStudentBadges.Count > 0)
+            {
+                context.UserBadges.RemoveRange(nonStudentBadges);
+            }
             
             var studentEsmer = await EnsureUserAsync(userManager, "student@pragma.edu.az", "Password123!", "Əsmər", "Babayeva", UserRoles.Student);
             var studentLeyla = await EnsureUserAsync(userManager, "leyla@pragma.edu.az", "Password123!", "Leyla", "Qasımova", UserRoles.Student);
@@ -61,7 +120,7 @@ public static class PragmaDbSeeder
                 price: 0m,
                 isFree: true,
                 level: CourseLevel.Beginner,
-                instructorId: teacherUser.Id,
+                instructorId: instructorUser.Id,
                 categoryId: backendCat.Id
             );
 
@@ -89,7 +148,7 @@ public static class PragmaDbSeeder
                 price: 49.99m,
                 isFree: false,
                 level: CourseLevel.Advanced,
-                instructorId: teacherUser.Id,
+                instructorId: instructorUser.Id,
                 categoryId: aiCat.Id
             );
 
@@ -398,6 +457,10 @@ public static class PragmaDbSeeder
         {
             logger.LogError(ex, "PragmaDbSeeder: Məlumatlar doldurularkən xəta baş verdi: {Message}", ex.Message);
         }
+        finally
+        {
+            SeedLock.Release();
+        }
     }
 
     private static async Task<ApplicationUser> EnsureUserAsync(
@@ -421,6 +484,25 @@ public static class PragmaDbSeeder
             };
 
             await userManager.CreateAsync(user, password);
+        }
+        else
+        {
+            if (user.FirstName != firstName || user.LastName != lastName)
+            {
+                user.FirstName = firstName;
+                user.LastName = lastName;
+                await userManager.UpdateAsync(user);
+            }
+
+            if (!await userManager.CheckPasswordAsync(user, password))
+            {
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                await userManager.ResetPasswordAsync(user, resetToken, password);
+            }
+        }
+
+        if (!await userManager.IsInRoleAsync(user, role))
+        {
             await userManager.AddToRoleAsync(user, role);
         }
         return user;
@@ -482,6 +564,13 @@ public static class PragmaDbSeeder
                 ApprovedAtUtc = DateTime.UtcNow
             };
             context.Courses.Add(course);
+        }
+        else
+        {
+            if (course.InstructorId != instructorId)
+            {
+                course.InstructorId = instructorId;
+            }
         }
         return course;
     }

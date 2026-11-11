@@ -7,9 +7,6 @@ using Pragma.Infrastructure.Identity;
 
 namespace Pragma.Infrastructure.Persistence;
 
-/// <summary>
-/// Pragma LMS üçün mərkəzi EF Core verilənlər bazası konteksti.
-/// </summary>
 public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IAppDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -33,6 +30,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Certificate> Certificates => Set<Certificate>();
     public DbSet<UserStreak> UserStreaks => Set<UserStreak>();
     public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+    public DbSet<AuthChallenge> AuthChallenges => Set<AuthChallenge>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -104,7 +104,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // 4. Kaskad qorunması (SQL Server Multiple Cascade Paths xətasının qarşısını alır)
+        // 4. Kaskad qorunması
         builder.Entity<Enrollment>(entity =>
         {
             entity.HasIndex(e => new { e.StudentId, e.CourseId }).IsUnique();
@@ -113,6 +113,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                   .WithMany(c => c.Enrollments)
                   .HasForeignKey(e => e.CourseId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(e => e.MiniProjectGrade).HasPrecision(5, 2);
+            entity.Property(e => e.FinalGrade).HasPrecision(5, 2);
         });
 
         builder.Entity<QuizAttempt>(entity =>
@@ -163,7 +166,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.HasIndex(c => c.Slug).IsUnique();
         });
 
-        // 5. Global Query Filters (Soft delete olan qeydləri avtomatik gizlədir)
+        // 5. Global Query Filters (Soft delete)
         builder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Course>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Module>().HasQueryFilter(e => !e.IsDeleted);
@@ -181,6 +184,39 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<Certificate>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<UserStreak>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<UserBadge>().HasQueryFilter(e => !e.IsDeleted);
+
+        builder.Entity<AuthChallenge>(entity =>
+        {
+            entity.HasIndex(a => a.EmailNormalized);
+            entity.HasIndex(a => a.ExpiresUtc);
+        });
+
+        builder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasIndex(r => r.TokenHash).IsUnique();
+            entity.HasIndex(r => r.FamilyId);
+            entity.HasIndex(r => r.UserId);
+        });
+
+        builder.Entity<AuditLog>(entity =>
+        {
+            entity.Property(a => a.Action).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.EntityName).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.UserEmail).HasMaxLength(256);
+            entity.Property(a => a.IpAddress).HasMaxLength(64);
+            entity.HasIndex(a => a.CreatedAtUtc);
+            entity.HasIndex(a => a.UserId);
+        });
+
+        // 6. BaseEntity RowVersion (Optimistic Concurrency)
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+            {
+                builder.Entity(entityType.ClrType).Property(nameof(BaseEntity.RowVersion)).IsRowVersion();
+            }
+        }
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -192,7 +228,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             switch (entry.State)
             {
                 case EntityState.Added:
-                    // CreatedAtUtc BaseEntity daxilində ilkin olaraq DateTime.UtcNow təyin edilir
                     break;
                 case EntityState.Modified:
                     entry.Entity.MarkUpdated();

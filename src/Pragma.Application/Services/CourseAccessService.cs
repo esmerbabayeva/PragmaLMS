@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Contracts;
+using Pragma.Domain.Enums;
 
 namespace Pragma.Application.Services;
 
@@ -9,23 +10,50 @@ namespace Pragma.Application.Services;
 public class CourseAccessService : ICourseAccessService
 {
     private readonly IAppDbContext _context;
+    private readonly IUserLookupService? _userLookup;
 
-    public CourseAccessService(IAppDbContext context)
+    public CourseAccessService(IAppDbContext context, IUserLookupService? userLookup = null)
     {
         _context = context;
+        _userLookup = userLookup;
     }
 
     public async Task<bool> CanManageCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
     {
         if (isAdmin) return true;
 
-        return await _context.Courses
+        var isInstructor = await _context.Courses
             .AsNoTracking()
-            .AnyAsync(c => c.Id == courseId && c.InstructorId == userId, cancellationToken);
+            .AnyAsync(c => c.Id == courseId && (c.InstructorId == userId || c.InstructorId == Guid.Empty), cancellationToken);
+        if (isInstructor) return true;
+
+        if (_userLookup != null)
+        {
+            var teacherIds = await _userLookup.GetUserIdsInRoleAsync(UserRoles.Teacher, cancellationToken);
+            if (teacherIds.Contains(userId))
+            {
+                return true;
+            }
+
+            var instructorIds = await _userLookup.GetUserIdsInRoleAsync(UserRoles.Instructor, cancellationToken);
+            if (instructorIds.Contains(userId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    public async Task<bool> CanAccessLessonAsync(Guid lessonId, Guid? userId, CancellationToken cancellationToken = default)
+    public Task<bool> CanAccessLessonAsync(Guid lessonId, Guid? userId, CancellationToken cancellationToken = default)
     {
+        return CanAccessLessonAsync(lessonId, userId, isAdmin: false, cancellationToken);
+    }
+
+    public async Task<bool> CanAccessLessonAsync(Guid lessonId, Guid? userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (isAdmin) return true;
+
         var lesson = await _context.Lessons
             .AsNoTracking()
             .Include(l => l.Module)

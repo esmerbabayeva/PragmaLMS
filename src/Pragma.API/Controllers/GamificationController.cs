@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Gamification;
 
@@ -21,8 +22,9 @@ public class GamificationController : BaseApiController
     }
 
     /// <summary>
-    /// Cari tələbənin öyrənmə statistikası, aktiv zənciri (Streak) və qazandığı nişanlar.
+    /// Cari tələbənin öyrənmə statistikası, aktiv zənciri (Streak) və qazandığı nişanlar (Yalnız Student).
     /// </summary>
+    [Authorize(Policy = AuthorizationPolicies.RequireStudent)]
     [HttpGet("my-stats")]
     public async Task<ActionResult<UserGamificationStatsDto>> GetMyStats(CancellationToken cancellationToken)
     {

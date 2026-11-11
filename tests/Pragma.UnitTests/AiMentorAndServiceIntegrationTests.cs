@@ -181,4 +181,104 @@ public class AiMentorAndServiceIntegrationTests
         Assert.Equal(14, streak.LongestStreak); // Ən yüksək rekord 14 olaraq toxunulmaz qalır
         Assert.Equal(510, streak.TotalXp);
     }
+
+    [Theory]
+    [InlineData("Hava bugun necedi", true)]
+    [InlineData("Bugun hava necedir?", true)]
+    [InlineData("Sabah yagis yagacaq?", true)]
+    [InlineData("Futbol oyunu neçədədir?", true)]
+    [InlineData("Mənə pizza resepti ver", true)]
+    [InlineData("Kino və film tövsiyə et", true)]
+    [InlineData("Dolların məzənnəsi neçədir?", true)]
+    [InlineData("QB limitim nə qədərdir?", false)]
+    [InlineData("Qayıb necə hesablanır?", false)]
+    [InlineData("Yekun bal və qiymətləndirmə qaydası necədir?", false)]
+    [InlineData("Diplom və sertifikat necə verilir?", false)]
+    [InlineData("Dərs saatları cədvəli haradadır?", false)]
+    [InlineData("C# kursunda nə öyrədilir?", false)]
+    public void AiMentor_ScopeClassifier_AccuratelyDetectsOffTopicVersusInScopeQuestions(string question, bool expectedOutOfScope)
+    {
+        // Act
+        var isOut = Pragma.Application.Services.AiMentorService.IsOutOfScope(question);
+
+        // Assert
+        Assert.Equal(expectedOutOfScope, isOut);
+    }
+
+    [Fact]
+    public async Task AiMentor_OutOfScopeQuestion_ReturnsOfficialBoundaryMessage()
+    {
+        // Arrange
+        var contextMock = new Moq.Mock<Pragma.Application.Contracts.IAppDbContext>();
+        var userMock = new Moq.Mock<Pragma.Application.Contracts.ICurrentUserService>();
+        var accessMock = new Moq.Mock<Pragma.Application.Contracts.ICourseAccessService>();
+        var aiSettings = new Pragma.Application.Common.AiSettings { GeminiApiKey = null };
+
+        var service = new Pragma.Application.Services.AiMentorService(
+            contextMock.Object,
+            userMock.Object,
+            accessMock.Object,
+            aiSettings);
+
+        // Act
+        var result = await service.AskGlobalQuestionAsync("Hava bugun necedi");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(Pragma.Application.Services.AiMentorService.OutOfScopeMessage, result.Value.Answer);
+        Assert.Contains("tədris platforması", result.Value.Answer);
+        Assert.Contains("hava proqnozu", result.Value.Answer);
+    }
+
+    [Fact]
+    public async Task AiMentor_InScopeQbQuestion_ReturnsAccurateAbsenceRules()
+    {
+        // Arrange
+        var contextMock = new Moq.Mock<Pragma.Application.Contracts.IAppDbContext>();
+        var userMock = new Moq.Mock<Pragma.Application.Contracts.ICurrentUserService>();
+        var accessMock = new Moq.Mock<Pragma.Application.Contracts.ICourseAccessService>();
+        var aiSettings = new Pragma.Application.Common.AiSettings { GeminiApiKey = null };
+
+        var service = new Pragma.Application.Services.AiMentorService(
+            contextMock.Object,
+            userMock.Object,
+            accessMock.Object,
+            aiSettings);
+
+        // Act
+        var result = await service.AskGlobalQuestionAsync("QB limitim və qayıb qaydaları necədir?");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Contains("Maksimum Qayıb Limiti", result.Value.Answer);
+        Assert.Contains("6 qayıbdır", result.Value.Answer);
+        Assert.Contains("LateToAbsenceRatio = 3", result.Value.Answer);
+        Assert.Contains("Dropped", result.Value.Answer);
+    }
+
+    [Fact]
+    public async Task AiMentor_InScopeGradingQuestion_ReturnsStrictWeightsAndThreshold()
+    {
+        // Arrange
+        var contextMock = new Moq.Mock<Pragma.Application.Contracts.IAppDbContext>();
+        var userMock = new Moq.Mock<Pragma.Application.Contracts.ICurrentUserService>();
+        var accessMock = new Moq.Mock<Pragma.Application.Contracts.ICourseAccessService>();
+        var aiSettings = new Pragma.Application.Common.AiSettings { GeminiApiKey = null };
+
+        var service = new Pragma.Application.Services.AiMentorService(
+            contextMock.Object,
+            userMock.Object,
+            accessMock.Object,
+            aiSettings);
+
+        // Act
+        var result = await service.AskGlobalQuestionAsync("Yekun bal necə hesablanır?");
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Contains("Kviz (Quiz) Ortalaması (30%)", result.Value.Answer);
+        Assert.Contains("Mini Layihə Ortalaması (30%)", result.Value.Answer);
+        Assert.Contains("Final Layihə (40%)", result.Value.Answer);
+        Assert.Contains("70.0", result.Value.Answer);
+    }
 }

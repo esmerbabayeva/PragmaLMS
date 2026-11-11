@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Pragma.Admin.Services;
+using Pragma.Domain.Enums;
 
 namespace Pragma.Admin.Controllers;
 
-[Authorize]
+[Authorize(Roles = UserRoles.Admin)]
 public class CoursesController : Controller
 {
     private readonly IPragmaApiClient _apiClient;

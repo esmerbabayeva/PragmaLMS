@@ -11,14 +11,18 @@
 *.sln.docstates
 *.DotSettings.user
 
-## Test results
+## Test results & coverage
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
+TestResults/
+coverage/
 
 ## Secrets & Local configs
 appsettings.Development.json
 appsettings.Local.json
 *.local.json
+secrets.json
+.secrets/
 
 ## OS generated
 .DS_Store

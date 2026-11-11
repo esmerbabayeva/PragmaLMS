@@ -234,9 +234,16 @@ public class GamificationService : IGamificationService
 
     public async Task<Result<IReadOnlyList<LeaderboardEntryDto>>> GetLeaderboardAsync(int top = 10, CancellationToken cancellationToken = default)
     {
+        // Yalnız Student rolundakı istifadəçilər liderlik cədvəlində görünür (Admin, Instructor və Teacher xaric edilir)
+        var studentIds = await _userLookup.GetUserIdsInRoleAsync(Pragma.Domain.Enums.UserRoles.Student, cancellationToken);
+        if (studentIds.Count == 0)
+        {
+            return Result<IReadOnlyList<LeaderboardEntryDto>>.Success(new List<LeaderboardEntryDto>());
+        }
+
         var streaks = await _context.UserStreaks
             .AsNoTracking()
-            .Where(s => !s.IsDeleted)
+            .Where(s => !s.IsDeleted && studentIds.Contains(s.UserId))
             .OrderByDescending(s => s.TotalXp)
             .ThenByDescending(s => s.CurrentStreak)
             .Take(top)

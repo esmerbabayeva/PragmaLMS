@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IAiMentorService, AiMentorService>();
         services.AddScoped<ILiveSessionService, LiveSessionService>();
         services.AddScoped<IGradebookService, GradebookService>();
+        services.AddScoped<ITeacherService, TeacherService>();
 
         return services;
     }

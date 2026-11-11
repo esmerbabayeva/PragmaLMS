@@ -33,8 +33,8 @@ public class CreateQuizValidator : AbstractValidator<CreateQuizDto>
                 .WithMessage("Hər sual üçün ən azı 2 cavab variantı olmalıdır.");
 
             q.RuleFor(x => x.Options)
-                .Must(opts => opts != null && opts.Count(o => o.IsCorrect) == 1)
-                .WithMessage("Hər sualda dəqiq olaraq 1 düzgün cavab variantı seçilməlidir.");
+                .Must(opts => opts != null && opts.Count(o => o.IsCorrect) >= 1)
+                .WithMessage("Hər sualda ən azı 1 düzgün cavab variantı seçilməlidir.");
         });
     }
 }

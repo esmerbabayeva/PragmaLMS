@@ -14,6 +14,8 @@ public abstract class BaseEntity
 
     public bool IsDeleted { get; protected set; } = false;
 
+    public byte[]? RowVersion { get; set; }
+
     public void MarkUpdated()
     {
         UpdatedAtUtc = DateTime.UtcNow;

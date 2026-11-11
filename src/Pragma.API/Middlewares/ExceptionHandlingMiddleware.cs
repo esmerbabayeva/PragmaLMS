@@ -2,13 +2,10 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Pragma.API.Middlewares;
 
-/// <summary>
-/// Gözlənilməz sistem xətalarını mərkəzləşdirilmiş şəkildə tutan və 
-/// RFC 7807 ProblemDetails formatında təqdim edən middleware.
-/// </summary>
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -41,16 +38,25 @@ public class ExceptionHandlingMiddleware
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/problem+json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
+        var (statusCode, title) = exception switch
+        {
+            KeyNotFoundException => (HttpStatusCode.NotFound, "Axtarılan resurs tapılmadı."),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Giriş icazəsi yoxdur."),
+            ArgumentException => (HttpStatusCode.BadRequest, "Daxil edilən parametr yanlışdır."),
+            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, "Məlumat başqa bir istifadəçi tərəfindən yenilənib. Zəhmət olmasa səhifəni yeniləyib təkrar cəhd edin."),
+            _ => (HttpStatusCode.InternalServerError, "Serverdə daxili xəta baş verdi.")
+        };
+
+        context.Response.StatusCode = (int)statusCode;
         var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
 
         var problemDetails = new ProblemDetails
         {
-            Status = (int)HttpStatusCode.InternalServerError,
-            Title = "Serverdə daxili xəta baş verdi.",
-            Type = "https://httpstatuses.com/500",
-            Detail = _env.IsDevelopment() ? exception.ToString() : "Gözlənilməz sistem xətası yarandı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.",
+            Status = (int)statusCode,
+            Title = title,
+            Type = $"https://httpstatuses.com/{(int)statusCode}",
+            Detail = (_env.IsDevelopment() || _env.IsEnvironment("Testing")) ? $"{exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}" : "Sistem xətası qeydə alındı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.",
             Instance = context.Request.Path
         };
 

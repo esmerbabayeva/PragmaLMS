@@ -21,7 +21,8 @@ public record CourseSummaryDto(
     int ReviewCount,
     int TotalLessons,
     int TotalDurationMinutes,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    bool IsPublished = false
 );
 
 public record CourseDetailDto(
@@ -78,5 +79,6 @@ public record CourseFilterDto(
     bool? IsFree = null,
     string? SortBy = "newest", // "newest", "price_asc", "price_desc", "rating"
     CourseStatus? Status = null,
-    bool IncludeAllStatuses = false
+    bool IncludeAllStatuses = false,
+    Guid? InstructorId = null
 );

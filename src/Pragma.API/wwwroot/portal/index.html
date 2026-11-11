@@ -84,8 +84,14 @@
             <!-- Brend Loqo Sahəsi -->
             <div class="h-16 px-5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
                 <a href="#/dashboard" @click="activeView = 'dashboard'; sidebarOpen = false;" class="flex items-center gap-2.5 group">
-                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 dark:bg-neutral-900 dark:border-neutral-700/80 flex items-center justify-center text-blue-600 dark:text-blue-400 font-mono font-bold text-base shadow-sm group-hover:border-blue-500/60 transition">
-                        P
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 p-0.5 shadow-md group-hover:scale-105 transition transform">
+                        <div class="w-full h-full bg-white dark:bg-[#111113] rounded-[10px] flex items-center justify-center">
+                            <svg class="w-5 h-5 text-blue-600 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14v7" />
+                            </svg>
+                        </div>
                     </div>
                     <div>
                         <div class="flex items-center gap-1.5">
@@ -103,37 +109,76 @@
 
             <!-- Əsas Menyu Düymələri -->
             <div class="px-3 py-4 space-y-6">
-                <div>
-                    <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 px-3 mb-2" x-text="t('menu_nav')">Naviqasiya</div>
-                    <nav class="space-y-1">
-                        <!-- 1. Mənim Dərslərim -->
-                        <button @click="activeView = 'dashboard'; sidebarOpen = false;" :class="activeView === 'dashboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
-                            <svg class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                            <span x-text="t('nav_learning')">Mənim Dərslərim</span>
-                        </button>
+                <!-- 1. TƏLƏBƏ PORTALI (YALNIZ STUDENT VƏ YA QONAQLAR ÜÇÜN, MÜƏLLİM/INSTRUCTOR GÖRMÜR) -->
+                <template x-if="!isStaff">
+                    <div>
+                        <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 px-3 mb-2" x-text="t('menu_nav')">Tələbə Portalı</div>
+                        <nav class="space-y-1">
+                            <!-- 1. Mənim Dərslərim (Yalnız qeydiyyatlı tələbə) -->
+                            <template x-if="token && isStudent">
+                                <button @click="activeView = 'dashboard'; sidebarOpen = false;" :class="activeView === 'dashboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                    <svg class="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    <span x-text="t('nav_learning')">Mənim Dərslərim</span>
+                                </button>
+                            </template>
 
-                        <!-- 2. Kurslar Kataloqu -->
-                        <button @click="activeView = 'catalog'; sidebarOpen = false;" :class="activeView === 'catalog' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
-                            <svg class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                            </svg>
-                            <span x-text="t('nav_catalog')">Kurslar Kataloqu</span>
-                        </button>
+                            <!-- 2. Kurslar Kataloqu -->
+                            <button @click="activeView = 'catalog'; sidebarOpen = false;" :class="activeView === 'catalog' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                <svg class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                                </svg>
+                                <span x-text="t('nav_catalog')">Kurslar Kataloqu</span>
+                            </button>
 
-                        <!-- 3. Liderlər Cədvəli -->
-                        <button @click="activeView = 'leaderboard'; sidebarOpen = false;" :class="activeView === 'leaderboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
-                            <svg class="w-4 h-4 shrink-0 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                            </svg>
-                            <span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span>
-                        </button>
-                    </nav>
-                </div>
+                            <!-- 3. Liderlər Cədvəli (Yalnız Student üçün) -->
+                            <template x-if="isStudent">
+                                <button @click="activeView = 'leaderboard'; sidebarOpen = false;" :class="activeView === 'leaderboard' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                    <svg class="w-4 h-4 shrink-0 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                                    </svg>
+                                    <span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span>
+                                </button>
+                            </template>
+                        </nav>
+                    </div>
+                </template>
 
-                <!-- Admin & Tərtibatçı Alətləri (Yalnız Admin və ya Müəllim olduqda) -->
-                <template x-if="isAdmin || isInstructor">
+                <!-- 2. INSTRUCTOR KABİNETİ (YALNIZ INSTRUCTOR ÜÇÜN: KURS & MƏZMUN İDARƏSİ) -->
+                <template x-if="isInstructor">
+                    <div>
+                        <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400/80 px-3 mb-2">Instructor Kabineti</div>
+                        <nav class="space-y-1">
+                            <button @click="activeView = 'instructor'; sidebarOpen = false; loadInstructorData();" :class="activeView === 'instructor' ? 'bg-blue-100 text-blue-900 border-l-2 border-blue-600 dark:bg-blue-950/60 dark:text-blue-200 dark:border-blue-400 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xs">💼</span>
+                                    <span>Kurslarım, Məzmun, Enrollment, Qruplar</span>
+                                </div>
+                                <span class="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded bg-blue-200 text-blue-800 dark:bg-blue-900/80 dark:text-blue-200">KURS</span>
+                            </button>
+                        </nav>
+                    </div>
+                </template>
+
+                <!-- 3. MÜƏLLİM KABİNETİ (YALNIZ TEACHER ÜÇÜN: QRUPLAR & QİYMƏTLƏNDİRMƏ) -->
+                <template x-if="isTeacher">
+                    <div>
+                        <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400/80 px-3 mb-2">Müəllim Kabineti</div>
+                        <nav class="space-y-1">
+                            <button @click="activeView = 'teacher'; sidebarOpen = false; loadTeacherData();" :class="activeView === 'teacher' ? 'bg-emerald-100 text-emerald-900 border-l-2 border-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-400 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xs">👨‍🏫</span>
+                                    <span>Qruplarım, Quiz, Qiymətləndirmə</span>
+                                </div>
+                                <span class="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded bg-emerald-200 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200">QRUP</span>
+                            </button>
+                        </nav>
+                    </div>
+                </template>
+
+                <!-- 4. ADMİN PANELİ (YALNIZ ADMİN ÜÇÜN) -->
+                <template x-if="isAdmin">
                     <div>
                         <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400/80 px-3 mb-2" x-text="t('nav_admin')">Admin Paneli</div>
                         <nav class="space-y-1">
@@ -145,7 +190,7 @@
                                 </div>
                                 <span class="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded bg-purple-200 text-purple-800 dark:bg-purple-900/80 dark:text-purple-200">SPA</span>
                             </button>
-                            <!-- Müstəqil ASP.NET Core MVC Admin Portalı (Port 5089) -->
+                            <!-- Müstəqil ASP.NET Core MVC Admin Portalı -->
                             <a href="http://localhost:5089" target="_blank" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs text-neutral-700 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 hover:bg-neutral-100 dark:bg-transparent dark:hover:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-800 transition group" title="ASP.NET Core MVC Admin (Port 5089)">
                                 <div class="flex items-center gap-2.5">
                                     <span class="text-xs">📊</span>
@@ -166,8 +211,8 @@
                 </template>
             </div>
 
-            <!-- Gamifikasiya Streak Widget (Yan Panel Daxilində) -->
-            <template x-if="token">
+            <!-- Gamifikasiya Streak Widget (Yan Panel Daxilində - Yalnız Tələbə Üçün) -->
+            <template x-if="token && isStudent">
                 <div class="mx-3 mt-auto mb-3 bg-neutral-50 border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-xl p-3.5 space-y-2.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Öyrənmə Aktivliyi</span>
@@ -186,6 +231,14 @@
 
         <!-- YAN PANEL AŞAĞI BLOKU: İSTİFADƏÇİ & TƏNZİMLƏMƏLƏR -->
         <div class="p-3 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-[#0e0e10] space-y-3">
+            <!-- Qlobal AI Mentor Yan Menyu Düyməsi -->
+            <button type="button" @click="globalAiOpen = !globalAiOpen" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10 border border-blue-500/20 hover:border-blue-500/40 text-blue-600 dark:text-blue-400 text-xs font-bold transition cursor-pointer">
+                <span class="flex items-center gap-2">
+                    <span class="text-base animate-pulse">✨</span>
+                    <span>Pragma AI Mentor</span>
+                </span>
+                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">● Aktiv</span>
+            </button>
             <!-- İstifadəçi Profili -->
             <template x-if="token">
                 <div class="flex items-center justify-between p-2 rounded-xl bg-white border border-neutral-200 dark:bg-neutral-900/60 dark:border-neutral-800/80 shadow-xs">
@@ -196,9 +249,10 @@
                         <div class="truncate">
                             <div class="text-xs font-bold text-neutral-900 dark:text-white truncate" x-text="userFullName || userEmail">Əsmər Babayeva</div>
                             <div class="flex items-center gap-1.5 mt-0.5">
-                                <span x-show="isAdmin" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60" x-text="t('role_admin')">Admin</span>
-                                <span x-show="isInstructor" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" x-text="t('role_instructor')">Müəllim</span>
-                                <span x-show="isStudent" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60" x-text="t('role_student')">Tələbə</span>
+                                <span x-show="isAdmin" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">Admin</span>
+                                <span x-show="isInstructor" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">Instructor</span>
+                                <span x-show="isTeacher" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">Teacher</span>
+                                <span x-show="isStudent" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60">Student</span>
                             </div>
                         </div>
                     </div>
@@ -257,6 +311,8 @@
                         <template x-if="activeView === 'catalog'"><span x-text="t('nav_catalog')">Kurslar Kataloqu</span></template>
                         <template x-if="activeView === 'leaderboard'"><span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span></template>
                         <template x-if="activeView === 'admin'"><span x-text="t('nav_admin')">Admin Paneli</span></template>
+                        <template x-if="activeView === 'instructor'"><span>Instructor Kabineti</span></template>
+                        <template x-if="activeView === 'teacher'"><span>Müəllim Kabineti</span></template>
                         <template x-if="activeView === 'player'"><span x-text="activeCourse?.title || 'Video Pleyer'">Dərs Pleyeri</span></template>
                     </h2>
                 </div>
@@ -264,8 +320,8 @@
 
             <!-- Sağ Hissə: Axtarış / Status Göstəricisi -->
             <div class="flex items-center gap-3">
-                <!-- Streak & XP Qısa İndikator -->
-                <template x-if="token">
+                <!-- Streak & XP Qısa İndikator (Yalnız Tələbə Üçün) -->
+                <template x-if="token && isStudent">
                     <div class="hidden sm:flex items-center gap-2 bg-neutral-100 border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800 px-3 py-1 rounded-full text-xs font-mono text-neutral-700 dark:text-neutral-300">
                         <span class="text-amber-500 dark:text-amber-400">🔥</span>
                         <span><span x-text="gamification.currentStreak" class="font-bold text-amber-600 dark:text-amber-400">1</span> <span x-text="t('streak_days')" class="text-neutral-500 dark:text-neutral-400">gün</span></span>
@@ -285,8 +341,8 @@
         <!-- ƏSAS MƏZMUN SAHƏSİ (SCROLLABLE MAIN VIEW: AĞ & QARANLIQ REJİM) -->
         <main class="flex-1 overflow-y-auto bg-neutral-100 dark:bg-[#0d0d0e] transition-colors">
 
-            <!-- 2.1 DASHBOARD: MƏNİM DƏRSLƏRİM & STREAK -->
-            <div x-show="activeView === 'dashboard'" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <!-- 2.1 DASHBOARD: MƏNİM DƏRSLƏRİM & STREAK (YALNIZ STUDENT) -->
+            <div x-show="activeView === 'dashboard' && (!isStaff)" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 <!-- Xoş gəldiniz & Gamifikasiya Xülasəsi -->
                 <div class="rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-[#161618] p-6 sm:p-8 text-neutral-900 dark:text-neutral-100 shadow-sm dark:shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden transition-colors">
                     <div class="space-y-3 z-10">
@@ -388,7 +444,7 @@
             </div>
 
             <!-- 2.2 KURS KATALOQU (EXPLORE COURSES) -->
-            <div x-show="activeView === 'catalog'" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <div x-show="activeView === 'catalog' && (!isStaff)" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white" x-text="t('catalog_title')">Bütün Kurslar</h1>
@@ -399,6 +455,21 @@
                         <input type="text" x-model="searchQuery" @input.debounce.300ms="loadCourses()" :placeholder="t('search_placeholder')" class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-neutral-300 dark:border-neutral-800 bg-white dark:bg-[#161618] text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
                         <svg class="w-4 h-4 absolute left-3 top-2.5 text-neutral-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
+                </div>
+
+                <!-- Axtarış Nəticəsi Boş Olduqda & "Bunu mu demək istəyirsiniz?" Təklifi -->
+                <div x-show="allCourses.length === 0" class="text-center py-12 space-y-4 bg-white dark:bg-[#161618] rounded-2xl border border-neutral-200 dark:border-neutral-800 p-8 shadow-xs">
+                    <span class="text-4xl">🔍</span>
+                    <h3 class="text-base font-bold text-neutral-900 dark:text-white">Axtarış üzrə kurs tapılmadı</h3>
+                    <p class="text-xs text-neutral-500">Sorğu: "<strong x-text="searchQuery"></strong>"</p>
+                    <template x-if="searchSuggestion">
+                        <div class="pt-2 flex items-center justify-center gap-2">
+                            <span class="text-xs text-neutral-400">Bunu mu demək istəyirsiniz?</span>
+                            <button @click="applySearchSuggestion()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition cursor-pointer">
+                                <span x-text="searchSuggestion"></span> ↵
+                            </button>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- Kurs Kartları Siyahısı -->
@@ -416,7 +487,7 @@
                                 <p class="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3 leading-relaxed" x-text="course.shortDescription || 'Müasir .NET 10 Onion Architecture LMS layihəsi.'"></p>
 
                                 <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800/60 flex items-center justify-between">
-                                    <span class="text-xs font-mono text-neutral-500" x-text="course.instructorFullName || 'Pragma Təlimçi'">Təlimçi</span>
+                                    <span class="text-xs font-mono text-neutral-500" x-text="course.instructorFullName || 'Pragma Instructor'">Instructor</span>
                                     <button @click="enrollOrOpenCourse(course)" class="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-sm cursor-pointer">
                                         <span x-text="course.isEnrolled ? t('btn_enter_course') : t('btn_enroll')">Qeydiyyatdan Keç</span>
                                     </button>
@@ -428,7 +499,7 @@
             </div>
 
             <!-- 2.3 TOP LİDERLƏR CƏDVƏLİ (LEADERBOARD) -->
-            <div x-show="activeView === 'leaderboard'" x-cloak class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+            <div x-show="activeView === 'leaderboard' && (!isStaff)" x-cloak class="max-w-4xl mx-auto px-4 py-8 space-y-6">
                 <div class="text-center space-y-2">
                     <span class="text-3xl">🏆</span>
                     <h1 class="text-2xl font-extrabold text-neutral-900 dark:text-white" x-text="t('leaderboard_title')">Pragma Öyrənmə Liderləri</h1>
@@ -472,8 +543,8 @@
                 </div>
             </div>
 
-            <!-- 2.5 ADMİN İDARƏETMƏ PANƏLİ (ADMIN MANAGEMENT CONSOLE) -->
-            <div x-show="activeView === 'admin'" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            <!-- 2.5 ADMİN İDARƏETMƏ PANƏLİ (ADMIN MANAGEMENT CONSOLE - YALNIZ ADMİN ÜÇÜN) -->
+            <div x-show="activeView === 'admin' && isAdmin" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                 <!-- Admin Başlıq və MVC Link Banneri -->
                 <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 border border-purple-800/40 p-6 sm:p-8 text-white shadow-xl">
                     <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -491,10 +562,6 @@
                                 <span x-text="t('admin_mvc_btn')">ASP.NET Core MVC Paneli Aç (Port 5089)</span>
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                             </a>
-                            <button @click="loadAdminData()" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-xs border border-white/20 transition flex items-center gap-1.5 cursor-pointer">
-                                <span>🔄</span>
-                                <span>Yenilə</span>
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -525,12 +592,9 @@
 
                 <!-- Kursların Moderasiyası və Dərc İdarəsi Cədvəli -->
                 <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-xs transition-colors">
-                    <div class="p-5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-                        <div>
-                            <h3 class="text-base font-bold text-neutral-900 dark:text-white" x-text="t('admin_course_management')">Kurs Moderasiyası və Dərc İdarəsi</h3>
-                            <p class="text-xs text-neutral-500">Kataloqa kursların əlavə edilməsi, 1-kliklə dərci (Publish) və qaralamaya qaytarılması (Draft).</p>
-                        </div>
-                        <button @click="loadAdminCourses()" class="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition cursor-pointer">🔄 Siyahını yenilə</button>
+                    <div class="p-5 border-b border-neutral-200 dark:border-neutral-800">
+                        <h3 class="text-base font-bold text-neutral-900 dark:text-white" x-text="t('admin_course_management')">Kurs Moderasiyası və Dərc İdarəsi</h3>
+                        <p class="text-xs text-neutral-500">Kataloqa kursların əlavə edilməsi, 1-kliklə dərci (Publish) və qaralamaya qaytarılması (Draft).</p>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs">
@@ -538,7 +602,7 @@
                                 <tr class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#111113] text-neutral-500 font-mono">
                                     <th class="py-3 px-4">KURS</th>
                                     <th class="py-3 px-4">KATEQORİYA</th>
-                                    <th class="py-3 px-4">TƏLİMÇİ</th>
+                                    <th class="py-3 px-4">INSTRUCTOR</th>
                                     <th class="py-3 px-4">QİYMƏT</th>
                                     <th class="py-3 px-4 text-center">STATUS</th>
                                     <th class="py-3 px-4 text-right">MODERASİYA ƏMƏLİYYATI</th>
@@ -650,8 +714,462 @@
                 </div>
             </div>
 
+            <!-- 2.5.2 MÜƏLLİM KABİNETİ (TEACHER MANAGEMENT CONSOLE) -->
+            <div x-show="activeView === 'teacher' && (isTeacher || isAdmin)" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <!-- Müəllim Başlıq Banneri -->
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 border border-emerald-800/40 p-6 sm:p-8 text-white shadow-xl">
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-mono font-semibold">
+                                <span>👨‍🏫</span>
+                                <span>MÜƏLLİM KABİNETİ</span>
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Qruplarım, Quiz, Qiymətləndirmə</h1>
+                            <p class="text-sm text-emerald-200/80 max-w-2xl">Yalnız sizə təyin olunmuş qruplar, tələbələrin davamiyyəti, mini layihə və final balları, dərs saatları və kviz idarəetməsi.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button @click="openNewQuizModal()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition shadow-lg flex items-center gap-2 cursor-pointer">
+                                <span>➕</span>
+                                <span>Yeni Kviz Yarat</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Əsas Müəllim KPI Göstəriciləri (Qruplar və Tələbələr) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs transition-colors flex items-center justify-between">
+                        <div>
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">Təyin Olunmuş Qruplar</div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-white" x-text="teacherGroups.length">0</div>
+                            <div class="text-[11px] text-neutral-400 mt-1">Sizə təhkim olunmuş aktiv tədris qrupları</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl">
+                            🏫
+                        </div>
+                    </div>
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs transition-colors flex items-center justify-between">
+                        <div>
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1">Cəmi Tələbələr</div>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400" x-text="teacherGroups.reduce((acc, g) => acc + g.totalStudents, 0)">0</div>
+                            <div class="text-[11px] text-neutral-400 mt-1">Qruplarınız üzrə qeydiyyatlı tələbə sayı</div>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl">
+                            👥
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Müəllim Tab İdarəsi -->
+                <div class="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 pb-3">
+                    <button @click="teacherTab = 'groups'" :class="teacherTab === 'groups' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'" class="px-4 py-2 rounded-xl text-xs transition cursor-pointer flex items-center gap-2">
+                        <span>🏫</span>
+                        <span>Qruplarım və Dərs Saatları</span>
+                    </button>
+                    <button @click="teacherTab = 'students'" :class="teacherTab === 'students' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'" class="px-4 py-2 rounded-xl text-xs transition cursor-pointer flex items-center gap-2">
+                        <span>👥</span>
+                        <span>Tələbələrin Balları və Davamiyyət</span>
+                    </button>
+                    <button @click="teacherTab = 'quizzes'" :class="teacherTab === 'quizzes' ? 'bg-emerald-600 text-white font-bold shadow-md' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'" class="px-4 py-2 rounded-xl text-xs transition cursor-pointer flex items-center gap-2">
+                        <span>📝</span>
+                        <span>Kvizlər</span>
+                    </button>
+                </div>
+
+                <!-- Tab 1: Qruplarım və Dərs Saatları Kartları -->
+                <div x-show="teacherTab === 'groups'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="group in teacherGroups" :key="group.id">
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-4 hover:border-emerald-500/50 transition">
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" x-text="group.categoryName">Kateqoriya</span>
+                                    <span class="text-xs font-mono font-semibold text-neutral-500 dark:text-neutral-400" x-text="group.totalStudents + ' tələbə'">0 tələbə</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-neutral-900 dark:text-white" x-text="group.title">Qrup Adı</h3>
+                                    <p class="text-xs text-neutral-500 mt-0.5">Tədris qrupu</p>
+                                </div>
+
+                                <!-- HƏR QRUPA GÖRƏ AYRI-AYRI DƏRS SAATLARI -->
+                                <div class="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-neutral-50 dark:bg-[#111113] border border-neutral-200 dark:border-neutral-800/80">
+                                    <div>
+                                        <div class="text-[9px] font-mono uppercase tracking-wider text-teal-600 dark:text-teal-400 font-semibold">Keçilmiş Saat</div>
+                                        <div class="text-lg font-mono font-extrabold text-teal-600 dark:text-teal-400 mt-0.5" x-text="(group.completedHours || 0).toFixed(1) + ' s.'">0 s.</div>
+                                        <div class="text-[10px] text-neutral-400">Tədris olunub</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-[9px] font-mono uppercase tracking-wider text-amber-500 dark:text-amber-400 font-semibold">Qalan Saat</div>
+                                        <div class="text-lg font-mono font-extrabold text-amber-500 dark:text-amber-400 mt-0.5" x-text="(group.remainingHours || 0).toFixed(1) + ' s.'">0 s.</div>
+                                        <div class="text-[10px] text-neutral-400">Plana uyğun qalıb</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Dərs Saatları Tərəqqisi & Ümumi Plan -->
+                                <div class="space-y-1.5">
+                                    <div class="flex items-center justify-between text-xs font-mono">
+                                        <span class="text-neutral-500">Ümumi Plan:</span>
+                                        <span class="font-bold text-neutral-800 dark:text-neutral-200"><span x-text="group.totalHours">0</span> saat (<span class="text-emerald-500 font-bold" x-text="group.totalHours > 0 ? (group.completedHours / group.totalHours * 100).toFixed(0) + '%' : '0%'"></span>)</span>
+                                    </div>
+                                    <div class="w-full bg-neutral-200 dark:bg-neutral-800 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-gradient-to-r from-teal-500 to-emerald-500 h-2 rounded-full transition-all duration-500" :style="`width: ${group.totalHours > 0 ? (group.completedHours / group.totalHours * 100) : 0}%`"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Qrup Əməliyyat Düymələri -->
+                            <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between gap-2">
+                                <button @click="selectGroupForStudents(group)" class="flex-1 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition text-center cursor-pointer">
+                                    Ballara və Tələbələrə Bax 👥
+                                </button>
+                                <button @click="exportGroupExcel(group.id)" class="py-2 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-xs font-mono transition cursor-pointer" title="Excel (.xlsx) ixrac et">
+                                    📊 Excel
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Tab 2: Tələbələrin Qiymət Cədvəli və Davamiyyət -->
+                <div x-show="teacherTab === 'students'" class="space-y-4">
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <label class="text-xs font-bold text-neutral-600 dark:text-neutral-400">Qrup Seçin:</label>
+                            <select x-model="selectedTeacherGroupId" @change="loadGroupStudents(selectedTeacherGroupId); loadGroupQuizzes(selectedTeacherGroupId);" class="px-3 py-2 text-xs rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:border-emerald-500">
+                                <template x-for="g in teacherGroups" :key="g.id">
+                                    <option :value="g.id" x-text="g.title"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button @click="exportGroupExcel(selectedTeacherGroupId)" class="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                                <span>📊</span>
+                                <span>Qrup Jurnalını Excel (.xlsx) İxrac Et</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Seçilmiş Qrupun Fərdi Dərs Saatları Paneli (Hər Qrup Üçün Fərdi) -->
+                    <template x-if="currentTeacherGroup">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 p-4 rounded-2xl shadow-xs">
+                            <div class="p-2">
+                                <div class="text-[10px] font-mono uppercase tracking-wider text-teal-600 dark:text-teal-400 font-semibold">Keçilmiş Dərs Saatı</div>
+                                <div class="text-xl font-extrabold text-teal-600 dark:text-teal-400 mt-1 font-mono" x-text="(currentTeacherGroup.completedHours || 0).toFixed(1) + ' s.'"></div>
+                                <div class="text-[11px] text-neutral-400">Bu qrup üzrə keçilib</div>
+                            </div>
+                            <div class="p-2">
+                                <div class="text-[10px] font-mono uppercase tracking-wider text-amber-500 dark:text-amber-400 font-semibold">Qalan Dərs Saatı</div>
+                                <div class="text-xl font-extrabold text-amber-500 dark:text-amber-400 mt-1 font-mono" x-text="(currentTeacherGroup.remainingHours || 0).toFixed(1) + ' s.'"></div>
+                                <div class="text-[11px] text-neutral-400">Plana uyğun qalan saat</div>
+                            </div>
+                            <div class="p-2">
+                                <div class="text-[10px] font-mono uppercase tracking-wider text-neutral-500 font-semibold">Ümumi Dərs Planı</div>
+                                <div class="text-xl font-extrabold text-neutral-900 dark:text-white mt-1 font-mono" x-text="(currentTeacherGroup.totalHours || 0) + ' s.'"></div>
+                                <div class="text-[11px] text-neutral-400">Proqram üzrə cəmi plan</div>
+                            </div>
+                            <div class="p-2">
+                                <div class="text-[10px] font-mono uppercase tracking-wider text-blue-600 dark:text-blue-400 font-semibold">Qrup Tələbələri</div>
+                                <div class="text-xl font-extrabold text-blue-600 dark:text-blue-400 mt-1 font-mono" x-text="(currentTeacherGroup.totalStudents || 0) + ' nəfər'"></div>
+                                <div class="text-[11px] text-neutral-400">Qeydiyyatlı tələbə sayı</div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Tələbələr Cədvəli -->
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-xs">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-[#111113] text-neutral-500 font-mono">
+                                        <th class="py-3 px-4">TƏLƏBƏ</th>
+                                        <th class="py-3 px-4 text-center">TƏRƏQQİ</th>
+                                        <th class="py-3 px-4 text-center">KVİZ (30%)</th>
+                                        <th class="py-3 px-4 text-center">MİNİ LAYİHƏ (30%)</th>
+                                        <th class="py-3 px-4 text-center">FİNAL (40%)</th>
+                                        <th class="py-3 px-4 text-center">DAVAMİYYƏT (QAYIB)</th>
+                                        <th class="py-3 px-4 text-center">YEKUN BAL</th>
+                                        <th class="py-3 px-4 text-center">STATUS</th>
+                                        <th class="py-3 px-4 text-right">ƏMƏLİYYAT</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-neutral-200 dark:divide-neutral-800/60">
+                                    <template x-for="student in teacherStudents" :key="student.studentId">
+                                        <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition">
+                                            <td class="py-3 px-4">
+                                                <div class="font-bold text-neutral-900 dark:text-white" x-text="student.fullName">Tələbə Adı</div>
+                                                <div class="text-[11px] font-mono text-neutral-400" x-text="student.email">email@pragma.az</div>
+                                                <div x-show="student.teacherFeedback" class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 italic" x-text="'💬 ' + student.teacherFeedback"></div>
+                                            </td>
+                                            <td class="py-3 px-4 text-center font-mono font-bold" x-text="student.progressPercentage.toFixed(0) + '%'">0%</td>
+                                            <td class="py-3 px-4 text-center font-mono" x-text="student.quizAverage > 0 ? student.quizAverage.toFixed(1) : '-'">-</td>
+                                            <td class="py-3 px-4 text-center font-mono font-semibold" x-text="student.miniProjectGrade !== null ? student.miniProjectGrade : '-'">-</td>
+                                            <td class="py-3 px-4 text-center font-mono font-semibold" x-text="student.finalGrade !== null ? student.finalGrade : '-'">-</td>
+                                            <td class="py-3 px-4 text-center font-mono">
+                                                <span :class="student.totalAbsences > 6 ? 'text-red-500 font-bold' : (student.totalAbsences >= 4 ? 'text-amber-500 font-bold' : 'text-neutral-700 dark:text-neutral-300')" x-text="student.totalAbsences + ' qayıb'">0 qayıb</span>
+                                                <div class="text-[10px] text-neutral-400" x-text="'(G: ' + student.lateCount + ')'"></div>
+                                            </td>
+                                            <td class="py-3 px-4 text-center">
+                                                <div class="font-mono font-extrabold text-sm" :class="student.finalScore >= 70 ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'" x-text="student.finalScore.toFixed(1)">0.0</div>
+                                                <span x-show="student.isProvisional" class="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-mono">Müvəqqəti</span>
+                                            </td>
+                                            <td class="py-3 px-4 text-center">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
+                                                      :class="student.status === 'Dropped' ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'"
+                                                      x-text="student.status">Aktiv</span>
+                                            </td>
+                                            <td class="py-3 px-4 text-right">
+                                                <button @click="openGradeModal(student)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition cursor-pointer">
+                                                    Bal / Qayıb Yaz ✏️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Kvizlər Siyahısı -->
+                <div x-show="teacherTab === 'quizzes'" class="space-y-4">
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-neutral-900 dark:text-white">Qrup Üzrə Kvizlər</h3>
+                            <p class="text-xs text-neutral-500">Müəllim tərəfindən yaradılmış və dərslərə bağlanmış kvizlər.</p>
+                        </div>
+                        <button @click="openNewQuizModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                            <span>➕</span>
+                            <span>Yeni Kviz Əlavə Et</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="q in teacherQuizzes" :key="q.id">
+                            <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold" x-text="q.lessonTitle">Dərs</span>
+                                    <span class="text-[11px] font-mono text-neutral-400" x-text="q.totalQuestions + ' sual'">0 sual</span>
+                                </div>
+                                <h4 class="font-bold text-neutral-900 dark:text-white text-sm" x-text="q.title">Kviz Başlığı</h4>
+                                <div class="text-xs text-neutral-500 line-clamp-2" x-text="q.description || 'Təsvir yoxdur.'"></div>
+                                <div class="flex items-center justify-between text-xs font-mono text-neutral-600 dark:text-neutral-400 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                                    <span>Keçid: <strong class="text-neutral-900 dark:text-white" x-text="q.passingScorePercentage + '%'"></strong></span>
+                                    <span>Vaxt: <strong class="text-neutral-900 dark:text-white" x-text="q.timeLimitMinutes ? q.timeLimitMinutes + ' dəq' : 'Limitsiz'"></strong></span>
+                                    <span>Cəhd: <strong class="text-neutral-900 dark:text-white" x-text="q.maxAttempts"></strong></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2.5.3 INSTRUCTOR KABİNETİ (INSTRUCTOR COURSE & CONTENT MANAGEMENT CONSOLE) -->
+            <div x-show="activeView === 'instructor' && (isInstructor || isAdmin)" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <!-- Instructor Başlıq Banneri -->
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 border border-blue-800/40 p-6 sm:p-8 text-white shadow-xl">
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-mono font-semibold">
+                                <span>💼</span>
+                                <span>INSTRUCTOR KABİNETİ</span>
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">Kurslarım, Məzmun, Enrollment, Qruplar</h1>
+                            <p class="text-sm text-blue-200/80 max-w-2xl">Yalnız öz müəllif kurslarınız: modul və dərslər, video linklər, 1-kliklə dərc (Publish/Draft) və kursa tələbə əlavə etmək.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button @click="instructorTab = 'create'" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                                <span>➕ Yeni Kurs Yarat</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructor Tab Keçidləri -->
+                <div class="flex items-center gap-2 border-b border-neutral-200 dark:border-neutral-800 pb-2 text-xs font-semibold overflow-x-auto">
+                    <button @click="instructorTab = 'courses'" :class="instructorTab === 'courses' ? 'bg-blue-600 text-white shadow-xs' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'" class="px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-2">
+                        <span>📚</span>
+                        <span>Kurslarım (<span x-text="instructorCourses.length">0</span>)</span>
+                    </button>
+                    <button @click="instructorTab = 'create'" :class="instructorTab === 'create' ? 'bg-blue-600 text-white shadow-xs' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'" class="px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-2">
+                        <span>✨</span>
+                        <span>Yeni Kurs Yarat</span>
+                    </button>
+                    <button @click="instructorTab = 'curriculum'" :class="instructorTab === 'curriculum' ? 'bg-blue-600 text-white shadow-xs' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'" class="px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-2">
+                        <span>📑</span>
+                        <span>Modullar və Dərslər</span>
+                    </button>
+                    <button @click="instructorTab = 'enrollment'" :class="instructorTab === 'enrollment' ? 'bg-blue-600 text-white shadow-xs' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'" class="px-4 py-2 rounded-xl transition cursor-pointer flex items-center gap-2">
+                        <span>👥</span>
+                        <span>Tələbə Qeydiyyatı (Enrollment)</span>
+                    </button>
+                </div>
+
+                <!-- TAB 1: KURSLARIM -->
+                <div x-show="instructorTab === 'courses'" class="space-y-4">
+                    <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl overflow-hidden shadow-xs">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-neutral-50 border-b border-neutral-200 text-neutral-600 dark:bg-[#111113] dark:border-neutral-800 dark:text-neutral-400 font-mono text-[11px] uppercase tracking-wider font-semibold">
+                                        <th class="py-3 px-4">Kurs</th>
+                                        <th class="py-3 px-4">Kateqoriya</th>
+                                        <th class="py-3 px-4">Qiymət</th>
+                                        <th class="py-3 px-4">Səviyyə</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-right">Əməliyyat</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800 text-xs">
+                                    <template x-for="c in instructorCourses" :key="c.id">
+                                        <tr class="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition">
+                                            <td class="py-3 px-4 font-bold text-neutral-900 dark:text-white" x-text="c.title">Kurs Başlığı</td>
+                                            <td class="py-3 px-4 text-neutral-500 font-mono" x-text="c.categoryName || 'Backend'">Kateqoriya</td>
+                                            <td class="py-3 px-4 font-mono font-bold" x-text="c.isFree ? 'Pulsuz' : c.price + ' AZN'">0 AZN</td>
+                                            <td class="py-3 px-4">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300" x-text="c.level === 0 ? 'Beginner' : (c.level === 1 ? 'Intermediate' : 'Advanced')">Beginner</span>
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <span :class="c.isPublished ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/80' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-300 dark:border-amber-800/80'" class="px-2.5 py-0.5 rounded-full text-[10.5px] font-mono font-bold">
+                                                    <span x-text="c.isPublished ? '✓ Dərc Edilib' : '⏳ Qaralama'"></span>
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-right">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <button @click="toggleCoursePublish(c)" class="px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition" :class="c.isPublished ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'">
+                                                        <span x-text="c.isPublished ? 'Qaralama Et' : 'Dərc Et'"></span>
+                                                    </button>
+                                                    <button @click="selectCourseForCurriculum(c.id)" class="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 text-xs font-semibold cursor-pointer transition">
+                                                        Modullar
+                                                    </button>
+                                                    <button @click="deleteInstructorCourse(c.id)" class="px-2 py-1 rounded-lg text-rose-500 hover:bg-rose-500/10 text-xs font-semibold cursor-pointer transition" title="Kursu sil">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: YENİ KURS YARAT -->
+                <div x-show="instructorTab === 'create'" class="max-w-2xl bg-white dark:bg-[#161618] border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-4 shadow-xs">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 font-mono">Yeni Müəllif Kursu Yarat</h3>
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Kursun Başlığı:</label>
+                            <input type="text" x-model="newCourseForm.title" placeholder="Məs: C# 14 və Müasir .NET 10" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Kateqoriya:</label>
+                                <select x-model="newCourseForm.categoryId" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                                    <option value="">Seçin...</option>
+                                    <template x-for="cat in adminCategories" :key="cat.id">
+                                        <option :value="cat.id" x-text="cat.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Səviyyə:</label>
+                                <select x-model.number="newCourseForm.level" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                                    <option :value="0">Başlanğıc (Beginner)</option>
+                                    <option :value="1">Orta (Intermediate)</option>
+                                    <option :value="2">İrəli (Advanced)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Qiymət (AZN):</label>
+                                <input type="number" step="0.01" min="0" x-model.number="newCourseForm.price" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono">
+                            </div>
+                            <div class="flex items-center gap-2 pt-6">
+                                <input type="checkbox" id="instCourseFree" x-model="newCourseForm.isFree" class="w-4 h-4 rounded text-blue-600 accent-blue-600">
+                                <label for="instCourseFree" class="font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer">Pulsuz Kurs (Free)</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Qısa Təsvir:</label>
+                            <input type="text" x-model="newCourseForm.shortDescription" placeholder="Qısa xülasə..." class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Ətraflı Təsvir:</label>
+                            <textarea rows="3" x-model="newCourseForm.description" placeholder="Geniş kurrikulum və nəticələr..." class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]"></textarea>
+                        </div>
+                        <button @click="submitNewCourse()" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer">
+                            Kursu Yarat və Yadda Saxla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: MODULLAR VƏ DƏRSLƏR -->
+                <div x-show="instructorTab === 'curriculum'" class="space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#161618] border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-semibold text-neutral-700 dark:text-neutral-300">Kursu seçin:</span>
+                            <select x-model="selectedInstructorCourseId" @change="onSelectedInstructorCourseChange()" class="px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-xs">
+                                <template x-for="c in instructorCourses" :key="c.id">
+                                    <option :value="c.id" x-text="c.title"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Modul və Dərs Siyahısı -->
+                    <div class="space-y-4">
+                        <template x-for="(mod, mIdx) in (selectedInstructorCourse?.modules || [])" :key="mod.id">
+                            <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-2xl p-5 shadow-xs space-y-3">
+                                <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono font-bold text-xs text-blue-600 dark:text-blue-400" x-text="'Modul ' + (mIdx + 1) + ':'"></span>
+                                        <h4 class="font-bold text-neutral-900 dark:text-white text-sm" x-text="mod.title">Modul Başlığı</h4>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <template x-for="(l, lIdx) in (mod.lessons || [])" :key="l.id">
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 dark:bg-[#111113] border border-neutral-200 dark:border-neutral-800 text-xs">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-mono text-neutral-400" x-text="(lIdx + 1) + '.'"></span>
+                                                <span class="font-medium text-neutral-900 dark:text-white" x-text="l.title">Dərs Adı</span>
+                                                <span x-show="l.youtubeUrl" class="text-[10px] font-mono text-red-500 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded">YouTube</span>
+                                            </div>
+                                            <span class="font-mono text-[11px] text-neutral-500" x-text="l.durationMinutes ? l.durationMinutes + ' dəq' : ''"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- TAB 4: TƏLƏBƏ QEYDİYYATI (ENROLLMENT) -->
+                <div x-show="instructorTab === 'enrollment'" class="max-w-xl bg-white dark:bg-[#161618] border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 sm:p-8 space-y-4 shadow-xs">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 font-mono">Kursa Tələbə Qeydiyyatı (Manual Enrollment)</h3>
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400">Tələbənin e-poçt ünvanını daxil edərək onu birbaşa kursa əlavə edin.</p>
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Kurs:</label>
+                            <select x-model="enrollStudentForm.courseId" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                                <template x-for="c in instructorCourses" :key="c.id">
+                                    <option :value="c.id" x-text="c.title"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Tələbənin E-poçtu:</label>
+                            <input type="email" x-model="enrollStudentForm.studentEmail" placeholder="student@pragma.edu.az" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113]">
+                        </div>
+                        <button @click="submitEnrollStudent()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition cursor-pointer">
+                            Tələbəni Kursa Əlavə Et
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 2.4 SİNEMA VİDEO PLEYERİ & AĞILLI ZAMAN QEYDLƏRİ (CINEMA PLAYER) -->
-            <div x-show="activeView === 'player'" x-cloak class="h-full flex flex-col">
+            <div x-show="activeView === 'player' && (!isStaff)" x-cloak class="h-full flex flex-col">
                 <!-- Pleyer Üst Başlıq Sətiri -->
                 <div class="bg-white border-b border-neutral-200 text-neutral-900 dark:bg-[#0d0d0e] dark:border-neutral-800 dark:text-white px-4 sm:px-6 py-3 flex items-center justify-between transition-colors">
                     <div class="flex items-center gap-3">
@@ -797,19 +1315,97 @@
                                         <p x-text="socraticHintText"></p>
                                     </div>
 
-                                    <div class="space-y-3">
-                                        <div class="text-xs font-semibold text-neutral-800 dark:text-neutral-300">1. Onion Architecture-də Domain qatı hansı asılılığa malik olmalıdır?</div>
-                                        <div class="space-y-2">
-                                            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-100 dark:bg-[#111113] dark:border-neutral-800 dark:hover:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 cursor-pointer transition">
-                                                <input type="radio" name="demo_quiz" class="text-blue-600">
-                                                <span>Heç bir xarici layihədən və ya framework-dən asılı olmamalıdır (Zero Dependencies).</span>
-                                            </label>
-                                            <label class="flex items-center gap-2 p-2.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-100 dark:bg-[#111113] dark:border-neutral-800 dark:hover:bg-neutral-800 text-xs text-neutral-800 dark:text-neutral-200 cursor-pointer transition">
-                                                <input type="radio" name="demo_quiz" class="text-blue-600">
-                                                <span>Birbaşa Entity Framework və SQL Server-dən asılı olmalıdır.</span>
-                                            </label>
+                                    <!-- DİNAMİK KVİZ: Əgər dərsin kvizi varsa -->
+                                    <template x-if="lessonQuiz">
+                                        <div class="space-y-4">
+                                            <!-- Kviz Başlıq Məlumatı -->
+                                            <div class="p-3.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                                <div>
+                                                    <span class="font-bold text-neutral-900 dark:text-white" x-text="lessonQuiz.title">Kviz Başlığı</span>
+                                                    <div class="text-[11px] text-neutral-500 mt-0.5">
+                                                        <span>Keçid balı: <strong class="text-neutral-800 dark:text-neutral-200" x-text="lessonQuiz.passingScorePercentage + '%'"></strong></span>
+                                                        <span class="mx-1.5">•</span>
+                                                        <span>Qalan cəhd: <strong class="text-neutral-800 dark:text-neutral-200" x-text="lessonQuiz.remainingAttempts"></strong></span>
+                                                    </div>
+                                                </div>
+                                                <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-mono text-[10px] font-bold" x-text="(lessonQuiz.questions?.length || 0) + ' sual'"></span>
+                                            </div>
+
+                                            <!-- İMTAHAN NƏTİCƏSİ BANNERİ (Təqdim edildikdən sonra) -->
+                                            <template x-if="quizResult">
+                                                <div class="p-4 rounded-xl border text-xs space-y-3" :class="quizResult.isPassed ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800/80 text-emerald-900 dark:text-emerald-200' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800/80 text-rose-900 dark:text-rose-200'">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="font-bold text-sm flex items-center gap-1.5">
+                                                            <span x-text="quizResult.isPassed ? '🎉 Təbriklər!' : '⚠️ Kəsildiniz'"></span>
+                                                            <span x-text="quizResult.isPassed ? 'Kvizi uğurla keçdiniz (+20 XP)' : 'Keçid balını toplaya bilmədiniz'"></span>
+                                                        </div>
+                                                        <div class="font-mono font-extrabold text-sm" x-text="quizResult.scorePercentage + '%'"></div>
+                                                    </div>
+                                                    <div class="grid grid-cols-3 gap-2 text-[11px] font-mono text-center pt-1 border-t border-emerald-200/50 dark:border-emerald-800/50">
+                                                        <div>Toplanan bal: <strong x-text="quizResult.earnedPoints + '/' + quizResult.totalPoints"></strong></div>
+                                                        <div>Düzgün cavab: <strong x-text="quizResult.correctAnswers + '/' + quizResult.totalQuestions"></strong></div>
+                                                        <div>Cəhd: <strong x-text="quizResult.attemptNumber"></strong></div>
+                                                    </div>
+                                                    <div class="pt-2 text-right">
+                                                        <button type="button" @click="resetStudentQuiz()" class="px-3 py-1.5 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 font-semibold text-xs transition cursor-pointer">Yenidən Cəhd Et 🔄</button>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <!-- SUALLAR SİYAHISI -->
+                                            <div class="space-y-4" x-show="!quizResult">
+                                                <template x-for="(q, qIdx) in lessonQuiz.questions" :key="q.id">
+                                                    <div class="p-3.5 rounded-xl bg-white border border-neutral-200 dark:bg-[#111113] dark:border-neutral-800 space-y-2.5">
+                                                        <div class="flex items-center justify-between text-xs">
+                                                            <div class="font-semibold text-neutral-900 dark:text-white flex items-center gap-2">
+                                                                <span class="font-mono text-blue-600 dark:text-blue-400 font-bold" x-text="(qIdx + 1) + '.'"></span>
+                                                                <span x-text="q.text"></span>
+                                                            </div>
+                                                            <div class="flex items-center gap-2">
+                                                                <!-- Tək cavablı / Çox cavablı etiketi -->
+                                                                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded" :class="q.isMultipleChoice ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'" x-text="q.isMultipleChoice ? '☑️ Çox cavablı' : '🔘 Tək cavablı'"></span>
+                                                                <span class="text-[10px] font-mono text-neutral-400" x-text="q.points + ' bal'"></span>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Cavab Variantları -->
+                                                        <div class="space-y-2 pt-1">
+                                                            <template x-for="(opt, optIdx) in q.options" :key="opt.id">
+                                                                <label @click="toggleStudentQuizOption(q.id, opt.id, q.isMultipleChoice)" class="flex items-center gap-2.5 p-2.5 rounded-lg border text-xs cursor-pointer transition" :class="isQuizOptionSelected(q.id, opt.id, q.isMultipleChoice) ? 'bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-950/40 dark:border-blue-500 dark:text-blue-200 font-semibold' : 'bg-neutral-50/50 border-neutral-200 hover:bg-neutral-100 dark:bg-[#161618] dark:border-neutral-800 dark:hover:bg-neutral-800/80 text-neutral-800 dark:text-neutral-300'">
+                                                                    <!-- Tək cavablı: Radio -->
+                                                                    <template x-if="!q.isMultipleChoice">
+                                                                        <input type="radio" :name="'stu_q_' + q.id" :checked="isQuizOptionSelected(q.id, opt.id, false)" class="text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                                                    </template>
+                                                                    <!-- Çox cavablı: Checkbox -->
+                                                                    <template x-if="q.isMultipleChoice">
+                                                                        <input type="checkbox" :checked="isQuizOptionSelected(q.id, opt.id, true)" class="rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                                                    </template>
+                                                                    <span class="font-mono text-neutral-400 font-bold" x-text="['A','B','C','D','E','F'][optIdx] ? (['A','B','C','D','E','F'][optIdx] + ':') : (optIdx + 1) + ':'"></span>
+                                                                    <span class="flex-1" x-text="opt.text"></span>
+                                                                </label>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- Kvizi Təqdim Et Düyməsi -->
+                                                <div class="pt-2 flex justify-end">
+                                                    <button type="button" @click="submitStudentQuiz()" :disabled="quizSubmitting" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50">
+                                                        <span x-show="!quizSubmitting">Kvizi Təqdim Et 🚀</span>
+                                                        <span x-show="quizSubmitting">Yoxlanılır... ⏳</span>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </template>
+
+                                    <!-- Əgər dərsin kvizi yoxdursa -->
+                                    <template x-if="!lessonQuiz">
+                                        <div class="p-6 text-center text-neutral-400 text-xs space-y-2">
+                                            <div class="text-3xl">📝</div>
+                                            <p>Bu dərs üçün hələlik sınaq kvizi təyin edilməyib.</p>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -919,8 +1515,8 @@
                         <span class="font-bold text-neutral-800 dark:text-neutral-200" x-text="certificateData?.issuedAtUtc ? new Date(certificateData.issuedAtUtc).toLocaleDateString() : '08.11.2026'">08.11.2026</span>
                     </div>
                     <div class="col-span-2 sm:col-span-1 text-left sm:text-right">
-                        <span class="text-[10px] text-neutral-500 dark:text-neutral-400 block uppercase">Təlimçi / Rəhbər:</span>
-                        <span class="font-bold text-neutral-800 dark:text-neutral-200" x-text="(certificateData?.instructorName && certificateData.instructorName !== 'Təlimçi') ? certificateData.instructorName : 'Rəşad Əliyev'">Rəşad Əliyev</span>
+                        <span class="text-[10px] text-neutral-500 dark:text-neutral-400 block uppercase">Instructor / Rəhbər:</span>
+                        <span class="font-bold text-neutral-800 dark:text-neutral-200" x-text="(certificateData?.instructorName && certificateData.instructorName !== 'Instructor') ? certificateData.instructorName : 'Rəşad Əliyev'">Rəşad Əliyev</span>
                     </div>
                 </div>
             </div>
@@ -960,17 +1556,20 @@
                 </div>
             </div>
 
-            <!-- 1-Click Giriş Köməkçiləri (3 Əsas Rol) -->
+            <!-- 1-Click Giriş Köməkçiləri (4 Əsas Rol) -->
             <div class="space-y-1.5 pt-1">
                 <div class="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-wider text-center">Sürətli Giriş (1-Klik)</div>
-                <div class="grid grid-cols-3 gap-1.5">
-                    <button @click="fillStudentCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50 dark:border-blue-800/60 transition text-center shadow-xs cursor-pointer" title="Əsmər Babayeva (Tələbə)">
+                <div class="grid grid-cols-4 gap-1">
+                    <button @click="fillStudentCredentials()" type="button" class="py-2 px-0.5 text-[10px] font-bold rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-400 dark:hover:bg-cyan-900/50 dark:border-cyan-800/60 transition text-center shadow-xs cursor-pointer" title="Əsmər Babayeva (Tələbə)">
                         🎓 Tələbə
                     </button>
-                    <button @click="fillInstructorCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900/50 dark:border-emerald-800/60 transition text-center shadow-xs cursor-pointer" title="Rəşad Əliyev (Müəllim)">
+                    <button @click="fillTeacherCredentials()" type="button" class="py-2 px-0.5 text-[10px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900/50 dark:border-emerald-800/60 transition text-center shadow-xs cursor-pointer" title="Rəşad Əliyev (Müəllim)">
                         👨‍🏫 Müəllim
                     </button>
-                    <button @click="fillAdminCredentials()" type="button" class="py-2 px-1 text-[10.5px] font-bold rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-900/50 dark:border-purple-800/60 transition text-center shadow-xs cursor-pointer" title="Pragma SuperAdmin">
+                    <button @click="fillInstructorCredentials()" type="button" class="py-2 px-0.5 text-[10px] font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/50 dark:border-blue-800/60 transition text-center shadow-xs cursor-pointer" title="Kənan Məmmədov (Instructor)">
+                        💼 Instructor
+                    </button>
+                    <button @click="fillAdminCredentials()" type="button" class="py-2 px-0.5 text-[10px] font-bold rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:hover:bg-purple-900/50 dark:border-purple-800/60 transition text-center shadow-xs cursor-pointer" title="Pragma SuperAdmin">
                         🛡️ Admin
                     </button>
                 </div>
@@ -980,6 +1579,306 @@
                 Daxil Ol
             </button>
         </div>
+    </div>
+
+    <!-- BAL VƏ DAVAMİYYƏT QEYD ETMƏ MODALI (TEACHER GRADING MODAL) -->
+    <div x-show="showGradeModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm">
+        <div @click.away="showGradeModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 shadow-2xl text-neutral-900 dark:text-white">
+            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-neutral-900 dark:text-white">Bal & Davamiyyət Qoyulması</h3>
+                    <p class="text-xs text-neutral-500" x-text="selectedStudentForGrade?.fullName || 'Tələbə'"></p>
+                </div>
+                <button @click="showGradeModal = false" class="text-neutral-400 hover:text-neutral-600 dark:hover:text-white p-1 cursor-pointer">✕</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <!-- Mini Layihə Balı -->
+                <div>
+                    <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Mini Layihə Balı (30% çəki, 0 - 100):</label>
+                    <input type="number" min="0" max="100" step="0.5" x-model.number="gradeForm.miniProjectGrade" placeholder="Məs: 85" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <!-- Final İmtahan Balı -->
+                <div>
+                    <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Final İmtahan / Layihə Balı (40% çəki, 0 - 100):</label>
+                    <input type="number" min="0" max="100" step="0.5" x-model.number="gradeForm.finalGrade" placeholder="Məs: 90" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white font-mono focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <!-- Davamiyyət (Qayıb və Gecikmə) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Qayıb Sayı:</label>
+                        <div class="flex items-center gap-2">
+                            <button @click="gradeForm.absentCount = Math.max(0, (gradeForm.absentCount || 0) - 1)" class="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white font-bold cursor-pointer">-</button>
+                            <input type="number" min="0" x-model.number="gradeForm.absentCount" class="w-full text-center px-2 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono text-xs">
+                            <button @click="gradeForm.absentCount = (gradeForm.absentCount || 0) + 1" class="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white font-bold cursor-pointer">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Gecikmə Sayı (Late):</label>
+                        <div class="flex items-center gap-2">
+                            <button @click="gradeForm.lateCount = Math.max(0, (gradeForm.lateCount || 0) - 1)" class="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white font-bold cursor-pointer">-</button>
+                            <input type="number" min="0" x-model.number="gradeForm.lateCount" class="w-full text-center px-2 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono text-xs">
+                            <button @click="gradeForm.lateCount = (gradeForm.lateCount || 0) + 1" class="w-8 h-8 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-white font-bold cursor-pointer">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Müəllim Şərhi -->
+                <div>
+                    <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Müəllim Rəyi / Şərh:</label>
+                    <textarea x-model="gradeForm.feedback" rows="3" placeholder="Tələbənin performansı və ya tapşırıq haqqında qeyd..." class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                <button @click="showGradeModal = false" class="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer">Ləğv et</button>
+                <button @click="submitGrade()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition cursor-pointer">Yadda Saxla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- YENİ KVİZ YARATMAQ MODALI (TEACHER NEW QUIZ MODAL) -->
+    <div x-show="showNewQuizModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div @click.away="showNewQuizModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl text-neutral-900 dark:text-white max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-neutral-900 dark:text-white">Yeni Kviz Yarat</h3>
+                    <p class="text-xs text-neutral-500">Dərs seçin, suallar, variantlar və düzgün cavabları təyin edin.</p>
+                </div>
+                <button @click="showNewQuizModal = false" class="text-neutral-400 hover:text-neutral-600 dark:hover:text-white p-1 cursor-pointer">✕</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <!-- Kurs və Dərs seçimi -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Kurs / Qrup:</label>
+                        <select x-model="newQuizForm.courseId" @change="onQuizCourseChange()" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:border-emerald-500">
+                            <option value="">Kurs seçin...</option>
+                            <template x-for="g in (teacherGroups.length > 0 ? teacherGroups : instructorCourses)" :key="g.id">
+                                <option :value="g.id" x-text="g.title"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Dərs:</label>
+                        <select x-model="newQuizForm.lessonId" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white font-semibold focus:outline-none focus:border-emerald-500">
+                            <option value="">Dərs seçin...</option>
+                            <template x-for="l in availableLessonsForQuiz" :key="l.id">
+                                <option :value="l.id" x-text="l.title"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Kviz Parametrləri -->
+                <div>
+                    <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Kviz Başlığı:</label>
+                    <input type="text" x-model="newQuizForm.title" placeholder="Məs: C# Əsasları Üzrə Aralıq Sınaq" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] text-neutral-900 dark:text-white focus:outline-none focus:border-emerald-500 font-semibold">
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Keçid Faizi (%):</label>
+                        <input type="number" min="10" max="100" x-model.number="newQuizForm.passingScorePercentage" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono text-center">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Vaxt Limiti (dəq):</label>
+                        <input type="number" min="5" max="180" x-model.number="newQuizForm.timeLimitMinutes" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono text-center">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-neutral-700 dark:text-neutral-300">Cəhd Sayı:</label>
+                        <input type="number" min="1" max="10" x-model.number="newQuizForm.maxAttempts" class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-[#111113] font-mono text-center">
+                    </div>
+                </div>
+
+                <!-- Suallar Bölməsi -->
+                <div class="space-y-4 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Suallar və Variantlar</span>
+                        <button @click="addQuestionToQuiz()" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition cursor-pointer">
+                            + Sual Əlavə Et
+                        </button>
+                    </div>
+
+                    <template x-for="(q, qIndex) in newQuizForm.questions" :key="qIndex">
+                        <div class="p-4 rounded-2xl bg-neutral-50 dark:bg-[#111113] border border-neutral-200 dark:border-neutral-800 space-y-3.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 dark:border-neutral-800/80 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-bold text-xs text-neutral-500" x-text="'Sual ' + (qIndex + 1) + ':'"></span>
+                                    
+                                    <!-- Sual Növü Seçimi: Tək Cavablı və ya Çox Cavablı -->
+                                    <div class="inline-flex items-center p-0.5 rounded-lg bg-neutral-200 dark:bg-neutral-800 text-[11px] font-mono font-bold">
+                                        <button type="button" @click="setQuestionType(q, 'single')" :class="q.type !== 'multiple' ? 'bg-white text-emerald-700 shadow-xs dark:bg-neutral-900 dark:text-emerald-400' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'" class="px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1">
+                                            <span>🔘</span>
+                                            <span>Tək cavablı</span>
+                                        </button>
+                                        <button type="button" @click="setQuestionType(q, 'multiple')" :class="q.type === 'multiple' ? 'bg-white text-emerald-700 shadow-xs dark:bg-neutral-900 dark:text-emerald-400' : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'" class="px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1">
+                                            <span>☑️</span>
+                                            <span>Çox cavablı</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-mono text-neutral-400">Bal:</span>
+                                    <input type="number" min="1" max="100" x-model.number="q.points" class="w-14 px-2 py-0.5 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#161618] text-xs font-mono text-center">
+                                    <button type="button" @click="newQuizForm.questions.splice(qIndex, 1)" class="text-rose-500 hover:text-rose-700 text-xs font-semibold ml-2 cursor-pointer">Sil 🗑️</button>
+                                </div>
+                            </div>
+
+                            <input type="text" x-model="q.text" placeholder="Sualın mətnini daxil edin..." class="w-full px-3 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#161618] text-xs font-semibold focus:outline-none focus:border-emerald-500">
+                            
+                            <!-- Variantlar -->
+                            <div class="space-y-2 pt-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[11px] font-mono" :class="q.type === 'multiple' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-neutral-400'">
+                                        <span x-show="q.type !== 'multiple'">Cavab Variantları (Düzgün 1 cavabı radio ilə seçin):</span>
+                                        <span x-show="q.type === 'multiple'">Cavab Variantları (Düzgün cavabları checkbox ilə seçin — bir neçə düzgün ola bilər):</span>
+                                    </span>
+                                    <button type="button" @click="addOptionToQuestion(q)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer font-semibold">+ Variant əlavə et</button>
+                                </div>
+
+                                <template x-for="(opt, optIndex) in q.options" :key="optIndex">
+                                    <div class="flex items-center gap-2">
+                                        <!-- Tək cavablı olduqda Radio -->
+                                        <template x-if="q.type !== 'multiple'">
+                                            <input type="radio" :name="'correct_' + qIndex" :checked="opt.isCorrect" @change="setCorrectOption(qIndex, optIndex)" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600">
+                                        </template>
+                                        <!-- Çox cavablı olduqda Checkbox -->
+                                        <template x-if="q.type === 'multiple'">
+                                            <input type="checkbox" :checked="opt.isCorrect" @change="toggleOptionCorrect(opt)" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer accent-emerald-600">
+                                        </template>
+
+                                        <span class="font-mono font-bold text-neutral-400 w-5" x-text="['A','B','C','D','E','F','G','H'][optIndex] ? (['A','B','C','D','E','F','G','H'][optIndex] + ':') : (optIndex + 1) + ':'"></span>
+                                        <input type="text" x-model="opt.text" placeholder="Variant mətni..." class="flex-1 px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-[#161618] text-xs">
+                                        <button type="button" x-show="q.options.length > 2" @click="removeOptionFromQuestion(q, optIndex)" class="text-neutral-400 hover:text-rose-500 px-1 text-xs cursor-pointer" title="Variantı sil">✕</button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                <button @click="showNewQuizModal = false" class="px-4 py-2 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer">Ləğv et</button>
+                <button @click="submitNewQuiz()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition cursor-pointer">Kvizi Yadda Saxla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 4. QLOBAL AI AKADEMİK KÖMƏKÇİ (EKRANIN SOL ALT KÜNCÜNDƏ VİDCET) -->
+    <!-- ========================================================= -->
+    <!-- AI Söhbət Pəncərəsi (Açıldıqda) -->
+    <div x-show="globalAiOpen" x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+         class="fixed bottom-20 left-4 sm:left-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100vh-6.5rem)] flex flex-col bg-white/95 dark:bg-[#151518]/95 backdrop-blur-xl border border-neutral-200/90 dark:border-neutral-800 rounded-3xl shadow-2xl overflow-hidden select-none">
+        
+        <!-- Pəncərə Başlığı -->
+        <div class="px-4 py-3.5 bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border-b border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center text-sm shadow-md">
+                    ✨
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <h4 class="text-xs font-bold text-neutral-900 dark:text-white">Pragma AI Mentor</h4>
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Aktiv
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-neutral-500 dark:text-neutral-400">Tədris, cədvəl, qayıb (QB) və qaydalar</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button type="button" @click="clearGlobalAiChat()" title="Söhbəti təmizlə" class="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer text-xs">
+                    🗑️
+                </button>
+                <button type="button" @click="globalAiOpen = false" title="Bağla" class="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer text-xs">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Sürətli Təklif Düymələri (Quick Chips) -->
+        <div class="p-2.5 bg-neutral-50/80 dark:bg-[#111113]/80 border-b border-neutral-100 dark:border-neutral-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] font-medium no-scrollbar">
+            <button type="button" @click="sendGlobalAiMessage('QB və qayıb limitləri necə hesablanır?')" class="shrink-0 px-2.5 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer shadow-2xs">
+                📋 QB Qaydaları
+            </button>
+            <button type="button" @click="sendGlobalAiMessage('Yekun balın hesablanma qaydası necədir?')" class="shrink-0 px-2.5 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer shadow-2xs">
+                🎯 Yekun Bal
+            </button>
+            <button type="button" @click="sendGlobalAiMessage('Hansı hallarda fəxri diplom verilir?')" class="shrink-0 px-2.5 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer shadow-2xs">
+                🎓 Diplom Şərtləri
+            </button>
+            <button type="button" @click="sendGlobalAiMessage('Dərs saatları cədvəlinə haradan baxa bilərəm?')" class="shrink-0 px-2.5 py-1 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer shadow-2xs">
+                ⏰ Dərs Saatları
+            </button>
+        </div>
+
+        <!-- Söhbət Mesajları Gövdəsi -->
+        <div id="global-ai-messages-box" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+            <template x-for="msg in globalAiMessages" :key="msg.id">
+                <div :class="msg.isUser ? 'flex justify-end' : 'flex gap-2.5'">
+                    <!-- AI İkonu -->
+                    <template x-if="!msg.isUser">
+                        <div class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold shrink-0 shadow-2xs">
+                            AI
+                        </div>
+                    </template>
+                    <div :class="msg.isUser ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-xs shadow-md' : 'bg-neutral-100 text-neutral-900 dark:bg-[#1c1c20] dark:text-neutral-100 rounded-2xl rounded-tl-xs border border-neutral-200/80 dark:border-neutral-800'" class="p-3 max-w-[85%] leading-relaxed whitespace-pre-line text-[11px]">
+                        <span x-text="msg.text"></span>
+                    </div>
+                </div>
+            </template>
+            <!-- Düşünmə Animasiyası -->
+            <div x-show="globalAiLoading" class="flex gap-2.5 items-center">
+                <div class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-400 flex items-center justify-center text-[10px] font-mono font-bold shrink-0">
+                    AI
+                </div>
+                <div class="p-2.5 rounded-2xl rounded-tl-xs bg-neutral-100 dark:bg-[#1c1c20] border border-neutral-200/80 dark:border-neutral-800 flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400 text-xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce [animation-delay:0.4s]"></span>
+                    <span class="text-[10px] font-mono ml-1">Cavab hazırlanır...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Giriş Sahəsi və İmtina Qeydi -->
+        <div class="p-3 bg-neutral-50/90 dark:bg-[#111113]/90 border-t border-neutral-200 dark:border-neutral-800 space-y-1.5">
+            <div class="flex gap-2">
+                <input type="text" x-model="globalAiQuestion" @keydown.enter="sendGlobalAiMessage()" placeholder="Sualınızı yazın (məs: QB qaydaları, yekun bal)..." class="flex-1 bg-white border border-neutral-300 dark:bg-[#161618] dark:border-neutral-700 rounded-xl px-3.5 py-2 text-xs text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-blue-500 shadow-2xs">
+                <button type="button" @click="sendGlobalAiMessage()" :disabled="globalAiLoading" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer shadow-md">
+                    <span x-show="!globalAiLoading">Göndər</span>
+                    <span x-show="globalAiLoading">...</span>
+                </button>
+            </div>
+            <p class="text-[9px] text-center text-neutral-400 dark:text-neutral-500">
+                🔒 Yalnız Pragma LMS tədris platforması, dərs cədvəli və qaydaları təqdim edilir.
+            </p>
+        </div>
+    </div>
+
+    <!-- EKRANIN SOL ALT KÜNCÜNDƏKİ AI DÜYMƏSİ -->
+    <div class="fixed bottom-5 left-4 sm:left-6 z-40">
+        <button type="button" @click="globalAiOpen = !globalAiOpen" :class="globalAiOpen ? 'ring-2 ring-blue-500 shadow-blue-500/30' : ''" class="relative group flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer">
+            <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <span class="text-base animate-pulse">✨</span>
+            <span class="tracking-wide font-extrabold">Pragma AI</span>
+        </button>
     </div>
 
     <!-- ========================================================= -->
@@ -999,12 +1898,17 @@
 
                 // Auth & User
                 token: localStorage.getItem('pragma-token') || '',
+                userId: localStorage.getItem('pragma-user-id') || '',
                 userEmail: localStorage.getItem('pragma-user-email') || '',
                 userFullName: localStorage.getItem('pragma-user-fullname') || '',
                 userRoles: JSON.parse(localStorage.getItem('pragma-user-roles') || '[]'),
                 get isAdmin() { return this.userRoles.includes('Admin'); },
                 get isInstructor() { return this.userRoles.includes('Instructor'); },
+                get isTeacher() { return this.userRoles.includes('Teacher'); },
                 get isStudent() { return this.userRoles.includes('Student'); },
+                get isStaff() { return this.isAdmin || this.isInstructor || this.isTeacher; },
+                get currentTeacherGroup() { return this.teacherGroups.find(g => g.id === this.selectedTeacherGroupId) || null; },
+                refreshingAdminCourses: false,
                 loginEmail: 'student@pragma.edu.az',
                 loginPassword: 'Password123!',
 
@@ -1017,12 +1921,29 @@
                 activeLesson: null,
                 lessonNotes: [],
                 newNoteText: '',
+                lessonQuiz: null,
+                quizAnswers: {},
+                quizSubmitting: false,
+                quizResult: null,
                 aiChatHistory: [],
                 aiQuestion: '',
                 aiLoading: false,
                 socraticHintText: '',
                 certificateData: null,
                 searchQuery: '',
+                searchSuggestion: '',
+
+                // Global Floating AI Mentor
+                globalAiOpen: false,
+                globalAiQuestion: '',
+                globalAiLoading: false,
+                globalAiMessages: [
+                    {
+                        id: 1,
+                        isUser: false,
+                        text: "Salam! Mən sizin Pragma LMS üzrə rəsmi AI Akademik Köməkçinizəm. Kurslar, dərslər, dərs cədvəli, davamiyyət (QB limitləri), qiymətləndirmə (bal bölgüsü) və ya sertifikatlar barədə istənilən sualınızı cavablandırmağa hazıram. Buyurun, sizə necə kömək edə bilərəm?"
+                    }
+                ],
 
                 // Admin Management Data
                 adminCourses: [],
@@ -1030,6 +1951,55 @@
                 newCategoryName: '',
                 newCategoryDesc: '',
                 adminLoading: false,
+
+                // Instructor Management Data
+                instructorCourses: [],
+                instructorTab: 'courses', // 'courses', 'create', 'curriculum', 'enrollment'
+                instructorLoading: false,
+                selectedInstructorCourseId: '',
+                selectedInstructorCourse: null,
+                newCourseForm: {
+                    title: '',
+                    shortDescription: '',
+                    description: '',
+                    price: 0,
+                    isFree: true,
+                    level: 0,
+                    categoryId: '',
+                    thumbnailUrl: ''
+                },
+                enrollStudentForm: {
+                    courseId: '',
+                    studentEmail: ''
+                },
+
+                // Teacher Management Data
+                teacherGroups: [],
+                selectedTeacherGroupId: '',
+                teacherStudents: [],
+                teacherQuizzes: [],
+                teacherLoading: false,
+                teacherTab: 'groups', // 'groups', 'students', 'quizzes'
+                showGradeModal: false,
+                selectedStudentForGrade: null,
+                gradeForm: {
+                    miniProjectGrade: null,
+                    finalGrade: null,
+                    absentCount: 0,
+                    lateCount: 0,
+                    feedback: ''
+                },
+                showNewQuizModal: false,
+                availableLessonsForQuiz: [],
+                newQuizForm: {
+                    courseId: '',
+                    lessonId: '',
+                    title: '',
+                    passingScorePercentage: 70,
+                    timeLimitMinutes: 20,
+                    maxAttempts: 3,
+                    questions: []
+                },
 
                 // Çoxdillilik Lüğəti (AZ / EN / RU i18n)
                 translations: {
@@ -1085,8 +2055,9 @@
                         login_subtitle: 'Hesabınıza daxil olaraq dərslərə davam edin.',
                         btn_login: 'Daxil Ol',
                         role_admin: 'Admin',
-                        role_instructor: 'Müəllim',
-                        role_student: 'Tələbə',
+                        role_instructor: 'Instructor',
+                        role_teacher: 'Teacher',
+                        role_student: 'Student',
                         platform_prefix: 'Platforma /',
                         total_xp: 'Ümumi XP',
                         badge_course: 'Kurs',
@@ -1161,6 +2132,7 @@
                         btn_login: 'Sign In',
                         role_admin: 'Admin',
                         role_instructor: 'Instructor',
+                        role_teacher: 'Teacher',
                         role_student: 'Student',
                         platform_prefix: 'Platform /',
                         total_xp: 'Total XP',
@@ -1234,9 +2206,10 @@
                         login_title: 'Вход в Pragma LMS',
                         login_subtitle: 'Войдите в аккаунт, чтобы продолжить обучение.',
                         btn_login: 'Войти',
-                        role_admin: 'Админ',
-                        role_instructor: 'Преподаватель',
-                        role_student: 'Студент',
+                        role_admin: 'Admin',
+                        role_instructor: 'Instructor',
+                        role_teacher: 'Teacher',
+                        role_student: 'Student',
                         platform_prefix: 'Платформа /',
                         total_xp: 'Всего XP',
                         badge_course: 'Курс',
@@ -1390,14 +2363,32 @@
                     if (savedLang && ['az', 'en', 'ru'].includes(savedLang)) {
                         this.currentLang = savedLang;
                     }
-                    await this.loadCourses();
-                    await this.loadLeaderboard();
+
+                    // Query param yoxlanışı (?view=)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const viewParam = urlParams.get('view');
+
                     if (this.token) {
-                        await this.loadGamificationStats();
-                        await this.loadEnrolledCourses();
-                        if (this.isAdmin || this.isInstructor) {
+                        if (this.isAdmin) {
+                            this.activeView = (viewParam === 'admin' || !viewParam) ? 'admin' : viewParam;
                             await this.loadAdminData();
+                        } else if (this.isInstructor) {
+                            this.activeView = 'instructor';
+                            await this.loadInstructorData();
+                        } else if (this.isTeacher) {
+                            this.activeView = 'teacher';
+                            await this.loadTeacherData();
+                        } else {
+                            this.activeView = 'dashboard';
+                            await this.loadCourses();
+                            await this.loadLeaderboard();
+                            await this.loadGamificationStats();
+                            await this.loadEnrolledCourses();
                         }
+                    } else {
+                        await this.loadCourses();
+                        await this.loadLeaderboard();
+                        this.activeView = 'catalog';
                     }
                 },
 
@@ -1407,8 +2398,14 @@
                     this.login();
                 },
 
-                fillInstructorCredentials() {
+                fillTeacherCredentials() {
                     this.loginEmail = 'teacher@pragma.edu.az';
+                    this.loginPassword = 'Password123!';
+                    this.login();
+                },
+
+                fillInstructorCredentials() {
+                    this.loginEmail = 'instructor@pragma.edu.az';
                     this.loginPassword = 'Password123!';
                     this.login();
                 },
@@ -1429,19 +2426,33 @@
                         if (!res.ok) throw new Error('Giriş uğursuz oldu.');
                         const data = await res.json();
                         this.token = data.accessToken;
+                        this.userId = data.user?.id || '';
                         this.userEmail = data.user?.email || this.loginEmail;
                         this.userFullName = data.user?.fullName || '';
                         this.userRoles = data.user?.roles || [];
                         localStorage.setItem('pragma-token', this.token);
+                        localStorage.setItem('pragma-user-id', this.userId);
                         localStorage.setItem('pragma-user-email', this.userEmail);
                         localStorage.setItem('pragma-user-fullname', this.userFullName);
                         localStorage.setItem('pragma-user-roles', JSON.stringify(this.userRoles));
+                        sessionStorage.setItem('pragma_token', this.token);
+                        sessionStorage.setItem('pragma_user_id', this.userId);
+                        sessionStorage.setItem('pragma_user', JSON.stringify(data.user));
                         this.showLoginModal = false;
-                        await this.loadGamificationStats();
-                        await this.loadEnrolledCourses();
-                        if (this.isAdmin || this.isInstructor) {
+
+                        if (this.isAdmin) {
                             this.activeView = 'admin';
                             await this.loadAdminData();
+                        } else if (this.isInstructor) {
+                            this.activeView = 'instructor';
+                            await this.loadInstructorData();
+                        } else if (this.isTeacher) {
+                            this.activeView = 'teacher';
+                            await this.loadTeacherData();
+                        } else {
+                            this.activeView = 'dashboard';
+                            await this.loadGamificationStats();
+                            await this.loadEnrolledCourses();
                         }
                     } catch (e) {
                         alert(e.message || 'Xəta baş verdi');
@@ -1450,13 +2461,18 @@
 
                 logout() {
                     this.token = '';
+                    this.userId = '';
                     this.userEmail = '';
                     this.userFullName = '';
                     this.userRoles = [];
                     localStorage.removeItem('pragma-token');
+                    localStorage.removeItem('pragma-user-id');
                     localStorage.removeItem('pragma-user-email');
                     localStorage.removeItem('pragma-user-fullname');
                     localStorage.removeItem('pragma-user-roles');
+                    sessionStorage.removeItem('pragma_token');
+                    sessionStorage.removeItem('pragma_user_id');
+                    sessionStorage.removeItem('pragma_user');
                     this.enrolledCourses = [];
                     this.activeView = 'catalog';
                 },
@@ -1468,10 +2484,79 @@
                         if (res.ok) {
                             const data = await res.json();
                             this.allCourses = data.items || [];
+                            if (this.allCourses.length === 0 && this.searchQuery.trim().length >= 2) {
+                                this.computeSearchSuggestion();
+                            } else {
+                                this.searchSuggestion = '';
+                            }
                         }
                     } catch (e) {
                         console.error('Kurslar yüklənmədi', e);
                     }
+                },
+
+                computeSearchSuggestion() {
+                    const knownPhrases = [
+                        'Müasir Frontend: Alpine.js, Tailwind CSS & Reaktiv UI',
+                        'Generative AI & LLM İnteqrasiyası: Google Gemini API',
+                        'C# 14 və .NET 10 ilə Müasir Onion Architecture',
+                        '.NET 10 və Clean Architecture'
+                    ];
+                    const q = this.normalizeSearchText(this.searchQuery);
+                    let bestCandidate = '';
+                    for (const phrase of knownPhrases) {
+                        const normPhrase = this.normalizeSearchText(phrase);
+                        // Substring or prefix check
+                        const words = normPhrase.split(' ');
+                        for (const w of words) {
+                            if (w.length >= 3 && (w.includes(q) || q.includes(w) || this.levenshtein(w, q) <= 2)) {
+                                bestCandidate = phrase;
+                                break;
+                            }
+                        }
+                        if (bestCandidate) break;
+                    }
+                    this.searchSuggestion = bestCandidate;
+                },
+
+                normalizeSearchText(str) {
+                    if (!str) return '';
+                    return str.toLowerCase()
+                        .replace(/ə/g, 'e')
+                        .replace(/ı/g, 'i')
+                        .replace(/ö/g, 'o')
+                        .replace(/ü/g, 'u')
+                        .replace(/ş/g, 's')
+                        .replace(/ç/g, 'c')
+                        .replace(/ğ/g, 'g')
+                        .trim();
+                },
+
+                levenshtein(a, b) {
+                    const matrix = [];
+                    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+                    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+                    for (let i = 1; i <= b.length; i++) {
+                        for (let j = 1; j <= a.length; j++) {
+                            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                                matrix[i][j] = matrix[i - 1][j - 1];
+                            } else {
+                                matrix[i][j] = Math.min(
+                                    matrix[i - 1][j - 1] + 1,
+                                    matrix[i][j - 1] + 1,
+                                    matrix[i - 1][j] + 1
+                                );
+                            }
+                        }
+                    }
+                    return matrix[b.length][a.length];
+                },
+
+                async applySearchSuggestion() {
+                    if (!this.searchSuggestion) return;
+                    this.searchQuery = this.searchSuggestion;
+                    this.searchSuggestion = '';
+                    await this.loadCourses();
                 },
 
                 async loadEnrolledCourses() {
@@ -1583,6 +2668,7 @@
                     this.aiChatHistory = [];
                     this.socraticHintText = '';
                     await this.loadLessonNotes();
+                    await this.loadLessonQuiz(lesson.id);
                 },
 
                 getYoutubeEmbedUrl(url) {
@@ -1653,6 +2739,114 @@
                     }
                 },
 
+                async loadLessonQuiz(lessonId) {
+                    this.lessonQuiz = null;
+                    this.quizAnswers = {};
+                    this.quizResult = null;
+                    if (!this.token || !this.isStudent) return;
+                    try {
+                        const res = await fetch(`/api/lessons/${lessonId}/quiz`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.lessonQuiz = await res.json();
+                            if (this.lessonQuiz && this.lessonQuiz.questions) {
+                                this.lessonQuiz.questions.forEach(q => {
+                                    if (q.isMultipleChoice) {
+                                        this.quizAnswers[q.id] = [];
+                                    } else {
+                                        this.quizAnswers[q.id] = null;
+                                    }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Kviz yüklənmədi', e);
+                    }
+                },
+
+                toggleStudentQuizOption(qId, optId, isMultiple) {
+                    if (isMultiple) {
+                        if (!Array.isArray(this.quizAnswers[qId])) {
+                            this.quizAnswers[qId] = [];
+                        }
+                        const idx = this.quizAnswers[qId].indexOf(optId);
+                        if (idx > -1) {
+                            this.quizAnswers[qId].splice(idx, 1);
+                        } else {
+                            this.quizAnswers[qId].push(optId);
+                        }
+                    } else {
+                        this.quizAnswers[qId] = optId;
+                    }
+                },
+
+                isQuizOptionSelected(qId, optId, isMultiple) {
+                    if (isMultiple) {
+                        return Array.isArray(this.quizAnswers[qId]) && this.quizAnswers[qId].includes(optId);
+                    }
+                    return this.quizAnswers[qId] === optId;
+                },
+
+                async submitStudentQuiz() {
+                    if (!this.lessonQuiz) return;
+                    this.quizSubmitting = true;
+                    try {
+                        const answers = this.lessonQuiz.questions.map(q => {
+                            const val = this.quizAnswers[q.id];
+                            if (q.isMultipleChoice) {
+                                return {
+                                    questionId: q.id,
+                                    selectedOptionId: null,
+                                    selectedOptionIds: Array.isArray(val) ? val : []
+                                };
+                            } else {
+                                return {
+                                    questionId: q.id,
+                                    selectedOptionId: val || null,
+                                    selectedOptionIds: val ? [val] : []
+                                };
+                            }
+                        });
+
+                        const res = await fetch(`/api/quizzes/${this.lessonQuiz.id}/submit`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({ answers })
+                        });
+
+                        if (res.ok) {
+                            this.quizResult = await res.json();
+                            if (this.quizResult.isPassed) {
+                                await this.loadGamificationStats();
+                            }
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert('Kviz göndərilə bilmədi: ' + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    } finally {
+                        this.quizSubmitting = false;
+                    }
+                },
+
+                resetStudentQuiz() {
+                    this.quizResult = null;
+                    if (this.lessonQuiz && this.lessonQuiz.questions) {
+                        this.lessonQuiz.questions.forEach(q => {
+                            if (q.isMultipleChoice) {
+                                this.quizAnswers[q.id] = [];
+                            } else {
+                                this.quizAnswers[q.id] = null;
+                            }
+                        });
+                    }
+                },
+
                 jumpToTime(seconds) {
                     alert(`Video pleyer ${this.formatSeconds(seconds)} saniyəsinə atladı! (YouTube IFrame seekTo)`);
                 },
@@ -1715,6 +2909,64 @@
                     } finally {
                         this.aiLoading = false;
                     }
+                },
+
+                async sendGlobalAiMessage(presetQuestion = null) {
+                    const q = (presetQuestion || this.globalAiQuestion || '').trim();
+                    if (!q) return;
+
+                    this.globalAiMessages.push({ id: Date.now(), isUser: true, text: q });
+                    if (!presetQuestion) this.globalAiQuestion = '';
+                    this.globalAiLoading = true;
+
+                    this.$nextTick(() => {
+                        const box = document.getElementById('global-ai-messages-box');
+                        if (box) box.scrollTop = box.scrollHeight;
+                    });
+
+                    try {
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+                        const res = await fetch('/api/ai/ask', {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ question: q })
+                        });
+
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.globalAiMessages.push({ id: Date.now() + 1, isUser: false, text: data.answer });
+                        } else {
+                            this.globalAiMessages.push({
+                                id: Date.now() + 1,
+                                isUser: false,
+                                text: 'Təəssüf ki, sorğunu emal edərkən xəta baş verdi. Zəhmət olmasa bir qədər sonra yenidən cəhd edin.'
+                            });
+                        }
+                    } catch (e) {
+                        this.globalAiMessages.push({
+                            id: Date.now() + 1,
+                            isUser: false,
+                            text: 'Şəbəkə bağlantısında problem baş verdi. Zəhmət olmasa internet bağlantınızı yoxlayın.'
+                        });
+                    } finally {
+                        this.globalAiLoading = false;
+                        this.$nextTick(() => {
+                            const box = document.getElementById('global-ai-messages-box');
+                            if (box) box.scrollTop = box.scrollHeight;
+                        });
+                    }
+                },
+
+                clearGlobalAiChat() {
+                    this.globalAiMessages = [
+                        {
+                            id: Date.now(),
+                            isUser: false,
+                            text: "Söhbət tarixçəsi təmizləndi. Kurslar, dərs cədvəli, QB limitləri, qiymətləndirmə və sertifikatlar barədə yeni sualınızı buyura bilərsiniz!"
+                        }
+                    ];
                 },
 
                 async getSocraticHint() {
@@ -1784,7 +3036,7 @@
 
                 // ADMİN İDARƏETMƏ METODLARI
                 async loadAdminData() {
-                    if (!this.isAdmin && !this.isInstructor) return;
+                    if (!this.isAdmin) return;
                     this.adminLoading = true;
                     try {
                         await Promise.all([
@@ -1797,6 +3049,7 @@
                 },
 
                 async loadAdminCourses() {
+                    this.refreshingAdminCourses = true;
                     try {
                         const res = await fetch('/api/courses?pageSize=50&includeAllStatuses=true', {
                             headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {}
@@ -1805,8 +3058,11 @@
                             const data = await res.json();
                             this.adminCourses = data.items || [];
                         }
+                        await this.loadCourses();
                     } catch (e) {
                         console.error('Admin kurslar yüklənmədi', e);
+                    } finally {
+                        setTimeout(() => { this.refreshingAdminCourses = false; }, 400);
                     }
                 },
 
@@ -1889,6 +3145,535 @@
                         } else {
                             const err = await res.text();
                             alert('Kateqoriya silinmədi: ' + err);
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                // ==========================================
+                // INSTRUCTOR İDARƏETMƏ METODLARI
+                // ==========================================
+                async loadInstructorData() {
+                    if (!this.isInstructor && !this.isAdmin) return;
+                    this.instructorLoading = true;
+                    try {
+                        const catRes = await fetch('/api/categories');
+                        if (catRes.ok) {
+                            this.adminCategories = await catRes.json();
+                            if (this.adminCategories.length > 0 && !this.newCourseForm.categoryId) {
+                                this.newCourseForm.categoryId = this.adminCategories[0].id;
+                            }
+                        }
+
+                        const url = (this.isAdmin && !this.userId)
+                            ? '/api/courses?pageSize=50&includeAllStatuses=true'
+                            : (this.userId ? `/api/courses?pageSize=50&includeAllStatuses=true&instructorId=${this.userId}` : '/api/courses?pageSize=50&includeAllStatuses=true');
+                        const courseRes = await fetch(url, {
+                            headers: this.token ? { 'Authorization': `Bearer ${this.token}` } : {}
+                        });
+                        if (courseRes.ok) {
+                            const data = await courseRes.json();
+                            this.instructorCourses = (data.items || []).map(c => ({
+                                ...c,
+                                isPublished: c.isPublished ?? (c.status === 1 || c.status === 'Published')
+                            }));
+                            if (this.instructorCourses.length > 0 && !this.selectedInstructorCourseId) {
+                                this.selectedInstructorCourseId = this.instructorCourses[0].id;
+                                this.enrollStudentForm.courseId = this.instructorCourses[0].id;
+                                await this.onSelectedInstructorCourseChange();
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Instructor məlumatları yüklənmədi', e);
+                    } finally {
+                        this.instructorLoading = false;
+                    }
+                },
+
+                async submitNewCourse() {
+                    if (!this.newCourseForm.title.trim()) {
+                        alert('Kursun başlığını daxil edin');
+                        return;
+                    }
+                    if (!this.newCourseForm.categoryId) {
+                        alert('Kateqoriya seçin');
+                        return;
+                    }
+
+                    try {
+                        const payload = {
+                            title: this.newCourseForm.title,
+                            shortDescription: this.newCourseForm.shortDescription || 'Qısa təsvir',
+                            description: this.newCourseForm.description || 'Detallı kurrikulum təsviri',
+                            thumbnailUrl: this.newCourseForm.thumbnailUrl || null,
+                            price: this.newCourseForm.isFree ? 0 : parseFloat(this.newCourseForm.price) || 0,
+                            isFree: !!this.newCourseForm.isFree,
+                            level: parseInt(this.newCourseForm.level) || 0,
+                            categoryId: this.newCourseForm.categoryId
+                        };
+
+                        const res = await fetch('/api/courses', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                            alert('Kurs uğurla yaradıldı!');
+                            this.newCourseForm.title = '';
+                            this.newCourseForm.shortDescription = '';
+                            this.newCourseForm.description = '';
+                            this.instructorTab = 'courses';
+                            await this.loadInstructorData();
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert('Kurs yaradıla bilmədi: ' + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                async toggleCoursePublish(course) {
+                    try {
+                        const endpoint = course.isPublished
+                            ? `/api/courses/${course.id}/unpublish`
+                            : `/api/courses/${course.id}/publish`;
+
+                        const res = await fetch(endpoint, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+
+                        if (res.ok) {
+                            course.isPublished = !course.isPublished;
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert('Status dəyişdirilə bilmədi: ' + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                async deleteInstructorCourse(courseId) {
+                    if (!confirm('Bu kursu silmək istədiyinizə əminsiniz?')) return;
+                    try {
+                        const res = await fetch(`/api/courses/${courseId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            await this.loadInstructorData();
+                            alert('Kurs silindi.');
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert('Kurs silinə bilmədi: ' + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                async selectCourseForCurriculum(courseId) {
+                    this.selectedInstructorCourseId = courseId;
+                    this.instructorTab = 'curriculum';
+                    await this.onSelectedInstructorCourseChange();
+                },
+
+                async onSelectedInstructorCourseChange() {
+                    if (!this.selectedInstructorCourseId) return;
+                    try {
+                        const res = await fetch(`/api/courses/${this.selectedInstructorCourseId}`);
+                        if (res.ok) {
+                            this.selectedInstructorCourse = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Kurs kurrikulumu yüklənmədi', e);
+                    }
+                },
+
+                async submitEnrollStudent() {
+                    if (!this.enrollStudentForm.courseId) {
+                        alert('Kursu seçin.');
+                        return;
+                    }
+                    if (!this.enrollStudentForm.studentEmail.trim()) {
+                        alert('Tələbənin e-poçtunu daxil edin.');
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/api/enrollments/manage/add-student', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({
+                                courseId: this.enrollStudentForm.courseId,
+                                studentEmail: this.enrollStudentForm.studentEmail.trim()
+                            })
+                        });
+                        if (res.ok) {
+                            alert('Tələbə uğurla kursa əlavə edildi!');
+                            this.enrollStudentForm.studentEmail = '';
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert('Qeydiyyat xətası: ' + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                // ==========================================
+                // MÜƏLLİM (TEACHER) İDARƏETMƏ METODLARI
+                // ==========================================
+                async loadTeacherData() {
+                    if (!this.isTeacher && !this.isAdmin) return;
+                    this.teacherLoading = true;
+                    try {
+                        const res = await fetch('/api/teacher/groups', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.teacherGroups = await res.json();
+                            if (this.teacherGroups.length > 0) {
+                                if (!this.selectedTeacherGroupId || !this.teacherGroups.some(g => g.id === this.selectedTeacherGroupId)) {
+                                    this.selectedTeacherGroupId = this.teacherGroups[0].id;
+                                }
+                                await Promise.all([
+                                    this.loadGroupStudents(this.selectedTeacherGroupId),
+                                    this.loadGroupQuizzes(this.selectedTeacherGroupId)
+                                ]);
+                            } else {
+                                this.teacherStudents = [];
+                                this.teacherQuizzes = [];
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Müəllim qrupları yüklənmədi', e);
+                    } finally {
+                        this.teacherLoading = false;
+                    }
+                },
+
+                async selectGroupForStudents(group) {
+                    this.selectedTeacherGroupId = group.id;
+                    this.teacherTab = 'students';
+                    await this.loadGroupStudents(group.id);
+                    await this.loadGroupQuizzes(group.id);
+                },
+
+                async loadGroupStudents(groupId) {
+                    if (!groupId) return;
+                    try {
+                        const res = await fetch(`/api/teacher/groups/${groupId}/students`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.teacherStudents = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Tələbələr yüklənmədi', e);
+                    }
+                },
+
+                async loadGroupQuizzes(groupId) {
+                    if (!groupId) return;
+                    try {
+                        const res = await fetch(`/api/teacher/groups/${groupId}/quizzes`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.teacherQuizzes = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Kvizlər yüklənmədi', e);
+                    }
+                },
+
+                openGradeModal(student) {
+                    this.selectedStudentForGrade = student;
+                    this.gradeForm = {
+                        miniProjectGrade: student.miniProjectGrade !== null && student.miniProjectGrade !== undefined ? student.miniProjectGrade : '',
+                        finalGrade: student.finalGrade !== null && student.finalGrade !== undefined ? student.finalGrade : '',
+                        absentCount: student.absentCount ?? 0,
+                        lateCount: student.lateCount ?? 0,
+                        feedback: student.teacherFeedback ?? ''
+                    };
+                    this.showGradeModal = true;
+                },
+
+                async submitGrade() {
+                    if (!this.selectedStudentForGrade) return;
+                    try {
+                        const payload = {
+                            enrollmentId: this.selectedStudentForGrade.enrollmentId,
+                            miniProjectGrade: this.gradeForm.miniProjectGrade !== '' && this.gradeForm.miniProjectGrade !== null ? parseFloat(this.gradeForm.miniProjectGrade) : null,
+                            finalGrade: this.gradeForm.finalGrade !== '' && this.gradeForm.finalGrade !== null ? parseFloat(this.gradeForm.finalGrade) : null,
+                            absentCount: parseInt(this.gradeForm.absentCount) || 0,
+                            lateCount: parseInt(this.gradeForm.lateCount) || 0,
+                            feedback: this.gradeForm.feedback || ''
+                        };
+
+                        const res = await fetch('/api/teacher/grades', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                            this.showGradeModal = false;
+                            await this.loadGroupStudents(this.selectedTeacherGroupId);
+                            alert('Qiymət və davamiyyət uğurla yadda saxlanıldı!');
+                        } else {
+                            const err = await res.text();
+                            alert('Xəta baş verdi: ' + err);
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                async exportGroupExcel(groupId) {
+                    const gId = groupId || this.selectedTeacherGroupId;
+                    if (!gId) {
+                        alert('Zəhmət olmasa qrup seçin');
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/teacher/groups/${gId}/export-excel`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (!res.ok) {
+                            alert('Excel generasiya edilə bilmədi.');
+                            return;
+                        }
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Pragma_Gradebook_Group_${gId}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                    } catch (e) {
+                        alert('Fayl yüklənərkən xəta baş verdi.');
+                    }
+                },
+
+                async openNewQuizModal() {
+                    const defaultCourse = (this.teacherGroups && this.teacherGroups.length > 0)
+                        ? this.teacherGroups[0].id
+                        : ((this.instructorCourses && this.instructorCourses.length > 0) ? this.instructorCourses[0].id : '');
+                    this.newQuizForm = {
+                        courseId: defaultCourse,
+                        lessonId: '',
+                        title: '',
+                        passingScorePercentage: 70,
+                        timeLimitMinutes: 20,
+                        maxAttempts: 3,
+                        questions: [
+                            {
+                                text: 'Sual mətni daxil edin...',
+                                type: 'single', // 'single' və ya 'multiple'
+                                points: 10,
+                                options: [
+                                    { text: 'A variantı', isCorrect: true },
+                                    { text: 'B variantı', isCorrect: false },
+                                    { text: 'C variantı', isCorrect: false },
+                                    { text: 'D variantı', isCorrect: false }
+                                ]
+                            }
+                        ]
+                    };
+                    await this.onQuizCourseChange();
+                    this.showNewQuizModal = true;
+                },
+
+                async onQuizCourseChange() {
+                    if (!this.newQuizForm.courseId) {
+                        this.availableLessonsForQuiz = [];
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/courses/${this.newQuizForm.courseId}`);
+                        if (res.ok) {
+                            const course = await res.json();
+                            const lessons = [];
+                            if (course.modules) {
+                                for (const m of course.modules) {
+                                    if (m.lessons) {
+                                        for (const l of m.lessons) {
+                                            lessons.push({ id: l.id, title: `${m.title} > ${l.title}` });
+                                        }
+                                    }
+                                }
+                            }
+                            this.availableLessonsForQuiz = lessons;
+                            if (lessons.length > 0) {
+                                this.newQuizForm.lessonId = lessons[0].id;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Dərslər yüklənmədi', e);
+                    }
+                },
+
+                addQuestionToQuiz() {
+                    this.newQuizForm.questions.push({
+                        text: 'Yeni sual mətni...',
+                        type: 'single',
+                        points: 10,
+                        options: [
+                            { text: 'Variant 1', isCorrect: true },
+                            { text: 'Variant 2', isCorrect: false },
+                            { text: 'Variant 3', isCorrect: false },
+                            { text: 'Variant 4', isCorrect: false }
+                        ]
+                    });
+                },
+
+                setQuestionType(q, type) {
+                    q.type = type;
+                    if (type === 'single') {
+                        let found = false;
+                        q.options.forEach(opt => {
+                            if (opt.isCorrect && !found) {
+                                found = true;
+                            } else {
+                                opt.isCorrect = false;
+                            }
+                        });
+                        if (!found && q.options.length > 0) {
+                            q.options[0].isCorrect = true;
+                        }
+                    }
+                },
+
+                setCorrectOption(qIndex, optIndex) {
+                    const q = this.newQuizForm.questions[qIndex];
+                    if (!q) return;
+                    q.options.forEach((opt, idx) => {
+                        opt.isCorrect = idx === optIndex;
+                    });
+                },
+
+                toggleOptionCorrect(opt) {
+                    opt.isCorrect = !opt.isCorrect;
+                },
+
+                addOptionToQuestion(q) {
+                    const nextIndex = q.options.length;
+                    const letter = ['A','B','C','D','E','F','G','H'][nextIndex] || `Var ${nextIndex + 1}`;
+                    q.options.push({ text: `${letter} variantı`, isCorrect: false });
+                },
+
+                removeOptionFromQuestion(q, optIndex) {
+                    if (q.options.length <= 2) {
+                        alert('Hər sual üçün ən azı 2 variant olmalıdır');
+                        return;
+                    }
+                    q.options.splice(optIndex, 1);
+                    if (!q.options.some(o => o.isCorrect)) {
+                        q.options[0].isCorrect = true;
+                    }
+                },
+
+                async submitNewQuiz() {
+                    if (!this.newQuizForm.title.trim()) {
+                        alert('Kviz başlığını daxil edin');
+                        return;
+                    }
+                    if (!this.newQuizForm.lessonId) {
+                        alert('Kviz üçün dərs seçin');
+                        return;
+                    }
+                    if (this.newQuizForm.questions.length === 0) {
+                        alert('Ən azı 1 sual əlavə edilməlidir');
+                        return;
+                    }
+
+                    for (let i = 0; i < this.newQuizForm.questions.length; i++) {
+                        const q = this.newQuizForm.questions[i];
+                        if (!q.text.trim()) {
+                            alert(`${i + 1}-ci sualın mətnini daxil edin.`);
+                            return;
+                        }
+                        for (let j = 0; j < q.options.length; j++) {
+                            if (!q.options[j].text || !q.options[j].text.trim()) {
+                                alert(`${i + 1}-ci sualın ${j + 1}-ci variant mətnini daxil edin.`);
+                                return;
+                            }
+                        }
+                        const correctCount = q.options.filter(o => o.isCorrect).length;
+                        if (correctCount === 0) {
+                            alert(`${i + 1}-ci sualda ən azı 1 düzgün cavab variantı seçilməlidir.`);
+                            return;
+                        }
+                    }
+
+                    const payload = {
+                        lessonId: this.newQuizForm.lessonId,
+                        title: this.newQuizForm.title,
+                        description: null,
+                        passingScorePercentage: parseInt(this.newQuizForm.passingScorePercentage) || 70,
+                        timeLimitMinutes: parseInt(this.newQuizForm.timeLimitMinutes) || null,
+                        maxAttempts: parseInt(this.newQuizForm.maxAttempts) || 3,
+                        questions: this.newQuizForm.questions.map((q, idx) => ({
+                            text: q.text,
+                            orderIndex: idx + 1,
+                            points: parseInt(q.points) || 10,
+                            options: q.options.map((opt, oIdx) => ({
+                                text: opt.text,
+                                isCorrect: !!opt.isCorrect,
+                                orderIndex: oIdx + 1
+                            }))
+                        }))
+                    };
+
+                    try {
+                        const res = await fetch(`/api/lessons/${this.newQuizForm.lessonId}/quiz`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (res.ok) {
+                            this.showNewQuizModal = false;
+                            if (this.selectedTeacherGroupId) {
+                                await this.loadGroupQuizzes(this.selectedTeacherGroupId);
+                            }
+                            alert('Kviz uğurla yadda saxlanıldı!');
+                        } else {
+                            let errorDetail = '';
+                            try {
+                                const clone = res.clone();
+                                try {
+                                    const errJson = await res.json();
+                                    errorDetail = errJson.detail || errJson.title || (errJson.errors ? Object.values(errJson.errors).flat().join(', ') : '') || JSON.stringify(errJson);
+                                } catch {
+                                    errorDetail = await clone.text();
+                                }
+                            } catch {
+                                errorDetail = res.statusText || '';
+                            }
+                            if (!errorDetail || errorDetail === '{}') {
+                                errorDetail = `Xəta statusu: ${res.status} (${res.statusText || 'Giriş qadağandır / Səlahiyyət çatışmır'})`;
+                            }
+                            alert('Kviz yaradıla bilmədi: ' + errorDetail);
                         }
                     } catch (e) {
                         alert('Xəta: ' + e.message);
