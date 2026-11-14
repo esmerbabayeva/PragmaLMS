@@ -1570,5 +1570,173 @@ public class AcademicCoreTests
         Assert.Equal("Cohort.NotFound", result.Error.Code);
     }
 
+    [Fact]
+    public async Task FinalizeCohortGradesAsync_WhenUnauthorizedUser_ReturnsForbidden()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var instructorId = Guid.NewGuid();
+        var unauthorizedUserId = Guid.NewGuid();
+
+        var course = new Course
+        {
+            Title = "Backend Course",
+            Slug = "backend-course",
+            InstructorId = instructorId,
+            DeliveryMode = DeliveryMode.Cohort
+        };
+        context.Courses.Add(course);
+
+        var cohort = new Cohort
+        {
+            Name = "Cohort 1",
+            CourseId = course.Id,
+            TeacherId = Guid.NewGuid(),
+            TotalHours = 100,
+            MaxAbsenceLimit = 6,
+            QuizWeight = 30,
+            MiniProjectWeight = 30,
+            FinalWeight = 40,
+            Status = CohortStatus.Active
+        };
+        context.Cohorts.Add(cohort);
+        await context.SaveChangesAsync();
+
+        var userLookupMock = new Mock<IUserLookupService>();
+        var service = new AcademicGradeService(context, userLookupMock.Object);
+
+        // Act: Qeyri-admin və kursun instructor-ı olmayan şəxs
+        var result = await service.FinalizeCohortGradesAsync(cohort.Id, unauthorizedUserId, isAdmin: false);
+
+        // Assert
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Cohort.Forbidden", result.Error.Code);
+    }
+
+    [Fact]
+    public async Task FinalizeCohortGradesAsync_WhenAdminOrInstructor_CalculatesAndPersistsOfficialScores()
+    {
+        // Arrange
+        using var context = CreateInMemoryContext();
+        var instructorId = Guid.NewGuid();
+
+        var course = new Course
+        {
+            Title = "FullStack Bootcamp",
+            Slug = "fullstack-bootcamp",
+            InstructorId = instructorId,
+            DeliveryMode = DeliveryMode.Cohort
+        };
+        context.Courses.Add(course);
+
+        var module = new Module { Title = "Module 1", CourseId = course.Id, OrderIndex = 1 };
+        context.Modules.Add(module);
+
+        var lesson = new Lesson { Title = "Lesson 1", ModuleId = module.Id, OrderIndex = 1, Content = "Content" };
+        context.Lessons.Add(lesson);
+
+        var quiz = new Quiz { Title = "Quiz 1", LessonId = lesson.Id };
+        context.Quizzes.Add(quiz);
+
+        var cohort = new Cohort
+        {
+            Name = "FS-2026",
+            CourseId = course.Id,
+            TeacherId = Guid.NewGuid(),
+            TotalHours = 120,
+            MaxAbsenceLimit = 6,
+            QuizWeight = 30,
+            MiniProjectWeight = 30,
+            FinalWeight = 40,
+            Status = CohortStatus.Active
+        };
+        context.Cohorts.Add(cohort);
+
+        var student1Id = Guid.NewGuid();
+        var student2Id = Guid.NewGuid();
+
+        var enr1 = new CohortEnrollment
+        {
+            CohortId = cohort.Id,
+            StudentId = student1Id,
+            Status = CohortEnrollmentStatus.Enrolled,
+            IsProvisional = true,
+            OfficialFinalScore = null
+        };
+        var enr2 = new CohortEnrollment
+        {
+            CohortId = cohort.Id,
+            StudentId = student2Id,
+            Status = CohortEnrollmentStatus.Enrolled,
+            IsProvisional = true,
+            OfficialFinalScore = null
+        };
+        context.CohortEnrollments.AddRange(enr1, enr2);
+
+        // Student 1: Quiz = 90%, Mini = 80, Final = 100 -> (90*0.3) + (80*0.3) + (100*0.4) = 27 + 24 + 40 = 91.0
+        context.QuizAttempts.Add(new QuizAttempt
+        {
+            StudentId = student1Id,
+            QuizId = quiz.Id,
+            ScorePercentage = 90,
+            Status = QuizAttemptStatus.Completed
+        });
+        context.CohortGradeEntries.Add(new CohortGradeEntry
+        {
+            CohortId = cohort.Id,
+            StudentId = student1Id,
+            ComponentType = GradeComponentType.MiniProject,
+            Score = 80m,
+            GradedByTeacherId = cohort.TeacherId
+        });
+        context.CohortGradeEntries.Add(new CohortGradeEntry
+        {
+            CohortId = cohort.Id,
+            StudentId = student1Id,
+            ComponentType = GradeComponentType.Final,
+            Score = 100m,
+            GradedByTeacherId = cohort.TeacherId
+        });
+
+        // Student 2: Quiz = 70%, Mini = 70, Final = null -> (21 + 21) / 0.6 = 70.0
+        context.QuizAttempts.Add(new QuizAttempt
+        {
+            StudentId = student2Id,
+            QuizId = quiz.Id,
+            ScorePercentage = 70,
+            Status = QuizAttemptStatus.Completed
+        });
+        context.CohortGradeEntries.Add(new CohortGradeEntry
+        {
+            CohortId = cohort.Id,
+            StudentId = student2Id,
+            ComponentType = GradeComponentType.MiniProject,
+            Score = 70m,
+            GradedByTeacherId = cohort.TeacherId
+        });
+
+        await context.SaveChangesAsync();
+
+        var userLookupMock = new Mock<IUserLookupService>();
+        var service = new AcademicGradeService(context, userLookupMock.Object);
+
+        // Act: Instructor balları rəsmiləşdirir
+        var result = await service.FinalizeCohortGradesAsync(cohort.Id, instructorId, isAdmin: false);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value);
+
+        // Bazadakı qeydləri təkrar oxuyaq
+        var updatedEnr1 = await context.CohortEnrollments.FirstAsync(e => e.StudentId == student1Id);
+        var updatedEnr2 = await context.CohortEnrollments.FirstAsync(e => e.StudentId == student2Id);
+
+        Assert.False(updatedEnr1.IsProvisional);
+        Assert.Equal(91.0m, updatedEnr1.OfficialFinalScore);
+
+        Assert.False(updatedEnr2.IsProvisional);
+        Assert.Equal(70.0m, updatedEnr2.OfficialFinalScore);
+    }
+
     #endregion
 }
