@@ -67,6 +67,31 @@ public class CertificateService : ICertificateService
         if (!enrollment.IsCompleted && enrollment.ProgressPercentage < 99.0)
             return Result<CertificateDto>.Failure(Error.Validation("Certificate.NotEligible", "Sertifikat əldə etmək üçün bütün dərsləri 100% tamamlamalısınız."));
 
+        CohortEnrollment? cohortEnr = null;
+        if (course.DeliveryMode == DeliveryMode.Cohort)
+        {
+            cohortEnr = await _context.CohortEnrollments
+                .Include(ce => ce.Cohort)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ce => ce.StudentId == studentId.Value && ce.Cohort != null && ce.Cohort.CourseId == courseId && !ce.IsDeleted, cancellationToken);
+
+            if (cohortEnr != null)
+            {
+                var isDeadlinePassed = cohortEnr.Cohort == null
+                                    || cohortEnr.Cohort.Status == CohortStatus.Finished
+                                    || !cohortEnr.Cohort.EndDate.HasValue
+                                    || cohortEnr.Cohort.EndDate.Value <= DateTime.UtcNow;
+
+                var hasFinalGrade = await _context.CohortGradeEntries
+                    .AnyAsync(g => g.CohortId == cohortEnr.CohortId && g.StudentId == studentId.Value && g.ComponentType == GradeComponentType.Final && !g.IsDeleted, cancellationToken);
+
+                if (cohortEnr.FinalNotSubmitted || (isDeadlinePassed && !hasFinalGrade))
+                {
+                    return Result<CertificateDto>.Failure(Error.Conflict("Certificate.FinalNotSubmitted", "Final layihə təhvil verilmədiyi üçün sertifikat verilə bilməz."));
+                }
+            }
+        }
+
         var studentInfo = await _userLookup.GetUserByIdAsync(studentId.Value, cancellationToken);
         var fullName = studentInfo?.FullName ?? "Məzun";
 
@@ -79,12 +104,15 @@ public class CertificateService : ICertificateService
         {
             StudentId = studentId.Value,
             CourseId = courseId,
+            CohortId = cohortEnr?.CohortId,
             Type = CertificateType.Diploma,
             CertificateCode = certCode,
             VerificationCode = verifySecret,
             StudentFullName = fullName,
             CourseTitle = course.Title,
-            GradePercentage = enrollment.ProgressPercentage,
+            GradePercentage = (course.DeliveryMode == DeliveryMode.Cohort && cohortEnr?.OfficialFinalScore.HasValue == true)
+                ? (double)cohortEnr.OfficialFinalScore.Value
+                : enrollment.ProgressPercentage,
             IssuedAtUtc = DateTime.UtcNow
         };
 

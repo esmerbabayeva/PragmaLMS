@@ -580,7 +580,7 @@ public class CohortService : ICohortService
             var score = enrollment.OfficialFinalScore ?? 0m;
             var eval = _eligibilityPolicy.Evaluate(enrollment, score, effectiveAbsences, cohort.MaxAbsenceLimit, isCohortFinished: true);
 
-            if (eval.Result == CertificateEligibilityResult.Denied)
+            if (effectiveAbsences > cohort.MaxAbsenceLimit || enrollment.Status == CohortEnrollmentStatus.Dropped)
             {
                 enrollment.Status = CohortEnrollmentStatus.Dropped;
                 enrollment.DroppedAtUtc ??= DateTime.UtcNow;
@@ -593,35 +593,38 @@ public class CohortService : ICohortService
                 enrollment.CompletedAtUtc = DateTime.UtcNow;
                 completedCount++;
 
-                var certType = eval.Result == CertificateEligibilityResult.Diploma ? CertificateType.Diploma : CertificateType.Attendance;
-                var existingCert = await _context.Certificates
-                    .FirstOrDefaultAsync(c => c.CohortId == cohortId && c.StudentId == enrollment.StudentId && !c.IsDeleted, ct);
-
-                if (existingCert == null)
+                if (eval.Result == CertificateEligibilityResult.Diploma || eval.Result == CertificateEligibilityResult.Attendance)
                 {
-                    var studentName = studentDict.TryGetValue(enrollment.StudentId, out var s) ? s.FullName : "Məzun";
-                    var randomCode = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-                    var verifySecret = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")[..8];
-                    var prefix = certType == CertificateType.Diploma ? "PRAGMA-DIP" : "PRAGMA-ATT";
-                    var certCode = $"{prefix}-{DateTime.UtcNow.Year}-{randomCode}";
+                    var certType = eval.Result == CertificateEligibilityResult.Diploma ? CertificateType.Diploma : CertificateType.Attendance;
+                    var existingCert = await _context.Certificates
+                        .FirstOrDefaultAsync(c => c.CohortId == cohortId && c.StudentId == enrollment.StudentId && !c.IsDeleted, ct);
 
-                    var certificate = new Certificate
+                    if (existingCert == null)
                     {
-                        StudentId = enrollment.StudentId,
-                        CourseId = cohort.CourseId,
-                        CohortId = cohortId,
-                        Type = certType,
-                        CertificateCode = certCode,
-                        VerificationCode = verifySecret,
-                        StudentFullName = studentName,
-                        CourseTitle = cohort.Course?.Title ?? cohort.Name,
-                        GradePercentage = (double)score,
-                        IssuedAtUtc = DateTime.UtcNow
-                    };
+                        var studentName = studentDict.TryGetValue(enrollment.StudentId, out var s) ? s.FullName : "Məzun";
+                        var randomCode = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+                        var verifySecret = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")[..8];
+                        var prefix = certType == CertificateType.Diploma ? "PRAGMA-DIP" : "PRAGMA-ATT";
+                        var certCode = $"{prefix}-{DateTime.UtcNow.Year}-{randomCode}";
 
-                    _context.Certificates.Add(certificate);
-                    if (certType == CertificateType.Diploma) diplomasIssued++;
-                    else attendancesIssued++;
+                        var certificate = new Certificate
+                        {
+                            StudentId = enrollment.StudentId,
+                            CourseId = cohort.CourseId,
+                            CohortId = cohortId,
+                            Type = certType,
+                            CertificateCode = certCode,
+                            VerificationCode = verifySecret,
+                            StudentFullName = studentName,
+                            CourseTitle = cohort.Course?.Title ?? cohort.Name,
+                            GradePercentage = (double)(enrollment.OfficialFinalScore ?? eval.OfficialGrade),
+                            IssuedAtUtc = DateTime.UtcNow
+                        };
+
+                        _context.Certificates.Add(certificate);
+                        if (certType == CertificateType.Diploma) diplomasIssued++;
+                        else attendancesIssued++;
+                    }
                 }
             }
         }

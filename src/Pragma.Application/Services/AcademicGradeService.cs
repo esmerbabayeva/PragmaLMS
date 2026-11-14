@@ -564,20 +564,45 @@ public class AcademicGradeService : IAcademicGradeService
 
                 var studentGrades = gradesByStudent[enr.StudentId];
                 decimal? miniScore = studentGrades.FirstOrDefault(g => g.ComponentType == GradeComponentType.MiniProject)?.Score;
-                decimal? finalScore = studentGrades.FirstOrDefault(g => g.ComponentType == GradeComponentType.Final)?.Score;
+                var finalGradeEntry = studentGrades.FirstOrDefault(g => g.ComponentType == GradeComponentType.Final);
+                decimal? finalScore = finalGradeEntry?.Score;
 
-                var (officialScore, _) = CalculateFinalScore(
+                var isDeadlinePassed = cohort.Status == CohortStatus.Finished
+                                    || !cohort.EndDate.HasValue
+                                    || cohort.EndDate.Value <= DateTime.UtcNow;
+
+                if (finalGradeEntry == null)
+                {
+                    // Aktiv final qeydi yoxdur
+                    if (isDeadlinePassed)
+                    {
+                        enr.FinalNotSubmitted = true;
+                        finalScore = 0m; // Təhvil tarixi keçibsə final 0 sayılır
+                    }
+                    else
+                    {
+                        enr.FinalNotSubmitted = false;
+                        finalScore = null; // Təhvil tarixi keçməyibsə müvəqqəti proporsional qalır
+                    }
+                }
+                else
+                {
+                    // Final qiymətləndirilib (müəllim açıq 0 yazsa belə təhvil verilmiş sayılır)
+                    enr.FinalNotSubmitted = false;
+                }
+
+                var (officialScore, isProvisional) = CalculateFinalScore(
                     quizAvg: quizAverage,
                     miniScore: miniScore,
                     finalScore: finalScore,
                     quizWeight: cohort.QuizWeight,
                     miniWeight: cohort.MiniProjectWeight,
                     finalWeight: cohort.FinalWeight,
-                    isCohortFinished: true
+                    isCohortFinished: isDeadlinePassed
                 );
 
                 enr.OfficialFinalScore = officialScore;
-                enr.IsProvisional = false; // Kohort rəsmiləşdikdə artıq provisional deyil
+                enr.IsProvisional = isProvisional;
             }
 
             await _context.SaveChangesAsync(ct);

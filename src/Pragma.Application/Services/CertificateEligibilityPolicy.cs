@@ -30,7 +30,21 @@ public class CertificateEligibilityPolicy : ICertificateEligibilityPolicy
             );
         }
 
-        // 3. Qayıb sayı limiti aşıbsa və ya status Dropped-dirsə -> Denied
+        // 3. Final layihə təhvil verilməyibsə -> Denied (balından asılı olmayaraq sertifikat verilmir)
+        if (enrollment.FinalNotSubmitted)
+        {
+            return new CertificateEligibilityEvaluation(
+                Result: CertificateEligibilityResult.Denied,
+                OfficialGrade: roundedGrade,
+                TotalAbsences: totalAbsences,
+                MaxAbsenceLimit: maxAbsenceLimit,
+                IsProvisional: false,
+                IsCohortFinished: isCohortFinished,
+                Reason: "Final layihə təhvil verilmədiyi üçün sertifikat verilmir."
+            );
+        }
+
+        // 4. Qayıb sayı limiti aşıbsa və ya status Dropped-dirsə -> Denied
         if (totalAbsences > maxAbsenceLimit || enrollment.Status == CohortEnrollmentStatus.Dropped)
         {
             return new CertificateEligibilityEvaluation(
