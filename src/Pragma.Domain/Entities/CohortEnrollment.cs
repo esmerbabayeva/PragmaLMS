@@ -30,6 +30,12 @@ public class CohortEnrollment : BaseEntity
     /// </summary>
     public bool HasAbsenceWarning { get; set; } = false;
 
+    /// <summary>
+    /// Final layihə təhvil verilmədikdə (təhvil tarixi keçdikdən sonra aktiv final qeydi yoxdur) true olur.
+    /// Final təhvil verilməyən tələbə sertifikat ala bilməz.
+    /// </summary>
+    public bool FinalNotSubmitted { get; set; } = false;
+
     public DateTime EnrolledAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAtUtc { get; set; }
 

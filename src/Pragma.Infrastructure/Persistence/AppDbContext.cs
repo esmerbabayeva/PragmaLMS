@@ -203,6 +203,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             entity.HasIndex(ce => new { ce.CohortId, ce.StudentId }).IsUnique();
             entity.Property(ce => ce.OfficialFinalScore).HasPrecision(5, 2);
+            entity.Property(ce => ce.FinalNotSubmitted).HasDefaultValue(false);
 
             entity.HasOne(ce => ce.Cohort)
                   .WithMany(c => c.Enrollments)

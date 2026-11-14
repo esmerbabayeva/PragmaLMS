@@ -584,6 +584,11 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("EnrolledAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("FinalNotSubmitted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("HasAbsenceWarning")
                         .HasColumnType("bit");
 
