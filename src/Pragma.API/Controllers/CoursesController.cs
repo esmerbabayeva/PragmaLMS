@@ -30,8 +30,16 @@ public class CoursesController : BaseApiController
     /// Kurs kataloqu: Axtarış, filterlər və paginasiya ilə dərc olunmuş kursların siyahısı.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<PagedResult<CourseSummaryDto>>> GetCourses([FromQuery] CourseFilterDto filter, CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<CourseSummaryDto>>> GetCourses([FromQuery] CourseFilterDto filter, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
+        var resolvedLanguage = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(filter.Language)
+                ? filter.Language
+                : Request.Headers.AcceptLanguage.ToString());
+
+        filter = filter with { Language = resolvedLanguage };
+
         var result = await _courseService.GetCoursesAsync(filter, cancellationToken);
         return Ok(result);
     }
@@ -40,9 +48,10 @@ public class CoursesController : BaseApiController
     /// ID-yə görə kursun detalları, modulları və dərsləri.
     /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<CourseDetailDto>> GetCourseById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<CourseDetailDto>> GetCourseById(Guid id, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var result = await _courseService.GetCourseByIdAsync(id, cancellationToken);
+        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var result = await _courseService.GetCourseByIdAsync(id, language, cancellationToken);
         return HandleResult(result);
     }
 
@@ -50,16 +59,17 @@ public class CoursesController : BaseApiController
     /// SEO-dostu Slug-a görə kursun detalları.
     /// </summary>
     [HttpGet("by-slug/{slug}")]
-    public async Task<ActionResult<CourseDetailDto>> GetCourseBySlug(string slug, CancellationToken cancellationToken)
+    public async Task<ActionResult<CourseDetailDto>> GetCourseBySlug(string slug, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var result = await _courseService.GetCourseBySlugAsync(slug, cancellationToken);
+        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var result = await _courseService.GetCourseBySlugAsync(slug, language, cancellationToken);
         return HandleResult(result);
     }
 
     /// <summary>
-    /// Yeni kurs yaradır (Müəllim və ya Admin üçün).
+    /// Yeni kurs yaradır (Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPost]
     public async Task<ActionResult<Guid>> CreateCourse([FromBody] CreateCourseDto dto, CancellationToken cancellationToken)
     {
@@ -71,9 +81,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// Kurs məlumatlarını yeniləyir.
+    /// Kurs məlumatlarını yeniləyir (Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseDto dto, CancellationToken cancellationToken)
     {
@@ -86,9 +96,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// Kursu silir (Soft delete).
+    /// Kursu silir (Soft delete, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteCourse(Guid id, CancellationToken cancellationToken)
     {
@@ -101,9 +111,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// Kursu ictimai kataloqa dərc edir (Status: Published).
+    /// Kursu ictimai kataloqa dərc edir (Status: Published, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}/publish")]
     public async Task<ActionResult> PublishCourse(Guid id, CancellationToken cancellationToken)
     {
@@ -116,9 +126,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// Kursu ictimai kataloqdan çıxarıb qaralamaya qaytarır (Status: Draft).
+    /// Kursu ictimai kataloqdan çıxarıb qaralamaya qaytarır (Status: Draft, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}/unpublish")]
     public async Task<ActionResult> UnpublishCourse(Guid id, CancellationToken cancellationToken)
     {
@@ -131,9 +141,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// SortableJS ilə modulların ardıcıllığını (OrderIndex) yenidən nizamlayır.
+    /// SortableJS ilə modulların ardıcıllığını (OrderIndex) yenidən nizamlayır (Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}/modules/reorder")]
     public async Task<ActionResult> ReorderModules(Guid id, [FromBody] ReorderItemsRequestDto dto, CancellationToken cancellationToken)
     {
@@ -160,9 +170,9 @@ public class CoursesController : BaseApiController
     }
 
     /// <summary>
-    /// Tələbənin bu kursa 1-kliklə qeydiyyatdan keçməsi (Nested sub-resource).
+    /// Tələbənin bu kursa 1-kliklə qeydiyyatdan keçməsi (Nested sub-resource, Yalnız Student).
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicies.CanViewOwnCourses)]
     [HttpPost("{id:guid}/enroll")]
     public async Task<ActionResult<EnrollmentDto>> EnrollInCourse(Guid id, [FromServices] IEnrollmentService enrollmentService, CancellationToken cancellationToken)
     {

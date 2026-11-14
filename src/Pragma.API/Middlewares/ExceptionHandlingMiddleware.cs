@@ -2,13 +2,10 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Pragma.API.Middlewares;
 
-/// <summary>
-/// Gözlənilməz sistem xətalarını mərkəzləşdirilmiş şəkildə tutan və 
-/// RFC 7807 ProblemDetails formatında təqdim edən middleware.
-/// </summary>
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -41,16 +38,31 @@ public class ExceptionHandlingMiddleware
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/problem+json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
+        var (statusCode, title, defaultDetail) = exception switch
+        {
+            KeyNotFoundException => (HttpStatusCode.NotFound, "Axtarılan resurs tapılmadı.", "Müraciət olunan resurs sistemdə mövcud deyil."),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Giriş icazəsi yoxdur.", "Bu əməliyyatı icra etmək üçün icazəniz yoxdur."),
+            ArgumentException => (HttpStatusCode.BadRequest, "Daxil edilən parametr yanlışdır.", "Daxil edilən parametr tələblərə uyğun deyil."),
+            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, "Məlumat ziddiyyəti (Concurrency Conflict)", "Məlumat başqa bir istifadəçi tərəfindən yenilənib. Zəhmət olmasa səhifəni yeniləyib təkrar cəhd edin."),
+            DbUpdateException => (HttpStatusCode.Conflict, "Məlumat ziddiyyəti (Unikal indeks və ya məhdudiyyət pozuntusu)", "Daxil edilən məlumat sistemdəki mövcud unikal qeydlərlə ziddiyyət təşkil edir."),
+            _ => (HttpStatusCode.InternalServerError, "Serverdə daxili xəta baş verdi.", "Sistem xətası qeydə alındı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.")
+        };
+
+        context.Response.StatusCode = (int)statusCode;
         var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+
+        var isDev = _env.IsDevelopment();
+        var detail = isDev
+            ? $"{exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}"
+            : defaultDetail;
 
         var problemDetails = new ProblemDetails
         {
-            Status = (int)HttpStatusCode.InternalServerError,
-            Title = "Serverdə daxili xəta baş verdi.",
-            Type = "https://httpstatuses.com/500",
-            Detail = _env.IsDevelopment() ? exception.ToString() : "Gözlənilməz sistem xətası yarandı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.",
+            Status = (int)statusCode,
+            Title = title,
+            Type = $"https://httpstatuses.com/{(int)statusCode}",
+            Detail = detail,
             Instance = context.Request.Path
         };
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Lessons;
 using Pragma.Domain.Enums;
@@ -24,9 +25,9 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Modula yeni dərs (Video və ya Markdown) əlavə edir.
+    /// Modula yeni dərs (Video və ya Markdown) əlavə edir (Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPost("/api/modules/{moduleId:guid}/lessons")]
     public async Task<ActionResult<Guid>> CreateLesson(Guid moduleId, [FromBody] CreateLessonDto dto, CancellationToken cancellationToken)
     {
@@ -50,9 +51,9 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Dərs məlumatlarını (ad, video URL, mətn) yeniləyir.
+    /// Dərs məlumatlarını (ad, video URL, mətn) yeniləyir (Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult> UpdateLesson(Guid id, [FromBody] UpdateLessonDto dto, CancellationToken cancellationToken)
     {
@@ -65,9 +66,9 @@ public class LessonsController : BaseApiController
     }
 
     /// <summary>
-    /// Dərsi silir (Soft delete).
+    /// Dərsi silir (Soft delete, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteLesson(Guid id, CancellationToken cancellationToken)
     {

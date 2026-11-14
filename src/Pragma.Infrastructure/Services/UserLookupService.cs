@@ -38,4 +38,23 @@ public class UserLookupService : IUserLookupService
 
         return users;
     }
+
+    public async Task<IReadOnlySet<Guid>> GetUserIdsInRoleAsync(string roleName, CancellationToken ct = default)
+    {
+        var normalizedRole = roleName.ToUpperInvariant();
+        var role = await _context.Roles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.NormalizedName == normalizedRole, ct);
+
+        if (role == null)
+            return new HashSet<Guid>();
+
+        var userIds = await _context.UserRoles
+            .AsNoTracking()
+            .Where(ur => ur.RoleId == role.Id)
+            .Select(ur => ur.UserId)
+            .ToListAsync(ct);
+
+        return userIds.ToHashSet();
+    }
 }

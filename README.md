@@ -78,6 +78,9 @@ Sistem ilk dəfə işə düşdükdə zəngin və real həyat ssenarisinə uyğun
 | **Tələbə 2** | Leyla Qasımova | `leyla@pragma.edu.az` | `Password123!` | 7 günlük Streak, 210 XP, Liderlər Cədvəli #1 |
 | **Tələbə 3** | Əli Məmmədov | `ali@pragma.edu.az` | `Password123!` | 3 günlük Streak, 75 XP, Aktiv öyrənən |
 
+> [!NOTE]
+> Yalnız lokal Development üçündür; Production-da demo hesablar yaradılmır.
+
 > **Hazır Sertifikat Kodu:** `PRAGMA-2026-CSHR-7X9B1` (Əsmər Babayeva üçün təsdiqlənmiş diplom).  
 > **Açıq Təsdiq Linki:** `/api/certificates/verify/PRAGMA-2026-CSHR-7X9B1`
 

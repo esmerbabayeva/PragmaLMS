@@ -35,7 +35,8 @@ public record CreateQuizDto(
     int PassingScorePercentage,
     int? TimeLimitMinutes,
     int MaxAttempts,
-    IReadOnlyCollection<CreateQuestionDto> Questions
+    IReadOnlyCollection<CreateQuestionDto> Questions,
+    Guid? LessonId = null
 );
 
 public record CreateQuestionDto(
@@ -49,6 +50,15 @@ public record CreateQuestionDto(
 public record CreateAnswerOptionDto(
     string Text,
     bool IsCorrect
+);
+
+public record UpdateQuizDto(
+    string Title,
+    string? Description,
+    int PassingScorePercentage,
+    int? TimeLimitMinutes,
+    int MaxAttempts,
+    IReadOnlyCollection<CreateQuestionDto> Questions
 );
 
 // 2. Tələbə üçün İmtahan DTO-su (TƏHLÜKƏSİZLİK: IsCorrect YOXDUR!)
@@ -69,7 +79,8 @@ public record QuestionTakingDto(
     string Text,
     int Points,
     int OrderIndex,
-    IReadOnlyCollection<AnswerOptionTakingDto> Options
+    IReadOnlyCollection<AnswerOptionTakingDto> Options,
+    bool IsMultipleChoice = false
 );
 
 public record AnswerOptionTakingDto(
@@ -80,7 +91,8 @@ public record AnswerOptionTakingDto(
 // 3. İmtahanı təhvil vermək və Nəticə DTO-ları
 public record SubmitQuizAnswerDto(
     Guid QuestionId,
-    Guid? SelectedOptionId
+    Guid? SelectedOptionId,
+    IReadOnlyCollection<Guid>? SelectedOptionIds = null
 );
 
 public record SubmitQuizRequestDto(

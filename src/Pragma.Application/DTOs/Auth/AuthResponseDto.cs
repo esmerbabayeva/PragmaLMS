@@ -13,5 +13,6 @@ public record UserDto(
 public record AuthResponseDto(
     string AccessToken,
     int ExpiresInMinutes,
-    UserDto User
+    UserDto User,
+    string? RefreshToken = null
 );

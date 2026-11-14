@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Modules;
 using Pragma.Domain.Enums;
@@ -24,9 +25,9 @@ public class ModulesController : BaseApiController
     }
 
     /// <summary>
-    /// Kurs daxilində yeni modul yaradır (Nested sub-resource).
+    /// Kurs daxilində yeni modul yaradır (Nested sub-resource, Admin və Moderator üçün).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPost("/api/courses/{courseId:guid}/modules")]
     public async Task<ActionResult<Guid>> CreateModule(Guid courseId, [FromBody] CreateModuleDto dto, CancellationToken cancellationToken)
     {
@@ -41,7 +42,7 @@ public class ModulesController : BaseApiController
     /// <summary>
     /// Modulun ad və ya təsvirini yeniləyir.
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult> UpdateModule(Guid id, [FromBody] UpdateModuleDto dto, CancellationToken cancellationToken)
     {
@@ -56,7 +57,7 @@ public class ModulesController : BaseApiController
     /// <summary>
     /// Modulu və ona bağlı bütün dərsləri silir (Soft delete).
     /// </summary>
-    [Authorize(Roles = $"{UserRoles.Instructor},{UserRoles.Admin}")]
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteModule(Guid id, CancellationToken cancellationToken)
     {

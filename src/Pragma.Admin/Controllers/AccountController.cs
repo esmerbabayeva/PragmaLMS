@@ -41,10 +41,10 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // Təhlükəsizlik: Admin Panelinə yalnız Admin və Müəllim daxil ola bilər
-        if (!authResult.User.Roles.Contains(UserRoles.Admin) && !authResult.User.Roles.Contains(UserRoles.Instructor))
+        // Təhlükəsizlik: Admin Panelinə YALNIZ Admin rolu daxil ola bilər
+        if (!authResult.User.Roles.Contains(UserRoles.Admin))
         {
-            model.ErrorMessage = "Bu panelə daxil olmaq üçün Admin və ya Müəllim hüququnuz olmalıdır.";
+            model.ErrorMessage = "Bu panelə daxil olmaq üçün yalnız Admin hüququnuz olmalıdır.";
             return View(model);
         }
 

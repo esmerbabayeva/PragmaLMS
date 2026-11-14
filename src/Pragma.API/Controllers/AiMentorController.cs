@@ -6,7 +6,7 @@ using Pragma.Application.DTOs.AiMentor;
 namespace Pragma.API.Controllers;
 
 /// <summary>
-/// Google Gemini AI əsaslı dərs mentoru və Sokratik kviz ipucları.
+/// Google Gemini AI əsaslı dərs mentoru, ümumi platforma köməkçisi və Sokratik kviz ipucları.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -18,6 +18,19 @@ public class AiMentorController : BaseApiController
     public AiMentorController(IAiMentorService aiMentorService)
     {
         _aiMentorService = aiMentorService;
+    }
+
+    /// <summary>
+    /// Ekranın sol alt küncündəki qlobal AI köməkçi: platforma, dərs cədvəli, qayıblar (qb), ballar və qaydalar haqqında sualları cavablandırır.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("ai/ask")]
+    public async Task<ActionResult<AiAskResponseDto>> AskGlobalQuestion(
+        [FromBody] AiAskRequestDto dto,
+        CancellationToken cancellationToken)
+    {
+        var result = await _aiMentorService.AskGlobalQuestionAsync(dto.Question, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>

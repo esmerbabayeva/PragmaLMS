@@ -1,14 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Progress;
 
 namespace Pragma.API.Controllers;
 
 /// <summary>
-/// Video izlənmə davamiyyəti, 90% avto-tamamlama və kursa qaldığı yerdən davametmə.
+/// Video izlənmə davamiyyəti, 90% avto-tamamlama və kursa qaldığı yerdən davametmə (Yalnız Student).
 /// </summary>
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CanTrackProgress)]
 [ApiController]
 [Route("api")]
 public class ProgressController : BaseApiController

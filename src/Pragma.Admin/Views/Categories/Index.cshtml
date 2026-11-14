@@ -60,14 +60,38 @@
                 @Html.AntiForgeryToken()
                 <div class="modal-body space-y-3">
                     <div class="mb-3">
-                        <label asp-for="NewCategory.Name" class="form-label small fw-semibold">Kateqoriya Adı</label>
+                        <label asp-for="NewCategory.Name" class="form-label small fw-semibold">Kateqoriya Adı (AZ - Əsas)</label>
                         <input asp-for="NewCategory.Name" class="form-control rounded-3" placeholder="Məs: Mobil Proqramlaşdırma" required />
                         <span asp-validation-for="NewCategory.Name" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="NewCategory.Description" class="form-label small fw-semibold">Açıqlama</label>
+                        <label asp-for="NewCategory.Description" class="form-label small fw-semibold">Açıqlama (AZ)</label>
                         <textarea asp-for="NewCategory.Description" class="form-control rounded-3" rows="2" placeholder="Flutter, Swift və Android tədris modulları..."></textarea>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="fw-bold small text-secondary mb-2">🌐 Çoxdilli Tərcümələr (İxtiyari)</div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label asp-for="NewCategory.NameEn" class="form-label small text-muted">Ad (EN)</label>
+                                <input asp-for="NewCategory.NameEn" class="form-control form-control-sm rounded-2" placeholder="Mobile Development" />
+                            </div>
+                            <div class="col-6">
+                                <label asp-for="NewCategory.NameRu" class="form-label small text-muted">Ad (RU)</label>
+                                <input asp-for="NewCategory.NameRu" class="form-control form-control-sm rounded-2" placeholder="Мобильная разработка" />
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label asp-for="NewCategory.DescriptionEn" class="form-label small text-muted">Açıqlama (EN)</label>
+                                <textarea asp-for="NewCategory.DescriptionEn" class="form-control form-control-sm rounded-2" rows="2" placeholder="Flutter, Swift and Android..."></textarea>
+                            </div>
+                            <div class="col-6">
+                                <label asp-for="NewCategory.DescriptionRu" class="form-label small text-muted">Açıqlama (RU)</label>
+                                <textarea asp-for="NewCategory.DescriptionRu" class="form-control form-control-sm rounded-2" rows="2" placeholder="Модули Flutter, Swift..."></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-2">

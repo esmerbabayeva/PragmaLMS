@@ -32,12 +32,16 @@ public class CourseService : ICourseService
 
     public async Task<PagedResult<CourseSummaryDto>> GetCoursesAsync(CourseFilterDto filter, CancellationToken cancellationToken = default)
     {
+        var lang = LanguageResolutionHelper.NormalizeLanguage(filter.Language);
+
         var query = _context.Courses
             .AsNoTracking()
+            .Include(c => c.Translations)
             .Include(c => c.Category)
+                .ThenInclude(cat => cat!.Translations)
             .Include(c => c.Reviews)
             .Include(c => c.Modules)
-            .ThenInclude(m => m.Lessons)
+                .ThenInclude(m => m.Lessons)
             .AsQueryable();
 
         if (filter.Status.HasValue)
@@ -49,11 +53,31 @@ public class CourseService : ICourseService
             query = query.Where(c => c.Status == CourseStatus.Published);
         }
 
-        // Axtarış
+        // Axtarış (Transliterasiya və çoxdilli axtarış)
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
-            var search = filter.Search.Trim().ToLower();
-            query = query.Where(c => c.Title.ToLower().Contains(search) || (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(search)));
+            var searchTerms = SearchNormalizationHelper.GetSearchTerms(filter.Search);
+            var term1 = searchTerms.ElementAtOrDefault(0);
+            var term2 = searchTerms.ElementAtOrDefault(1);
+            var term3 = searchTerms.ElementAtOrDefault(2);
+
+            query = query.Where(c =>
+                (term1 != null && (
+                    c.Title.ToLower().Contains(term1) ||
+                    (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term1)) ||
+                    c.Translations.Any(t => t.Title.ToLower().Contains(term1) || (t.ShortDescription != null && t.ShortDescription.ToLower().Contains(term1)))
+                )) ||
+                (term2 != null && (
+                    c.Title.ToLower().Contains(term2) ||
+                    (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term2)) ||
+                    c.Translations.Any(t => t.Title.ToLower().Contains(term2) || (t.ShortDescription != null && t.ShortDescription.ToLower().Contains(term2)))
+                )) ||
+                (term3 != null && (
+                    c.Title.ToLower().Contains(term3) ||
+                    (c.ShortDescription != null && c.ShortDescription.ToLower().Contains(term3)) ||
+                    c.Translations.Any(t => t.Title.ToLower().Contains(term3) || (t.ShortDescription != null && t.ShortDescription.ToLower().Contains(term3)))
+                ))
+            );
         }
 
         // Kateqoriya filteri
@@ -74,6 +98,12 @@ public class CourseService : ICourseService
             query = query.Where(c => c.IsFree == filter.IsFree.Value);
         }
 
+        // Instructor filteri
+        if (filter.InstructorId.HasValue)
+        {
+            query = query.Where(c => c.InstructorId == filter.InstructorId.Value);
+        }
+
         // Sıralama
         query = filter.SortBy?.ToLowerInvariant() switch
         {
@@ -88,39 +118,46 @@ public class CourseService : ICourseService
         var pageNumber = Math.Max(1, filter.PageNumber);
         var pageSize = Math.Clamp(filter.PageSize, 1, 50);
 
-        var courses = await query
+        var coursesList = await query
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new CourseSummaryDto(
-                c.Id,
-                c.Title,
-                c.Slug,
-                c.ShortDescription,
-                c.ThumbnailUrl,
-                c.Price,
-                c.IsFree,
-                c.Level,
-                c.Status,
-                c.CategoryId,
-                c.Category != null ? c.Category.Name : string.Empty,
-                c.InstructorId,
-                "Təlimçi",
-                c.Reviews.Any() ? Math.Round(c.Reviews.Average(r => r.Rating), 1) : 5.0,
-                c.Reviews.Count,
-                c.Modules.SelectMany(m => m.Lessons).Count(),
-                c.Modules.SelectMany(m => m.Lessons).Sum(l => l.DurationSeconds) / 60,
-                c.CreatedAtUtc
-            ))
             .ToListAsync(cancellationToken);
+
+        var courses = coursesList.Select(c => new CourseSummaryDto(
+            c.Id,
+            LanguageResolutionHelper.ResolveTitle(c, lang),
+            c.Slug,
+            LanguageResolutionHelper.ResolveShortDescription(c, lang),
+            c.ThumbnailUrl,
+            c.Price,
+            c.IsFree,
+            c.Level,
+            c.Status,
+            c.CategoryId,
+            LanguageResolutionHelper.ResolveCategoryName(c.Category, lang),
+            c.InstructorId,
+            "Instructor",
+            c.Reviews.Any() ? Math.Round(c.Reviews.Average(r => r.Rating), 1) : 5.0,
+            c.Reviews.Count,
+            c.Modules.SelectMany(m => m.Lessons).Count(),
+            c.Modules.SelectMany(m => m.Lessons).Sum(l => l.DurationSeconds) / 60,
+            c.CreatedAtUtc,
+            c.Status == CourseStatus.Published,
+            c.Translations.Select(t => new CourseTranslationDto(t.Language, t.Title, t.ShortDescription, t.Description)).ToList()
+        )).ToList();
 
         return new PagedResult<CourseSummaryDto>(courses, totalCount, pageNumber, pageSize);
     }
 
-    public async Task<Result<CourseDetailDto>> GetCourseByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Result<CourseDetailDto>> GetCourseByIdAsync(Guid id, string? language = null, CancellationToken cancellationToken = default)
     {
+        var lang = LanguageResolutionHelper.NormalizeLanguage(language);
+
         var course = await _context.Courses
             .AsNoTracking()
+            .Include(c => c.Translations)
             .Include(c => c.Category)
+                .ThenInclude(cat => cat!.Translations)
             .Include(c => c.Reviews)
             .Include(c => c.Enrollments)
             .Include(c => c.Modules.OrderBy(m => m.OrderIndex))
@@ -133,14 +170,18 @@ public class CourseService : ICourseService
             return Result<CourseDetailDto>.Failure(Error.NotFound("Course.NotFound", "Axtarılan kurs tapılmadı."));
         }
 
-        return MapToDetailDto(course);
+        return MapToDetailDto(course, lang);
     }
 
-    public async Task<Result<CourseDetailDto>> GetCourseBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    public async Task<Result<CourseDetailDto>> GetCourseBySlugAsync(string slug, string? language = null, CancellationToken cancellationToken = default)
     {
+        var lang = LanguageResolutionHelper.NormalizeLanguage(language);
+
         var course = await _context.Courses
             .AsNoTracking()
+            .Include(c => c.Translations)
             .Include(c => c.Category)
+                .ThenInclude(cat => cat!.Translations)
             .Include(c => c.Reviews)
             .Include(c => c.Enrollments)
             .Include(c => c.Modules.OrderBy(m => m.OrderIndex))
@@ -153,7 +194,7 @@ public class CourseService : ICourseService
             return Result<CourseDetailDto>.Failure(Error.NotFound("Course.NotFound", "Axtarılan kurs tapılmadı."));
         }
 
-        return MapToDetailDto(course);
+        return MapToDetailDto(course, lang);
     }
 
     public async Task<Result<Guid>> CreateCourseAsync(CreateCourseDto dto, Guid instructorId, CancellationToken cancellationToken = default)
@@ -186,10 +227,43 @@ public class CourseService : ICourseService
             Price = dto.IsFree ? 0 : dto.Price,
             IsFree = dto.IsFree,
             Level = dto.Level,
-            Status = CourseStatus.Draft, // Müəllim yaratdıqda ilkin olaraq Draft olur
+            Status = CourseStatus.Draft,
             CategoryId = dto.CategoryId,
             InstructorId = instructorId
         };
+
+        // Çoxdilli tərcümələrin əlavə olunması (AZ məcburi, EN/RU ixtiyari)
+        var hasAzTranslation = false;
+        if (dto.Translations != null && dto.Translations.Count > 0)
+        {
+            foreach (var t in dto.Translations)
+            {
+                if (string.IsNullOrWhiteSpace(t.Title)) continue;
+                var tLang = LanguageResolutionHelper.NormalizeLanguage(t.Language);
+                if (tLang == "az") hasAzTranslation = true;
+
+                course.Translations.Add(new CourseTranslation
+                {
+                    CourseId = course.Id,
+                    Language = tLang,
+                    Title = t.Title.Trim(),
+                    ShortDescription = t.ShortDescription,
+                    Description = t.Description
+                });
+            }
+        }
+
+        if (!hasAzTranslation)
+        {
+            course.Translations.Add(new CourseTranslation
+            {
+                CourseId = course.Id,
+                Language = "az",
+                Title = dto.Title.Trim(),
+                ShortDescription = dto.ShortDescription,
+                Description = dto.Description
+            });
+        }
 
         _context.Courses.Add(course);
         await _context.SaveChangesAsync(cancellationToken);
@@ -205,7 +279,10 @@ public class CourseService : ICourseService
             return Result.Failure(Error.Validation("Course.Validation", string.Join("; ", validation.Errors.Select(e => e.ErrorMessage))));
         }
 
-        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        var course = await _context.Courses
+            .Include(c => c.Translations)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
         if (course == null)
         {
             return Result.Failure(Error.NotFound("Course.NotFound", "Kurs tapılmadı."));
@@ -225,11 +302,43 @@ public class CourseService : ICourseService
         course.IsFree = dto.IsFree;
         course.Level = dto.Level;
         course.CategoryId = dto.CategoryId;
+        course.Status = dto.Status;
 
-        // Admin və ya müəllim tərəfindən status yenilənməsi
-        if (isAdmin || dto.Status != CourseStatus.Published)
+        // Tərcümələrin yenilənməsi
+        if (dto.Translations != null)
         {
-            course.Status = dto.Status;
+            foreach (var t in dto.Translations)
+            {
+                if (string.IsNullOrWhiteSpace(t.Title)) continue;
+                var tLang = LanguageResolutionHelper.NormalizeLanguage(t.Language);
+                var existing = course.Translations.FirstOrDefault(tr => tr.Language.Equals(tLang, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    existing.Title = t.Title.Trim();
+                    existing.ShortDescription = t.ShortDescription;
+                    existing.Description = t.Description;
+                }
+                else
+                {
+                    course.Translations.Add(new CourseTranslation
+                    {
+                        CourseId = course.Id,
+                        Language = tLang,
+                        Title = t.Title.Trim(),
+                        ShortDescription = t.ShortDescription,
+                        Description = t.Description
+                    });
+                }
+            }
+        }
+
+        // AZ tərcüməsini əsas sahə ilə sinxron saxla
+        var az = course.Translations.FirstOrDefault(t => t.Language == "az");
+        if (az != null)
+        {
+            az.Title = course.Title;
+            az.ShortDescription = course.ShortDescription;
+            az.Description = course.Description;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -252,34 +361,47 @@ public class CourseService : ICourseService
 
         course.MarkDeleted();
         await _context.SaveChangesAsync(cancellationToken);
+
         return Result.Success();
     }
 
     public async Task<Result> PublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId && !c.IsDeleted, cancellationToken);
-        if (course == null) return Result.Failure(Error.NotFound("Kurs tapılmadı."));
+        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId, cancellationToken);
+        if (course == null)
+        {
+            return Result.Failure(Error.NotFound("Course.NotFound", "Kurs tapılmadı."));
+        }
 
-        if (!isAdmin && course.InstructorId != userId)
-            return Result.Failure(Error.Forbidden("Bu kursu dərc etmək hüququnuz yoxdur."));
+        var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);
+        if (!canManage)
+        {
+            return Result.Failure(Error.Forbidden("Course.Forbidden", "Bu kursu dərc etmək icazəniz yoxdur."));
+        }
 
         course.Status = CourseStatus.Published;
-        course.MarkUpdated();
         await _context.SaveChangesAsync(cancellationToken);
+
         return Result.Success();
     }
 
     public async Task<Result> UnpublishCourseAsync(Guid courseId, Guid userId, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId && !c.IsDeleted, cancellationToken);
-        if (course == null) return Result.Failure(Error.NotFound("Kurs tapılmadı."));
+        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId, cancellationToken);
+        if (course == null)
+        {
+            return Result.Failure(Error.NotFound("Course.NotFound", "Kurs tapılmadı."));
+        }
 
-        if (!isAdmin && course.InstructorId != userId)
-            return Result.Failure(Error.Forbidden("Bu kursu qaralamaya qaytarmaq hüququnuz yoxdur."));
+        var canManage = await _accessService.CanManageCourseAsync(courseId, userId, isAdmin, cancellationToken);
+        if (!canManage)
+        {
+            return Result.Failure(Error.Forbidden("Course.Forbidden", "Bu kursu qaralamaya qaytarmaq icazəniz yoxdur."));
+        }
 
         course.Status = CourseStatus.Draft;
-        course.MarkUpdated();
         await _context.SaveChangesAsync(cancellationToken);
+
         return Result.Success();
     }
 
@@ -305,7 +427,7 @@ public class CourseService : ICourseService
         return Result.Success();
     }
 
-    private static CourseDetailDto MapToDetailDto(Course course)
+    private static CourseDetailDto MapToDetailDto(Course course, string language)
     {
         var modules = course.Modules.OrderBy(m => m.OrderIndex).Select(m => new ModuleDto(
             m.Id,
@@ -330,24 +452,25 @@ public class CourseService : ICourseService
 
         return new CourseDetailDto(
             course.Id,
-            course.Title,
+            LanguageResolutionHelper.ResolveTitle(course, language),
             course.Slug,
-            course.ShortDescription,
-            course.Description,
+            LanguageResolutionHelper.ResolveShortDescription(course, language),
+            LanguageResolutionHelper.ResolveDescription(course, language),
             course.ThumbnailUrl,
             course.Price,
             course.IsFree,
             course.Level,
             course.Status,
             course.CategoryId,
-            course.Category?.Name ?? string.Empty,
+            LanguageResolutionHelper.ResolveCategoryName(course.Category, language),
             course.InstructorId,
-            "Təlimçi",
+            "Instructor",
             avgRating,
             course.Reviews.Count,
             course.Enrollments.Count,
             modules,
-            course.CreatedAtUtc
+            course.CreatedAtUtc,
+            course.Translations.Select(t => new CourseTranslationDto(t.Language, t.Title, t.ShortDescription, t.Description)).ToList()
         );
     }
 

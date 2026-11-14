@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
@@ -17,18 +18,27 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment? environment = null)
     {
         // 1. Verilənlər Bazası konfiqurasiyası
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=PragmaLMS_Db;Trusted_Connection=True;MultipleActiveResultSets=true";
+        if (configuration.GetValue<bool>("UseInMemoryDatabase"))
+        {
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseInMemoryDatabase(configuration["InMemoryDbName"] ?? "PragmaLMS_TestDb"));
+        }
+        else
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? "Server=(localdb)\\mssqllocaldb;Database=PragmaLMS_Db;Trusted_Connection=True;MultipleActiveResultSets=true";
 
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString, sqlOptions =>
-            {
-                sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
-            }));
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(connectionString, sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
+                    sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+                }));
+        }
 
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
@@ -46,7 +56,8 @@ public static class DependencyInjection
         .AddDefaultTokenProviders();
 
         // 3. JWT Autentifikasiyası
-        var secretKey = configuration["Jwt:SecretKey"] ?? "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
+        var envName = environment?.EnvironmentName ?? "Production";
+        var secretKey = JwtKeyValidator.ValidateAndGetKey(configuration["Jwt:SecretKey"], envName);
         var issuer = configuration["Jwt:Issuer"] ?? "PragmaAPI";
         var audience = configuration["Jwt:Audience"] ?? "PragmaClient";
 
@@ -79,12 +90,19 @@ public static class DependencyInjection
 
         // 5. İnfrastruktur servisləri
         services.AddHttpContextAccessor();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddScoped<IExcelExporter, ClosedXMLExcelExporter>();
         services.AddScoped<ICertificateGenerator, QuestPdfCertificateGenerator>();
+        services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IAdminService, AdminService>();
 
         var aiSettings = new AiSettings
         {
