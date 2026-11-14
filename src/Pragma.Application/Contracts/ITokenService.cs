@@ -13,6 +13,7 @@ public interface ITokenService
         string? ipAddress,
         string? userAgent,
         Guid? existingFamilyId = null,
+        int? customExpiryMinutes = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<TokenResultDto>> RotateRefreshTokenAsync(

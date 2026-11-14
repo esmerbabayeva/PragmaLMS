@@ -30,20 +30,15 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    private int GetAccessTokenExpiryMinutes()
+    private int GetPasswordlessExpiryMinutes()
     {
-        if (int.TryParse(_configuration["Jwt:AccessTokenMinutes"], out var minutes) && minutes > 0)
+        // Google/OTP və token fırlanması (refresh) üçün təhlükəsizlik standartı: 15 dəqiqə
+        if (int.TryParse(_configuration["Jwt:PasswordlessExpiryMinutes"], out var minutes) && minutes > 0)
         {
             return minutes;
         }
 
-        if (int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var oldMinutes) && oldMinutes > 0)
-        {
-            return oldMinutes;
-        }
-
-        // Frontend avtomatik token refresh dəstəkləmədiyi üçün sessiyanın vaxtından əvvəl qırılmaması naminə default 60 dəqiqə saxlanılır.
-        return 60;
+        return 15;
     }
 
     public async Task<TokenResultDto> GenerateTokensAsync(
@@ -54,6 +49,7 @@ public class TokenService : ITokenService
         string? ipAddress,
         string? userAgent,
         Guid? existingFamilyId = null,
+        int? customExpiryMinutes = null,
         CancellationToken cancellationToken = default)
     {
         var secretKey = _configuration["Jwt:SecretKey"] ?? "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
@@ -79,7 +75,7 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiryMinutes = GetAccessTokenExpiryMinutes();
+        var expiryMinutes = customExpiryMinutes ?? GetPasswordlessExpiryMinutes();
         var expiresUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
         var jwt = new JwtSecurityToken(
             issuer: issuer,
@@ -217,7 +213,7 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiryMinutes = GetAccessTokenExpiryMinutes();
+        var expiryMinutes = GetPasswordlessExpiryMinutes();
         var expiresUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
         var jwt = new JwtSecurityToken(
             issuer: issuer,

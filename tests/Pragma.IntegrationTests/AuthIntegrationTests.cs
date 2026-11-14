@@ -216,4 +216,35 @@ public class AuthIntegrationTests : IClassFixture<AuthIntegrationTestsFactory>
         var reuseResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshTokenRequestDto(oldRefreshToken));
         reuseResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task TokenExpirySeparation_PasswordLoginHasLongExpiry_WhilePasswordlessHas15Minutes()
+    {
+        // 1. Passwordless verify -> 15 dəqiqə
+        var testEmail = $"shortlived_{Guid.NewGuid():N}@pragma.az";
+        await _client.PostAsJsonAsync("/api/v1/auth/passwordless/request", new PasswordlessRequestDto(testEmail));
+        string code;
+        lock (TestEmailSender.SentEmails)
+        {
+            var sent = TestEmailSender.SentEmails.Last(e => e.To == testEmail);
+            code = Regex.Match(sent.Body, @">\s*(\d{6})\s*<").Groups[1].Value;
+        }
+        var verifyResponse = await _client.PostAsJsonAsync("/api/v1/auth/passwordless/verify", new PasswordlessVerifyDto(testEmail, code));
+        verifyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var passwordlessResult = await verifyResponse.Content.ReadFromJsonAsync<TokenResultDto>();
+        passwordlessResult!.ExpiresInMinutes.Should().Be(15);
+
+        // 2. Password login -> >= 60 dəqiqə (appsettings-də 120)
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequestDto("student@pragma.edu.az", "Password123!"));
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var passwordResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+        passwordResult!.ExpiresInMinutes.Should().BeGreaterThanOrEqualTo(60);
+
+        // 3. Cookie attributes
+        loginResponse.Headers.Contains("Set-Cookie").Should().BeTrue();
+        var setCookie = loginResponse.Headers.GetValues("Set-Cookie").FirstOrDefault(c => c.Contains("pragma_rt"));
+        setCookie.Should().NotBeNull();
+        setCookie!.ToLowerInvariant().Should().Contain("httponly");
+        setCookie.ToLowerInvariant().Should().Contain("path=/");
+    }
 }

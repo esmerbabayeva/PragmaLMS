@@ -24,6 +24,8 @@ public class AuthController : BaseApiController
     private readonly ICurrentUserService _currentUserService;
     private readonly IAuthService _authService;
     private readonly ITokenService _tokenService;
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
     private readonly IValidator<RegisterRequestDto> _registerValidator;
     private readonly IValidator<LoginRequestDto> _loginValidator;
 
@@ -34,6 +36,8 @@ public class AuthController : BaseApiController
         ICurrentUserService currentUserService,
         IAuthService authService,
         ITokenService tokenService,
+        IConfiguration configuration,
+        IWebHostEnvironment environment,
         IValidator<RegisterRequestDto> registerValidator,
         IValidator<LoginRequestDto> loginValidator)
     {
@@ -43,6 +47,8 @@ public class AuthController : BaseApiController
         _currentUserService = currentUserService;
         _authService = authService;
         _tokenService = tokenService;
+        _configuration = configuration;
+        _environment = environment;
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
     }
@@ -89,6 +95,10 @@ public class AuthController : BaseApiController
         await _userManager.AddToRoleAsync(user, role);
 
         var roles = new[] { role };
+        var passwordExpiryMinutes = int.TryParse(_configuration["Jwt:PasswordLoginExpiryMinutes"], out var pMinutes) && pMinutes > 0
+            ? pMinutes
+            : (int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var oldM) ? oldM : 60);
+
         var tokenResult = await _tokenService.GenerateTokensAsync(
             user.Id,
             user.Email!,
@@ -96,6 +106,7 @@ public class AuthController : BaseApiController
             roles,
             GetIpAddress(),
             GetUserAgent(),
+            customExpiryMinutes: passwordExpiryMinutes,
             cancellationToken: HttpContext.RequestAborted);
 
         SetRefreshTokenCookie(tokenResult.RefreshToken, tokenResult.ExpiresUtc);
@@ -139,6 +150,10 @@ public class AuthController : BaseApiController
         }
 
         var roles = await _userManager.GetRolesAsync(user);
+        var passwordExpiryMinutes = int.TryParse(_configuration["Jwt:PasswordLoginExpiryMinutes"], out var loginPMinutes) && loginPMinutes > 0
+            ? loginPMinutes
+            : (int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var oldLoginM) ? oldLoginM : 60);
+
         var tokenResult = await _tokenService.GenerateTokensAsync(
             user.Id,
             user.Email!,
@@ -146,6 +161,7 @@ public class AuthController : BaseApiController
             roles,
             GetIpAddress(),
             GetUserAgent(),
+            customExpiryMinutes: passwordExpiryMinutes,
             cancellationToken: HttpContext.RequestAborted);
 
         SetRefreshTokenCookie(tokenResult.RefreshToken, tokenResult.ExpiresUtc);
@@ -308,7 +324,7 @@ public class AuthController : BaseApiController
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = Request.IsHttps || _environment.IsProduction(),
             SameSite = SameSiteMode.Strict,
             Expires = expiresUtc,
             Path = "/"
@@ -321,7 +337,7 @@ public class AuthController : BaseApiController
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = Request.IsHttps,
+            Secure = Request.IsHttps || _environment.IsProduction(),
             SameSite = SameSiteMode.Strict,
             Path = "/"
         };
