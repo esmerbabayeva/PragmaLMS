@@ -27,9 +27,6 @@ public class AcademicGradeService : IAcademicGradeService
         var cohort = await _context.Cohorts
             .AsNoTracking()
             .Include(c => c.Course)
-                .ThenInclude(crs => crs!.Modules)
-                    .ThenInclude(m => m.Lessons)
-                        .ThenInclude(l => l.Quiz)
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
 
@@ -48,15 +45,9 @@ public class AcademicGradeService : IAcademicGradeService
         var fullName = user?.FullName ?? "Tələbə";
         var email = user?.Email ?? string.Empty;
 
-        // 1. Kurs üzrə bütün Quiz-lərin tapılması
-        var courseQuizzes = cohort.Course?.Modules
-            .Where(m => !m.IsDeleted)
-            .SelectMany(m => m.Lessons.Where(l => !l.IsDeleted && l.Quiz != null && !l.Quiz.IsDeleted))
-            .Select(l => l.Quiz!)
-            .ToList() ?? new List<Quiz>();
-
-        var totalQuizzes = courseQuizzes.Count;
-        var quizIds = courseQuizzes.Select(q => q.Id).ToList();
+        // 1. Kurs üzrə bütün Quiz-lərin tapılması (Yüngül və optimallaşdırılmış sorğu)
+        var quizIds = await GetCourseQuizIdsAsync(cohort.CourseId, ct);
+        var totalQuizzes = quizIds.Count;
 
         // 2. Tələbənin quiz cəhdləri
         var attempts = totalQuizzes > 0
@@ -147,9 +138,6 @@ public class AcademicGradeService : IAcademicGradeService
         var cohort = await _context.Cohorts
             .AsNoTracking()
             .Include(c => c.Course)
-                .ThenInclude(crs => crs!.Modules)
-                    .ThenInclude(m => m.Lessons)
-                        .ThenInclude(l => l.Quiz)
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
 
@@ -190,15 +178,9 @@ public class AcademicGradeService : IAcademicGradeService
         // 1. Tələbələrin məlumatları toplu çəkilir (Batch User Lookup)
         var usersDict = (await _userLookup.GetUsersByIdsAsync(studentIds, ct)) ?? new Dictionary<Guid, UserBasicInfoDto>();
 
-        // 2. Kurs üzrə bütün Quiz-lərin tapılması
-        var courseQuizzes = cohort.Course?.Modules
-            .Where(m => !m.IsDeleted)
-            .SelectMany(m => m.Lessons.Where(l => !l.IsDeleted && l.Quiz != null && !l.Quiz.IsDeleted))
-            .Select(l => l.Quiz!)
-            .ToList() ?? new List<Quiz>();
-
-        var totalQuizzes = courseQuizzes.Count;
-        var quizIds = courseQuizzes.Select(q => q.Id).ToList();
+        // 2. Kurs üzrə bütün Quiz-lərin tapılması (Yüngül və optimallaşdırılmış sorğu)
+        var quizIds = await GetCourseQuizIdsAsync(cohort.CourseId, ct);
+        var totalQuizzes = quizIds.Count;
 
         // 3. Bütün tələbələrin quiz cəhdləri tək sorğu ilə çəkilir və yaddaşda qruplaşdırılır
         var allAttempts = totalQuizzes > 0
@@ -328,9 +310,6 @@ public class AcademicGradeService : IAcademicGradeService
     {
         var cohort = await _context.Cohorts
             .Include(c => c.Course)
-                .ThenInclude(crs => crs!.Modules)
-                    .ThenInclude(m => m.Lessons)
-                        .ThenInclude(l => l.Quiz)
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
 
@@ -464,14 +443,8 @@ public class AcademicGradeService : IAcademicGradeService
 
         if (studentIdsToUpdate.Count > 0)
         {
-            var courseQuizzes = cohort.Course?.Modules
-                .Where(m => !m.IsDeleted)
-                .SelectMany(m => m.Lessons.Where(l => !l.IsDeleted && l.Quiz != null && !l.Quiz.IsDeleted))
-                .Select(l => l.Quiz!)
-                .ToList() ?? new List<Quiz>();
-
-            var totalQuizzes = courseQuizzes.Count;
-            var quizIds = courseQuizzes.Select(q => q.Id).ToList();
+            var quizIds = await GetCourseQuizIdsAsync(cohort.CourseId, ct);
+            var totalQuizzes = quizIds.Count;
 
             var attempts = totalQuizzes > 0
                 ? await _context.QuizAttempts
@@ -537,9 +510,6 @@ public class AcademicGradeService : IAcademicGradeService
     {
         var cohort = await _context.Cohorts
             .Include(c => c.Course)
-                .ThenInclude(crs => crs!.Modules)
-                    .ThenInclude(m => m.Lessons)
-                        .ThenInclude(l => l.Quiz)
             .Include(c => c.Enrollments)
             .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
 
@@ -558,14 +528,8 @@ public class AcademicGradeService : IAcademicGradeService
 
         if (studentIds.Count > 0)
         {
-            var courseQuizzes = cohort.Course?.Modules
-                .Where(m => !m.IsDeleted)
-                .SelectMany(m => m.Lessons.Where(l => !l.IsDeleted && l.Quiz != null && !l.Quiz.IsDeleted))
-                .Select(l => l.Quiz!)
-                .ToList() ?? new List<Quiz>();
-
-            var totalQuizzes = courseQuizzes.Count;
-            var quizIds = courseQuizzes.Select(q => q.Id).ToList();
+            var quizIds = await GetCourseQuizIdsAsync(cohort.CourseId, ct);
+            var totalQuizzes = quizIds.Count;
 
             var attempts = totalQuizzes > 0
                 ? await _context.QuizAttempts
@@ -685,5 +649,15 @@ public class AcademicGradeService : IAcademicGradeService
         var resultScore = Math.Round(proportionalScore, 1, MidpointRounding.AwayFromZero);
 
         return (resultScore, true);
+    }
+
+    private async Task<List<Guid>> GetCourseQuizIdsAsync(Guid courseId, CancellationToken ct)
+    {
+        return await _context.Modules
+            .AsNoTracking()
+            .Where(m => m.CourseId == courseId && !m.IsDeleted)
+            .SelectMany(m => m.Lessons.Where(l => !l.IsDeleted && l.Quiz != null && !l.Quiz.IsDeleted))
+            .Select(l => l.Quiz!.Id)
+            .ToListAsync(ct);
     }
 }
