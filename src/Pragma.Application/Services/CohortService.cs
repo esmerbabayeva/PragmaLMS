@@ -204,6 +204,7 @@ public class CohortService : ICohortService
 
         var cohorts = await query
             .OrderByDescending(c => c.StartDate)
+            .ThenBy(c => c.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

@@ -54,23 +54,65 @@ public class CohortsController : BaseApiController
     }
 
     /// <summary>
-    /// Kohortların səhifələnmiş və filtrlənmiş siyahısını qaytarır.
+    /// Kohortların siyahısını qaytarır (Geriyə uyğun massiv cavabı, optional səhifələmə və X-Total-Count header-i ilə).
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<PagedResult<CohortSummaryDto>>> GetCohorts(
+    public async Task<ActionResult<IReadOnlyCollection<CohortSummaryDto>>> GetCohorts(
         [FromQuery] Guid? courseId,
         [FromQuery] Guid? teacherId,
         [FromQuery] CohortStatus? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
         CancellationToken ct = default)
     {
+        var effectivePageNumber = pageNumber ?? page ?? 1;
+        var effectivePageSize = pageSize ?? 50;
+
+        if (effectivePageNumber < 1)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Error",
+                Detail = "Səhifə nömrəsi (pageNumber) 1 və ya daha böyük olmalıdır.",
+                Instance = HttpContext.Request.Path
+            };
+            problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
+            return BadRequest(problem);
+        }
+
+        if (effectivePageSize < 1)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Error",
+                Detail = "Səhifə ölçüsü (pageSize) 1 və ya daha böyük olmalıdır.",
+                Instance = HttpContext.Request.Path
+            };
+            problem.Extensions["traceId"] = HttpContext.TraceIdentifier;
+            return BadRequest(problem);
+        }
+
+        if (effectivePageSize > 100)
+        {
+            effectivePageSize = 100;
+        }
+
         var currentUserId = _currentUserService.UserId;
         if (!currentUserId.HasValue) return Unauthorized();
 
         var isAdmin = _currentUserService.IsInRole(UserRoles.Admin);
-        var result = await _cohortService.GetCohortsAsync(courseId, teacherId, status, page, pageSize, currentUserId.Value, isAdmin, ct);
-        return HandleResult(result);
+        var result = await _cohortService.GetCohortsAsync(courseId, teacherId, status, effectivePageNumber, effectivePageSize, currentUserId.Value, isAdmin, ct);
+        if (result.IsFailure)
+        {
+            return HandleResult(result);
+        }
+
+        Response.Headers["X-Total-Count"] = result.Value.TotalCount.ToString();
+        Response.Headers.Append("Access-Control-Expose-Headers", "X-Total-Count");
+        return Ok(result.Value.Items);
     }
 
     /// <summary>
