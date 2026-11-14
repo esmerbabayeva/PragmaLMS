@@ -71,7 +71,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = builder.Environment.IsEnvironment("Testing") ? 10_000 : 10,
                 Window = TimeSpan.FromMinutes(1)
             }));
     options.AddPolicy("ai", httpContext =>
