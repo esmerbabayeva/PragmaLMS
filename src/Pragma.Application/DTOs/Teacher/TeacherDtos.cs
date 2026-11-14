@@ -13,7 +13,8 @@ public record AssignedGroupSummaryDto(
     double TotalHours,
     double CompletedHours,
     double RemainingHours,
-    double AverageGrade
+    double AverageGrade,
+    Guid? CohortId = null
 );
 
 /// <summary>
@@ -31,7 +32,7 @@ public record GroupStudentDto(
     int AbsentCount,
     int LateCount,
     int TotalAbsences,
-    decimal FinalScore,
+    decimal? FinalScore,
     bool IsProvisional,
     string? TeacherFeedback,
     string Status

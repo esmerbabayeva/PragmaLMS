@@ -442,13 +442,21 @@ public static class PragmaDbSeeder
                 {
                     StudentId = studentEsmer.Id,
                     CourseId = course1.Id,
+                    Type = Domain.Enums.CertificateType.Diploma,
                     CertificateCode = certCode,
+                    VerificationCode = "c9a4498e6490439b8dc2edaaf6d5115d8ac43586",
                     StudentFullName = "Əsmər Babayeva",
                     CourseTitle = course1.Title,
                     GradePercentage = 100.0,
                     IssuedAtUtc = DateTime.UtcNow.AddDays(-1)
                 });
             }
+
+            // 13. Kohortların və Dərs Cədvəllərinin Seeding-i (Stage 2)
+            await SeedCohortsAsync(context, teacherUser, studentEsmer, studentLeyla, course2, course1);
+
+            // 14. Çoxdilli tərcümələrin doldurulması (Kateqoriyalar və Kurslar üçün AZ, EN, RU)
+            await SeedMultilingualTranslationsAsync(context);
 
             await context.SaveChangesAsync();
             logger.LogInformation("PragmaDbSeeder: Verilənlər bazası bütün zəngin məlumatlarla (3 kurs, 5 istifadəçi, quiz, streak, sertifikat) uğurla təmin edildi.");
@@ -649,6 +657,282 @@ public static class PragmaDbSeeder
                 IconName = icon,
                 AwardedAtUtc = DateTime.UtcNow.AddDays(-1)
             });
+        }
+    }
+
+    private static async Task SeedMultilingualTranslationsAsync(AppDbContext context)
+    {
+        // 1. Kategoriyalar üzrə tərcümələr
+        var allCategories = await context.Categories.ToListAsync();
+        foreach (var cat in allCategories)
+        {
+            // Mövcud məlumatı az kimi miqrasiya et
+            await EnsureCategoryTranslationAsync(context, cat.Id, "az", cat.Name, cat.Description);
+
+            if (cat.Slug.Equals("frontend-ui-ux", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCategoryTranslationAsync(context, cat.Id, "en", "Frontend & UI/UX", "HTML5, Tailwind CSS, Alpine.js and modern web technologies");
+                await EnsureCategoryTranslationAsync(context, cat.Id, "ru", "Фронтенд и UI/UX", "HTML5, Tailwind CSS, Alpine.js и современные веб-технологии");
+            }
+            else if (cat.Slug.Equals("backend-proqramlasdirma", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCategoryTranslationAsync(context, cat.Id, "en", "Backend Development", "C#, .NET 10, SQL Server and microservices architecture");
+                await EnsureCategoryTranslationAsync(context, cat.Id, "ru", "Бэкенд разработка", "C#, .NET 10, SQL Server и микросервисная архитектура");
+            }
+            else if (cat.Slug.Equals("suni-intellekt-data", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCategoryTranslationAsync(context, cat.Id, "en", "Artificial Intelligence & Data", "Google Gemini AI, LLMs and big data analytics");
+                await EnsureCategoryTranslationAsync(context, cat.Id, "ru", "Искусственный интеллект и Данные", "Google Gemini AI, LLM и аналитика больших данных");
+            }
+            else if (cat.Slug.Equals("kiber-tehlukesizlik-devops", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCategoryTranslationAsync(context, cat.Id, "en", "Cybersecurity & DevOps", "Docker, Kubernetes, CI/CD and cloud security");
+                await EnsureCategoryTranslationAsync(context, cat.Id, "ru", "Кибербезопасность и DevOps", "Docker, Kubernetes, CI/CD и облачная безопасность");
+            }
+        }
+
+        // 2. Kurslar üzrə tərcümələr
+        var allCourses = await context.Courses.ToListAsync();
+        foreach (var c in allCourses)
+        {
+            if (!c.Slug.Equals("lkjhgfd", StringComparison.OrdinalIgnoreCase))
+            {
+                // Mövcud məlumatı az kimi miqrasiya et
+                await EnsureCourseTranslationAsync(context, c.Id, "az", c.Title, c.ShortDescription, c.Description);
+            }
+
+            if (c.Slug.Equals("csharp-14-net-10-onion-architecture", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCourseTranslationAsync(context, c.Id, "en",
+                    "Modern Onion Architecture with C# 14 & .NET 10",
+                    "Clean Architecture, DDD, CQRS principles and enterprise LMS platform development with SQL Server.",
+                    "In this course, you will explore the advanced capabilities of the .NET 10 ecosystem, mastering Onion Architecture, JWT security, QuestPDF and ClosedXML report generation from scratch.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "ru",
+                    "Современная Onion-архитектура с C# 14 и .NET 10",
+                    "Принципы Clean Architecture, DDD, CQRS и разработка масштабной LMS платформы с SQL Server.",
+                    "В этом курсе вы изучите самые передовые технологии экосистемы .NET 10, построив с нуля Onion Architecture, авторизацию JWT, генерацию отчетов QuestPDF и ClosedXML.");
+            }
+            else if (c.Slug.Equals("modern-frontend-alpine-tailwind", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCourseTranslationAsync(context, c.Id, "en",
+                    "Modern Frontend: Alpine.js, Tailwind CSS & Reactive UI",
+                    "Modern SPA design, component architecture, reactive state management, and YouTube API integration.",
+                    "Build sleek, responsive Dark/Light mode interfaces using lightweight yet powerful Alpine.js 3 and Tailwind CSS as a modern alternative to heavyweight frameworks.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "ru",
+                    "Современный фронтенд: Alpine.js, Tailwind CSS и реактивный UI",
+                    "Современный SPA дизайн, компонентная архитектура, реактивное состояние и интеграция с YouTube API.",
+                    "Создание интерфейсов с поддержкой темной и светлой тем на базе легких и мощных Alpine.js 3 и Tailwind CSS в качестве практичной альтернативы тяжелым SPA-фреймворкам.");
+            }
+            else if (c.Slug.Equals("generative-ai-google-gemini-integration", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCourseTranslationAsync(context, c.Id, "en",
+                    "Generative AI & LLM Integration: Google Gemini API",
+                    "Google Gemini API, Socratic teaching methods, Prompt Engineering, and in-LMS RAG pipeline construction.",
+                    "Build an intelligent mentor module that answers student inquiries instantly and adheres to pedagogical principles using Google Gemini AI and Socratic guidance.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "ru",
+                    "Генеративный ИИ и интеграция LLM: Google Gemini API",
+                    "Google Gemini API, Сократовские методы обучения, Prompt Engineering и построение RAG-системы в LMS.",
+                    "Умный модуль ИИ-ментора на базе Google Gemini API для мгновенных и педагогически выверенных ответов на вопросы студентов.");
+            }
+            else if (c.Slug.Equals("net-10-ve-clean-architecture", StringComparison.OrdinalIgnoreCase))
+            {
+                await EnsureCourseTranslationAsync(context, c.Id, "en",
+                    ".NET 10 & Clean Architecture",
+                    "Enterprise backend development, Clean Architecture patterns, EF Core 10, and high performance APIs.",
+                    "A comprehensive guide to developing resilient enterprise backends with .NET 10, adhering to Clean Architecture principles, automated testing, and scalable data layers.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "ru",
+                    ".NET 10 и Clean Architecture",
+                    "Корпоративная разработка бэкенда, паттерны Clean Architecture, EF Core 10 и высокопроизводительные API.",
+                    "Полное руководство по разработке надежного бэкенда на .NET 10 с соблюдением принципов чистой архитектуры, автоматизированным тестированием и масштабируемым доступом к данным.");
+            }
+            else if (c.Slug.Equals("lkjhgfd", StringComparison.OrdinalIgnoreCase))
+            {
+                // Also update the AZ translation for lkjhgfd with realistic title
+                await EnsureCourseTranslationAsync(context, c.Id, "az",
+                    "DevOps və Bulud İnfrastrukturu Ustad Dərsi",
+                    "Docker ilə konteynerləşdirmə, Kubernetes orkestrasiyası, CI/CD avtomatlaşdırma boru xətləri və infrastruktur kod kimi.",
+                    "Peşəkar DevOps təcrübələri, konteyner təhlükəsizliyi, avtomatlaşdırılmış yerləşdirmə və miqyaslanan istehsal infrastrukturu.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "en",
+                    "DevOps & Cloud Infrastructure Masterclass",
+                    "Containerization with Docker, Kubernetes orchestration, CI/CD automation pipelines, and infrastructure as code.",
+                    "Learn professional DevOps practices, container security, automated deployments, and scalable production infrastructure.");
+
+                await EnsureCourseTranslationAsync(context, c.Id, "ru",
+                    "Мастер-класс по DevOps и облачной инфраструктуре",
+                    "Контейнеризация с Docker, оркестрация в Kubernetes, CI/CD пайплайны и инфраструктура как код.",
+                    "Изучите современные практики DevOps, безопасность контейнеров, автоматизированное развертывание и масштабируемую продакшн-инфраструктуру.");
+            }
+        }
+    }
+
+    private static async Task EnsureCategoryTranslationAsync(
+        AppDbContext context,
+        Guid categoryId,
+        string language,
+        string name,
+        string? description)
+    {
+        var normLang = language.Trim().ToLowerInvariant();
+        var trans = context.CategoryTranslations.Local.FirstOrDefault(t => t.CategoryId == categoryId && t.Language == normLang)
+            ?? await context.CategoryTranslations.FirstOrDefaultAsync(t => t.CategoryId == categoryId && t.Language == normLang);
+        if (trans == null)
+        {
+            context.CategoryTranslations.Add(new CategoryTranslation
+            {
+                CategoryId = categoryId,
+                Language = normLang,
+                Name = name,
+                Description = description
+            });
+        }
+        else
+        {
+            trans.Name = name;
+            trans.Description = description;
+        }
+    }
+
+    private static async Task EnsureCourseTranslationAsync(
+        AppDbContext context,
+        Guid courseId,
+        string language,
+        string title,
+        string? shortDesc,
+        string? desc)
+    {
+        var normLang = language.Trim().ToLowerInvariant();
+        var trans = context.CourseTranslations.Local.FirstOrDefault(t => t.CourseId == courseId && t.Language == normLang)
+            ?? await context.CourseTranslations.FirstOrDefaultAsync(t => t.CourseId == courseId && t.Language == normLang);
+        if (trans == null)
+        {
+            context.CourseTranslations.Add(new CourseTranslation
+            {
+                CourseId = courseId,
+                Language = normLang,
+                Title = title,
+                ShortDescription = shortDesc,
+                Description = desc
+            });
+        }
+        else
+        {
+            trans.Title = title;
+            trans.ShortDescription = shortDesc;
+            trans.Description = desc;
+        }
+    }
+
+    private static async Task SeedCohortsAsync(
+        AppDbContext context,
+        ApplicationUser teacherUser,
+        ApplicationUser studentEsmer,
+        ApplicationUser studentLeyla,
+        Course courseFrontend,
+        Course courseBackend)
+    {
+        // 1. FE-101: Müasir Frontend
+        var cohortFe = await context.Cohorts
+            .Include(c => c.Schedules)
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.CourseId == courseFrontend.Id && c.Name == "FE-101: Müasir Frontend");
+
+        if (cohortFe == null)
+        {
+            cohortFe = new Cohort
+            {
+                Name = "FE-101: Müasir Frontend",
+                CourseId = courseFrontend.Id,
+                TeacherId = teacherUser.Id,
+                StartDate = DateTime.UtcNow.AddMonths(-1),
+                EndDate = DateTime.UtcNow.AddMonths(2),
+                TotalHours = 80.0,
+                CompletedHours = 24.0,
+                QuizWeight = 30m,
+                MiniProjectWeight = 30m,
+                FinalWeight = 40m,
+                MaxAbsenceLimit = 6,
+                LateToAbsenceRatio = 3,
+                Status = CohortStatus.Active
+            };
+            context.Cohorts.Add(cohortFe);
+            await context.SaveChangesAsync();
+
+            // Schedules (I, III, V günləri: Mon, Wed, Fri)
+            context.CohortSchedules.AddRange(
+                new CohortSchedule { CohortId = cohortFe.Id, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(21, 0, 0), RoomOrMeetingUrl = "Otaq 204 / Google Meet" },
+                new CohortSchedule { CohortId = cohortFe.Id, DayOfWeek = DayOfWeek.Wednesday, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(21, 0, 0), RoomOrMeetingUrl = "Otaq 204 / Google Meet" },
+                new CohortSchedule { CohortId = cohortFe.Id, DayOfWeek = DayOfWeek.Friday, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(21, 0, 0), RoomOrMeetingUrl = "Otaq 204 / Google Meet" }
+            );
+
+            // Enrollments
+            context.CohortEnrollments.AddRange(
+                new CohortEnrollment { CohortId = cohortFe.Id, StudentId = studentEsmer.Id, Status = CohortEnrollmentStatus.Enrolled, EnrolledAtUtc = DateTime.UtcNow.AddMonths(-1) },
+                new CohortEnrollment { CohortId = cohortFe.Id, StudentId = studentLeyla.Id, Status = CohortEnrollmentStatus.Enrolled, EnrolledAtUtc = DateTime.UtcNow.AddMonths(-1) }
+            );
+
+            await context.SaveChangesAsync();
+
+            // Attendance records for recent schedule day
+            var pastDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-2));
+            while (pastDate.DayOfWeek != DayOfWeek.Monday && pastDate.DayOfWeek != DayOfWeek.Wednesday && pastDate.DayOfWeek != DayOfWeek.Friday)
+            {
+                pastDate = pastDate.AddDays(-1);
+            }
+
+            context.AttendanceRecords.AddRange(
+                new AttendanceRecord { CohortId = cohortFe.Id, StudentId = studentEsmer.Id, Date = pastDate, Status = AttendanceStatus.Present, RecordedByUserId = teacherUser.Id },
+                new AttendanceRecord { CohortId = cohortFe.Id, StudentId = studentLeyla.Id, Date = pastDate, Status = AttendanceStatus.Present, RecordedByUserId = teacherUser.Id }
+            );
+
+            await context.SaveChangesAsync();
+        }
+
+        // 2. BE-102: .NET 10 Clean Architecture
+        var cohortBe = await context.Cohorts
+            .Include(c => c.Schedules)
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.CourseId == courseBackend.Id && c.Name == "BE-102: .NET 10 Clean Architecture");
+
+        if (cohortBe == null)
+        {
+            cohortBe = new Cohort
+            {
+                Name = "BE-102: .NET 10 Clean Architecture",
+                CourseId = courseBackend.Id,
+                TeacherId = teacherUser.Id,
+                StartDate = DateTime.UtcNow.AddDays(-14),
+                EndDate = DateTime.UtcNow.AddMonths(3),
+                TotalHours = 100.0,
+                CompletedHours = 12.0,
+                QuizWeight = 30m,
+                MiniProjectWeight = 30m,
+                FinalWeight = 40m,
+                MaxAbsenceLimit = 6,
+                LateToAbsenceRatio = 3,
+                Status = CohortStatus.Active
+            };
+            context.Cohorts.Add(cohortBe);
+            await context.SaveChangesAsync();
+
+            // Schedules (II, IV, VI günləri: Tue, Thu, Sat)
+            context.CohortSchedules.AddRange(
+                new CohortSchedule { CohortId = cohortBe.Id, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(21, 0, 0), RoomOrMeetingUrl = "Otaq 305 / Jitsi" },
+                new CohortSchedule { CohortId = cohortBe.Id, DayOfWeek = DayOfWeek.Thursday, StartTime = new TimeSpan(19, 0, 0), EndTime = new TimeSpan(21, 0, 0), RoomOrMeetingUrl = "Otaq 305 / Jitsi" },
+                new CohortSchedule { CohortId = cohortBe.Id, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeSpan(11, 0, 0), EndTime = new TimeSpan(13, 0, 0), RoomOrMeetingUrl = "Otaq 305 / Jitsi" }
+            );
+
+            // Enrollments
+            context.CohortEnrollments.AddRange(
+                new CohortEnrollment { CohortId = cohortBe.Id, StudentId = studentEsmer.Id, Status = CohortEnrollmentStatus.Enrolled, EnrolledAtUtc = DateTime.UtcNow.AddDays(-14) },
+                new CohortEnrollment { CohortId = cohortBe.Id, StudentId = studentLeyla.Id, Status = CohortEnrollmentStatus.Enrolled, EnrolledAtUtc = DateTime.UtcNow.AddDays(-14) }
+            );
+
+            await context.SaveChangesAsync();
         }
     }
 }

@@ -27,6 +27,13 @@ public static class DependencyInjection
         services.AddScoped<ILiveSessionService, LiveSessionService>();
         services.AddScoped<IGradebookService, GradebookService>();
         services.AddScoped<ITeacherService, TeacherService>();
+        services.AddScoped<ICertificateEligibilityPolicy, CertificateEligibilityPolicy>();
+        services.AddScoped<IAcademicGradeService, AcademicGradeService>();
+        services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<ICohortService, CohortService>();
+        services.AddScoped<ICohortNoteService, CohortNoteService>();
+        services.AddScoped<IStudentGradeService, StudentGradeService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }

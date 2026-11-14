@@ -20,6 +20,11 @@ public class Course : BaseEntity
     public CourseLevel Level { get; set; } = CourseLevel.Beginner;
     public CourseStatus Status { get; set; } = CourseStatus.Draft;
     
+    /// <summary>
+    /// Tədris modeli: SelfPaced (Müstəqil video/material) və ya Cohort (Müəllimli qrup/axın).
+    /// </summary>
+    public DeliveryMode DeliveryMode { get; set; } = DeliveryMode.SelfPaced;
+    
     // Təlimçi identifikasiyası
     public Guid InstructorId { get; set; }
     
@@ -32,8 +37,10 @@ public class Course : BaseEntity
     public string? RejectionReason { get; set; }
 
     // Naviqasiya əlaqələri
+    public ICollection<CourseTranslation> Translations { get; set; } = new List<CourseTranslation>();
     public ICollection<Module> Modules { get; set; } = new List<Module>();
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public ICollection<Review> Reviews { get; set; } = new List<Review>();
     public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
+    public ICollection<Cohort> Cohorts { get; set; } = new List<Cohort>();
 }

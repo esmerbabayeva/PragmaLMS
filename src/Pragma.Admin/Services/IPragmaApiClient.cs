@@ -12,6 +12,7 @@ public interface IPragmaApiClient
     Task<AuthResponseDto?> LoginAsync(string email, string password, CancellationToken ct = default);
     Task<PagedResult<CourseSummaryDto>?> GetCoursesAsync(string? search = null, int pageNumber = 1, int pageSize = 50, CancellationToken ct = default);
     Task<CourseDetailDto?> GetCourseByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Guid?> CreateCourseAsync(CreateCourseDto dto, CancellationToken ct = default);
     Task<bool> PublishCourseAsync(Guid id, CancellationToken ct = default);
     Task<bool> UnpublishCourseAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<CategoryDto>?> GetCategoriesAsync(CancellationToken ct = default);

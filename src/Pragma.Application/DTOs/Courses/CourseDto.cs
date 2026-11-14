@@ -3,6 +3,13 @@ using Pragma.Domain.Enums;
 
 namespace Pragma.Application.DTOs.Courses;
 
+public record CourseTranslationDto(
+    string Language,
+    string Title,
+    string? ShortDescription,
+    string? Description
+);
+
 public record CourseSummaryDto(
     Guid Id,
     string Title,
@@ -22,7 +29,8 @@ public record CourseSummaryDto(
     int TotalLessons,
     int TotalDurationMinutes,
     DateTime CreatedAtUtc,
-    bool IsPublished = false
+    bool IsPublished = false,
+    IReadOnlyCollection<CourseTranslationDto>? Translations = null
 );
 
 public record CourseDetailDto(
@@ -44,7 +52,8 @@ public record CourseDetailDto(
     int ReviewCount,
     int TotalEnrollments,
     IReadOnlyCollection<ModuleDto> Modules,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    IReadOnlyCollection<CourseTranslationDto>? Translations = null
 );
 
 public record CreateCourseDto(
@@ -55,7 +64,8 @@ public record CreateCourseDto(
     decimal Price,
     bool IsFree,
     CourseLevel Level,
-    Guid CategoryId
+    Guid CategoryId,
+    IReadOnlyCollection<CourseTranslationDto>? Translations = null
 );
 
 public record UpdateCourseDto(
@@ -67,7 +77,8 @@ public record UpdateCourseDto(
     bool IsFree,
     CourseLevel Level,
     Guid CategoryId,
-    CourseStatus Status
+    CourseStatus Status,
+    IReadOnlyCollection<CourseTranslationDto>? Translations = null
 );
 
 public record CourseFilterDto(
@@ -80,5 +91,6 @@ public record CourseFilterDto(
     string? SortBy = "newest", // "newest", "price_asc", "price_desc", "rating"
     CourseStatus? Status = null,
     bool IncludeAllStatuses = false,
-    Guid? InstructorId = null
+    Guid? InstructorId = null,
+    string? Language = null
 );

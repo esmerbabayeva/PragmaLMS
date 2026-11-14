@@ -40,11 +40,21 @@ public class CategoriesController : Controller
             return View("Index", new CategoryListViewModel { Categories = categories, NewCategory = model });
         }
 
+        var translations = new List<CategoryTranslationDto>
+        {
+            new("az", model.Name.Trim(), model.Description?.Trim())
+        };
+        if (!string.IsNullOrWhiteSpace(model.NameEn))
+            translations.Add(new("en", model.NameEn.Trim(), model.DescriptionEn?.Trim()));
+        if (!string.IsNullOrWhiteSpace(model.NameRu))
+            translations.Add(new("ru", model.NameRu.Trim(), model.DescriptionRu?.Trim()));
+
         var dto = new CreateCategoryDto(
             Name: model.Name.Trim(),
             Description: model.Description?.Trim(),
             IconName: model.IconName?.Trim(),
-            SortOrder: model.SortOrder
+            SortOrder: model.SortOrder,
+            Translations: translations
         );
 
         var success = await _apiClient.CreateCategoryAsync(dto);

@@ -124,6 +124,16 @@
                                 </button>
                             </template>
 
+                            <!-- 1.1 Qiymətlərim (Yalnız qeydiyyatlı tələbə) -->
+                            <template x-if="token && isStudent">
+                                <button @click="activeView = 'myGrades'; sidebarOpen = false; loadStudentGradesData();" :class="activeView === 'myGrades' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-indigo-600 dark:bg-neutral-800 dark:text-white dark:border-indigo-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
+                                    <svg class="w-4 h-4 shrink-0 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                    </svg>
+                                    <span x-text="t('nav_my_grades')">Qiymətlərim</span>
+                                </button>
+                            </template>
+
                             <!-- 2. Kurslar Kataloqu -->
                             <button @click="activeView = 'catalog'; sidebarOpen = false;" :class="activeView === 'catalog' ? 'bg-neutral-100 text-neutral-900 border-l-2 border-blue-600 dark:bg-neutral-800 dark:text-white dark:border-blue-500 font-semibold shadow-xs' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-neutral-900/60'" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition text-left cursor-pointer">
                                 <svg class="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,6 +318,7 @@
                     <span class="text-xs font-mono text-neutral-400 dark:text-neutral-500 uppercase tracking-wider hidden sm:inline" x-text="t('platform_prefix')">Platforma /</span>
                     <h2 class="text-sm sm:text-base font-bold text-neutral-900 dark:text-white tracking-tight">
                         <template x-if="activeView === 'dashboard'"><span x-text="t('nav_learning')">Mənim Dərslərim</span></template>
+                        <template x-if="activeView === 'myGrades'"><span x-text="t('nav_my_grades')">Qiymətlərim</span></template>
                         <template x-if="activeView === 'catalog'"><span x-text="t('nav_catalog')">Kurslar Kataloqu</span></template>
                         <template x-if="activeView === 'leaderboard'"><span x-text="t('nav_leaderboard')">Liderlər Cədvəli</span></template>
                         <template x-if="activeView === 'admin'"><span x-text="t('nav_admin')">Admin Paneli</span></template>
@@ -540,6 +551,272 @@
                             </template>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- 2. TƏLƏBƏ: QİYMƏTLƏRİM SƏHİFƏSİ (STUDENT MY GRADES) -->
+            <!-- ======================================================== -->
+            <div x-show="activeView === 'myGrades' && isStudent" x-cloak class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+                <!-- Hero Header -->
+                <div class="bg-gradient-to-r from-indigo-900 via-indigo-950 to-neutral-900 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-indigo-800/40">
+                    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div class="space-y-2">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[11px] font-mono tracking-wider text-indigo-200 uppercase font-semibold">
+                                <span>🎓</span>
+                                <span x-text="t('role_student')">Tələbə</span>
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight" x-text="t('my_grades_title')">Akademik Göstəricilərim</h1>
+                            <p class="text-indigo-200 text-xs sm:text-sm max-w-xl leading-relaxed" x-text="t('my_grades_subtitle')">
+                                Qrup və kurs üzrə rəsmi ballarınız, davamiyyət və müəllim rəyləri.
+                            </p>
+                        </div>
+                        <!-- Cohort Selector -->
+                        <div x-show="studentCohorts.length > 0" class="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10 min-w-[260px]">
+                            <label class="block text-[11px] font-mono text-indigo-200 mb-1.5 font-bold" x-text="t('lbl_select_cohort')">Qrup seçin:</label>
+                            <select x-model="selectedStudentCohortId" @change="loadSelectedCohortGradeDetails()"
+                                    class="w-full px-3 py-2 rounded-xl bg-neutral-900/90 border border-white/20 text-xs text-white focus:outline-none focus:border-indigo-400 cursor-pointer">
+                                <template x-for="c in studentCohorts" :key="c.cohortId">
+                                    <option :value="c.cohortId" x-text="c.cohortCode + ' — ' + (c.courseTitle || 'Kurs')"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State (No enrolled cohorts) -->
+                <div x-show="!studentGradesLoading && studentCohorts.length === 0" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-12 text-center space-y-4 shadow-xs">
+                    <div class="w-16 h-16 mx-auto rounded-3xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-3xl">
+                        📚
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="text-base font-bold text-neutral-900 dark:text-white" x-text="t('lbl_no_enrolled_cohorts')">Hələ heç bir qrupda qeydiyyatınız yoxdur</h3>
+                        <p class="text-xs text-neutral-500 max-w-md mx-auto" x-text="t('lbl_no_enrolled_cohorts_desc')">Kurslara qeydiyyatdan keçdikdən və qrupa təyin olunduqdan sonra qiymətləriniz burada görünəcək.</p>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div x-show="studentGradesLoading" class="py-12 text-center text-sm text-neutral-400">
+                    <span class="animate-spin inline-block mr-2">⏳</span> Yüklənir...
+                </div>
+
+                <!-- Content When Cohort Selected -->
+                <div x-show="!studentGradesLoading && studentGradeDetails" class="space-y-6">
+                    <!-- Row 1: 3 Əsas Kart (Qiymətlər, Davamiyyət, Sertifikat) - Mobil şaquli, md 3 sütun -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Kart 1: Qiymətlər Kartı -->
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">📊</span>
+                                    <h3 class="text-sm font-bold text-neutral-900 dark:text-white" x-text="t('card_grades_title')">Qiymətlər</h3>
+                                </div>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold"
+                                      :class="studentGradeDetails?.grades?.isProvisional ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'"
+                                      x-text="studentGradeDetails?.grades?.isProvisional ? t('lbl_provisional') : t('lbl_official')"></span>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_test_avg') + ' (' + (studentGradeDetails?.grades?.quizWeight || 30) + '%)'">Test Ortalaması (30%)</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.grades?.quizAverage !== null ? studentGradeDetails?.grades?.quizAverage?.toFixed(1) : '-'">-</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_mini_project') + ' (' + (studentGradeDetails?.grades?.miniProjectWeight || 30) + '%)'">Mini Layihə (30%)</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.grades?.miniProjectScore !== null ? studentGradeDetails?.grades?.miniProjectScore?.toFixed(1) : '-'">-</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_final_exam') + ' (' + (studentGradeDetails?.grades?.finalWeight || 40) + '%)'">Final İmtahanı (40%)</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.grades?.finalScore !== null ? studentGradeDetails?.grades?.finalScore?.toFixed(1) : '-'">-</strong>
+                                </div>
+                            </div>
+
+                            <!-- Yekun Bal -->
+                            <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-bold" x-text="t('lbl_overall_score')">YEKUN BAL</div>
+                                    <span x-show="studentGradeDetails?.grades?.isProvisional" class="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-mono" x-text="t('lbl_provisional')">Müvəqqəti</span>
+                                </div>
+                                <div class="text-2xl font-mono font-extrabold"
+                                     :class="(studentGradeDetails?.grades?.overallScore !== null && studentGradeDetails?.grades?.overallScore >= 70) ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'"
+                                     x-text="studentGradeDetails?.grades?.overallScore !== null ? studentGradeDetails?.grades?.overallScore?.toFixed(1) : '-'">
+                                    -
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kart 2: Davamiyyət Kartı -->
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">📅</span>
+                                    <h3 class="text-sm font-bold text-neutral-900 dark:text-white" x-text="t('card_attendance_title')">Davamiyyət</h3>
+                                </div>
+                                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold"
+                                      :class="studentGradeDetails?.attendance?.effectiveAbsences > (studentGradeDetails?.attendance?.maxAbsenceLimit || 6) ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-300' : (studentGradeDetails?.attendance?.effectiveAbsences >= 4 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300')"
+                                      x-text="studentGradeDetails?.attendance?.effectiveAbsences + ' / ' + (studentGradeDetails?.attendance?.maxAbsenceLimit || 6)"></span>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_absent_count')">Qayıb Sayı</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.attendance?.absentCount || 0">0</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_late_count')">Gecikmə</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.attendance?.lateCount || 0">0</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-neutral-50 dark:bg-[#111113]">
+                                    <span class="text-neutral-500" x-text="t('lbl_status_excused')">Üzrlü</span>
+                                    <strong class="font-mono text-neutral-900 dark:text-white" x-text="studentGradeDetails?.attendance?.excusedCount || 0">0</strong>
+                                </div>
+                            </div>
+
+                            <!-- Xəbərdarlıq / Status Mesajı -->
+                            <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800 text-xs">
+                                <template x-if="studentGradeDetails?.attendance?.effectiveAbsences > (studentGradeDetails?.attendance?.maxAbsenceLimit || 6)">
+                                    <div class="p-2.5 rounded-xl bg-red-100 text-red-900 dark:bg-red-950/80 dark:text-red-200 border border-red-300 dark:border-red-800 font-bold" x-text="t('lbl_dropped_danger')">
+                                        ⛔ Kursdan çıxarılıb (Davamiyyət limiti aşıldı)
+                                    </div>
+                                </template>
+                                <template x-if="studentGradeDetails?.attendance?.effectiveAbsences >= 4 && studentGradeDetails?.attendance?.effectiveAbsences <= (studentGradeDetails?.attendance?.maxAbsenceLimit || 6)">
+                                    <div class="p-2.5 rounded-xl bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-medium" x-text="t('lbl_warning_absence') + ' ' + (studentGradeDetails?.attendance?.maxAbsenceLimit || 6)">
+                                        ⚠️ Qayıb sayı kritik həddə çatır!
+                                    </div>
+                                </template>
+                                <template x-if="studentGradeDetails?.attendance?.effectiveAbsences < 4">
+                                    <div class="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" x-text="t('lbl_attendance_ok')">
+                                        ✓ Davamiyyətiniz qaydasındadır.
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Kart 3: Sertifikat Statusu Kartı -->
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between space-y-4">
+                            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">📜</span>
+                                    <h3 class="text-sm font-bold text-neutral-900 dark:text-white" x-text="t('card_cert_status_title')">Sertifikat Statusu</h3>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold"
+                                      :class="studentGradeDetails?.certificate?.eligibility === 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : (studentGradeDetails?.certificate?.eligibility === 2 ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' : (studentGradeDetails?.certificate?.eligibility === 3 ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'))"
+                                      x-text="studentGradeDetails?.certificate?.eligibilityName || t('cert_status_pending')"></span>
+                            </div>
+
+                            <div class="p-4 rounded-2xl border space-y-2"
+                                 :class="studentGradeDetails?.certificate?.eligibility === 1 ? 'bg-emerald-500/5 border-emerald-200 dark:border-emerald-800/60' : (studentGradeDetails?.certificate?.eligibility === 2 ? 'bg-blue-500/5 border-blue-200 dark:border-blue-800/60' : (studentGradeDetails?.certificate?.eligibility === 3 ? 'bg-red-500/5 border-red-200 dark:border-red-800/60' : 'bg-neutral-50 dark:bg-[#111113] border-neutral-200 dark:border-neutral-800'))">
+                                <div class="text-xs font-bold text-neutral-900 dark:text-white"
+                                     x-text="studentGradeDetails?.certificate?.eligibility === 1 ? t('cert_status_diploma') : (studentGradeDetails?.certificate?.eligibility === 2 ? t('cert_status_attendance') : (studentGradeDetails?.certificate?.eligibility === 3 ? t('cert_status_not_eligible') : t('cert_status_pending')))"></div>
+                                <p class="text-xs text-neutral-500 leading-relaxed"
+                                   x-text="studentGradeDetails?.certificate?.reason || t('cert_status_pending_desc')"></p>
+                            </div>
+
+                            <!-- Sertifikat Əməliyyatları (Varsa) -->
+                            <div class="pt-3 border-t border-neutral-100 dark:border-neutral-800">
+                                <template x-if="studentGradeDetails?.certificate?.certificateId">
+                                    <div class="flex items-center gap-2">
+                                        <a :href="'/api/certificates/' + studentGradeDetails?.certificate?.certificateId + '/pdf'" target="_blank"
+                                           class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center shadow-xs transition">
+                                            <span x-text="t('btn_download_cert_pdf')">Sertifikatı Endir (.pdf)</span>
+                                        </a>
+                                        <a :href="'/verify.html?code=' + studentGradeDetails?.certificate?.certificateCode" target="_blank"
+                                           class="py-2 px-3 rounded-xl border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-mono transition">
+                                            ↗
+                                        </a>
+                                    </div>
+                                </template>
+                                <template x-if="!studentGradeDetails?.certificate?.certificateId">
+                                    <div class="text-center text-xs text-neutral-400 font-mono py-1" x-text="t('cert_status_pending_desc')">
+                                        Kohort tamamlandıqdan sonra aktivləşir
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: 2 Detallı Kart (Müəllim Şərhləri və Davamiyyət Tarixçəsi) - Mobil şaquli, lg 2 sütun -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Kart 4: Müəllimin Şərhləri (YALNIZ Feedback / Zero Private Leak) -->
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-6 shadow-xs space-y-4">
+                            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">💬</span>
+                                    <h3 class="text-sm font-bold text-neutral-900 dark:text-white" x-text="t('card_feedback_title')">Müəllimin Şərhləri</h3>
+                                </div>
+                                <span class="text-xs font-mono text-neutral-400" x-text="(studentGradeDetails?.feedbackNotes?.length || 0) + ' rəy'"></span>
+                            </div>
+
+                            <div x-show="!studentGradeDetails?.feedbackNotes || studentGradeDetails?.feedbackNotes?.length === 0"
+                                 class="p-8 text-center text-neutral-400 text-xs rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800"
+                                 x-text="t('lbl_no_feedback_yet')">
+                                Müəllim tərəfindən hələ rəy bildirilməyib.
+                            </div>
+
+                            <div x-show="studentGradeDetails?.feedbackNotes && studentGradeDetails?.feedbackNotes?.length > 0" class="space-y-3">
+                                <template x-for="fn in studentGradeDetails?.feedbackNotes" :key="fn.id">
+                                    <div class="p-4 rounded-2xl bg-neutral-50 dark:bg-[#111113] border border-neutral-200 dark:border-neutral-800 space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-6 h-6 rounded-full bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-xs">
+                                                    👨‍🏫
+                                                </span>
+                                                <span class="font-bold text-xs text-neutral-900 dark:text-white" x-text="fn.authorTeacherName || 'Müəllim'"></span>
+                                                <span x-show="fn.gradeComponent" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-semibold"
+                                                      x-text="fn.gradeComponent === 1 ? t('lbl_component_mini') : (fn.gradeComponent === 2 ? t('lbl_component_final') : t('lbl_component_general'))"></span>
+                                            </div>
+                                            <span class="text-[11px] font-mono text-neutral-400" x-text="formatDateShort(fn.createdAtUtc)"></span>
+                                        </div>
+                                        <p class="text-xs text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed pl-8" x-text="fn.text"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Kart 5: Davamiyyət Tarixçəsi -->
+                        <div class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl p-6 shadow-xs space-y-4">
+                            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg">📋</span>
+                                    <h3 class="text-sm font-bold text-neutral-900 dark:text-white" x-text="t('card_history_title')">Davamiyyət Tarixçəsi</h3>
+                                </div>
+                                <span class="text-xs font-mono text-neutral-400" x-text="(studentGradeDetails?.attendanceRecords?.length || 0) + ' dərs'"></span>
+                            </div>
+
+                            <div x-show="!studentGradeDetails?.attendanceRecords || studentGradeDetails?.attendanceRecords?.length === 0"
+                                 class="p-8 text-center text-neutral-400 text-xs rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800"
+                                 x-text="t('lbl_no_attendance_history')">
+                                Hələ heç bir davamiyyət qeydi yoxdur.
+                            </div>
+
+                            <div x-show="studentGradeDetails?.attendanceRecords && studentGradeDetails?.attendanceRecords?.length > 0" class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/60 dark:bg-[#0e0e10] text-neutral-500 font-mono">
+                                            <th class="py-2.5 px-3">Tarix</th>
+                                            <th class="py-2.5 px-3">Dərs Günü</th>
+                                            <th class="py-2.5 px-3 text-center">Status</th>
+                                            <th class="py-2.5 px-3">Qeyd</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-neutral-200 dark:divide-neutral-800/60">
+                                        <template x-for="rec in studentGradeDetails?.attendanceRecords" :key="rec.date">
+                                            <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                                                <td class="py-2.5 px-3 font-mono font-bold text-neutral-900 dark:text-white" x-text="rec.date"></td>
+                                                <td class="py-2.5 px-3 text-neutral-500" x-text="getDayName(rec.date)"></td>
+                                                <td class="py-2.5 px-3 text-center">
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
+                                                          :class="rec.status === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : (rec.status === 2 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' : (rec.status === 3 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'))"
+                                                          x-text="getAttendanceStatusName(rec.status)"></span>
+                                                </td>
+                                                <td class="py-2.5 px-3 text-neutral-400 italic text-[11px]" x-text="rec.note || '-'"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -917,9 +1194,15 @@
                                                       x-text="student.status">Aktiv</span>
                                             </td>
                                             <td class="py-3 px-4 text-right">
-                                                <button @click="openGradeModal(student)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition cursor-pointer">
-                                                    Bal / Qayıb Yaz ✏️
-                                                </button>
+                                                <div class="flex items-center justify-end gap-1.5">
+                                                    <button @click="openNotesModal(student.studentId, student.fullName, student.email)" class="px-2.5 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-semibold transition cursor-pointer flex items-center gap-1 text-emerald-600 dark:text-emerald-400" title="Şərhlər və Daxili Qeydlər">
+                                                        <span>💬</span>
+                                                        <span x-text="t('tab_note_feedback')">Şərh / Qeyd</span>
+                                                    </button>
+                                                    <button @click="openGradeModal(student)" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition cursor-pointer">
+                                                        Bal / Qayıb Yaz ✏️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     </template>
@@ -1639,6 +1922,140 @@
         </div>
     </div>
 
+    <!-- MÜƏLLİM ŞƏRH VƏ DAXİLİ QEYD MODALI (TEACHER NOTES MODAL) -->
+    <div x-show="showNotesModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm overflow-y-auto">
+        <div @click.away="showNotesModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl text-neutral-900 dark:text-white max-h-[90vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">📝</span>
+                        <h3 class="text-base font-bold text-neutral-900 dark:text-white" x-text="t('modal_notes_title')">Tələbə Şərhləri və Daxili Qeydlər</h3>
+                    </div>
+                    <p class="text-xs text-neutral-500 mt-0.5">
+                        <strong x-text="selectedStudentForNotes?.fullName">Tələbə</strong>
+                        <span class="text-neutral-400 font-mono text-[11px]" x-text="' (' + selectedStudentForNotes?.email + ')'"></span>
+                    </p>
+                </div>
+                <button @click="showNotesModal = false" class="w-8 h-8 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:text-neutral-900 dark:hover:text-white flex items-center justify-center cursor-pointer transition">✕</button>
+            </div>
+
+            <!-- Form: Yeni Qeyd və ya Redaktə -->
+            <div class="p-4 rounded-2xl border transition-all"
+                 :class="noteForm.type === 2 ? 'bg-amber-500/5 border-amber-300 dark:border-amber-700/60' : 'bg-blue-500/5 border-blue-200 dark:border-blue-900/40'">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-neutral-500" x-text="noteForm.id ? t('btn_update_student_note') : t('btn_add_student_note')">Yeni Qeyd</span>
+                    <span x-show="noteForm.id" class="text-[11px] text-amber-600 dark:text-amber-400 font-mono font-bold flex items-center gap-1">
+                        ✏️ Redaktə rejimi
+                    </span>
+                </div>
+
+                <!-- Qeyd Növü Seçimi (2 Düymə / Pills) -->
+                <div class="space-y-2 mb-3">
+                    <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300" x-text="t('lbl_note_type')">Qeyd növü:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="noteForm.type = 1"
+                                class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border"
+                                :class="noteForm.type === 1 ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'">
+                            <span>💬</span>
+                            <span x-text="t('tab_note_feedback')">Tələbəyə Şərh</span>
+                        </button>
+                        <button type="button" @click="noteForm.type = 2"
+                                class="px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer border"
+                                :class="noteForm.type === 2 ? 'bg-amber-600 text-white border-amber-600 shadow-xs' : 'bg-white dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50'">
+                            <span>🔒</span>
+                            <span x-text="t('tab_note_private')">Daxili Qeyd</span>
+                        </button>
+                    </div>
+
+                    <!-- Aydın Etiket / Vizual Xəbərdarlıq Baneri -->
+                    <div class="p-2.5 rounded-xl text-xs flex items-center gap-2 transition"
+                         :class="noteForm.type === 2 ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-200 border border-amber-300 dark:border-amber-700' : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700'">
+                        <span class="text-sm" x-text="noteForm.type === 2 ? '🔒' : '👁️'"></span>
+                        <span class="font-medium" x-text="noteForm.type === 2 ? t('hint_note_private') : t('hint_note_feedback')"></span>
+                    </div>
+                </div>
+
+                <!-- Qiymət Komponenti Seçimi -->
+                <div class="mb-3">
+                    <label class="block text-xs font-semibold text-neutral-700 dark:text-neutral-300 mb-1" x-text="t('lbl_note_component')">Aid olduğu komponent:</label>
+                    <select x-model="noteForm.gradeComponent" class="w-full px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#161618] text-xs text-neutral-900 dark:text-white focus:border-emerald-500">
+                        <option :value="null" x-text="t('lbl_component_general')">Ümumi</option>
+                        <option :value="1" x-text="t('lbl_component_mini')">Mini Layihə</option>
+                        <option :value="2" x-text="t('lbl_component_final')">Final</option>
+                    </select>
+                </div>
+
+                <!-- Mətn Xanəsi -->
+                <div class="mb-3">
+                    <textarea x-model="noteForm.text" rows="3" :placeholder="t('ph_note_text')"
+                              class="w-full px-3 py-2 text-xs rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-[#161618] text-neutral-900 dark:text-white focus:outline-none focus:border-emerald-500"></textarea>
+                </div>
+
+                <!-- Düymələr -->
+                <div class="flex items-center justify-end gap-2">
+                    <button x-show="noteForm.id" type="button" @click="cancelEditNote()" class="px-3 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 text-xs font-semibold hover:bg-neutral-200 transition">
+                        <span x-text="t('btn_cancel_edit')">İmtina</span>
+                    </button>
+                    <button type="button" @click="saveNote()" :disabled="noteSaving || !noteForm.text.trim()"
+                            class="px-4 py-1.5 rounded-xl text-white font-bold text-xs shadow-xs transition disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                            :class="noteForm.type === 2 ? 'bg-amber-600 hover:bg-amber-500' : 'bg-emerald-600 hover:bg-emerald-500'">
+                        <span x-show="noteSaving" class="animate-spin">⏳</span>
+                        <span x-text="noteForm.id ? t('btn_update_student_note') : t('btn_add_student_note')">Yadda Saxla</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mövcud Qeydlər Siyahısı -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-mono font-bold uppercase tracking-wider text-neutral-500" x-text="t('lbl_existing_notes')">Mövcud Qeydlər və Rəylər</h4>
+                
+                <div x-show="notesLoading" class="py-6 text-center text-xs text-neutral-400">
+                    <span class="animate-spin inline-block mr-1.5">⏳</span> Yüklənir...
+                </div>
+
+                <div x-show="!notesLoading && notesList.length === 0" class="p-6 text-center text-neutral-400 text-xs rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-800" x-text="t('lbl_no_notes_for_student')">
+                    Bu tələbə üçün hələ heç bir qeyd və ya şərh yazılmayıb.
+                </div>
+
+                <div x-show="!notesLoading && notesList.length > 0" class="space-y-2.5">
+                    <template x-for="n in notesList" :key="n.id">
+                        <div class="p-3.5 rounded-2xl border transition"
+                             :class="n.type === 2 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/70' : 'bg-neutral-50 dark:bg-[#111113] border-neutral-200 dark:border-neutral-800'">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
+                                          :class="n.type === 2 ? 'bg-amber-200 text-amber-900 dark:bg-amber-900 dark:text-amber-100' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'"
+                                          x-text="n.type === 2 ? '🔒 ' + t('tab_note_private') : '💬 ' + t('tab_note_feedback')"></span>
+                                    <span x-show="n.gradeComponent" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-semibold"
+                                          x-text="n.gradeComponent === 1 ? t('lbl_component_mini') : (n.gradeComponent === 2 ? t('lbl_component_final') : t('lbl_component_general'))"></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[11px] text-neutral-400 font-mono" x-text="formatDateShort(n.createdAtUtc)"></span>
+                                    <template x-if="n.canModify">
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" @click="editNote(n)" title="Redaktə et" class="p-1 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs transition cursor-pointer">✏️</button>
+                                            <button type="button" @click="deleteNote(n.id)" title="Sil" class="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-950/60 text-red-600 text-xs transition cursor-pointer">🗑️</button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <p class="text-xs text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed" x-text="n.text"></p>
+                            <div class="text-[10px] text-neutral-400 font-mono mt-2" x-text="'Müəllif: ' + n.authorTeacherName"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="border-t border-neutral-100 dark:border-neutral-800 pt-3 flex justify-end">
+                <button @click="showNotesModal = false" class="px-5 py-2 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-xs font-semibold text-neutral-800 dark:text-neutral-200 cursor-pointer transition">
+                    Bağla
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- YENİ KVİZ YARATMAQ MODALI (TEACHER NEW QUIZ MODAL) -->
     <div x-show="showNewQuizModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm overflow-y-auto">
         <div @click.away="showNewQuizModal = false" class="bg-white border border-neutral-200 dark:bg-[#161618] dark:border-neutral-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl text-neutral-900 dark:text-white max-h-[90vh] overflow-y-auto">
@@ -2001,6 +2418,25 @@
                     questions: []
                 },
 
+                // Cohort Notes (Teacher / Admin)
+                showNotesModal: false,
+                selectedStudentForNotes: null,
+                notesList: [],
+                notesLoading: false,
+                noteForm: {
+                    id: null,
+                    type: 1, // 1: Feedback, 2: Private
+                    text: '',
+                    gradeComponent: null
+                },
+                noteSaving: false,
+
+                // Student My Grades ("Qiymətlərim")
+                studentCohorts: [],
+                selectedStudentCohortId: '',
+                studentGradeDetails: null,
+                studentGradesLoading: false,
+
                 // Çoxdillilik Lüğəti (AZ / EN / RU i18n)
                 translations: {
                     az: {
@@ -2077,7 +2513,64 @@
                         admin_cat_desc: 'Qısa Təsvir',
                         admin_btn_add_cat: 'Kateqoriya Əlavə Et',
                         admin_mvc_hint: 'Xüsusi Müstəqil MVC Admin Portalı (src/Pragma.Admin)',
-                        admin_mvc_btn: 'ASP.NET Core MVC Paneli Aç (Port 5089)'
+                        admin_mvc_btn: 'ASP.NET Core MVC Paneli Aç (Port 5089)',
+                        nav_my_grades: 'Qiymətlərim',
+                        my_grades_title: 'Akademik Göstəricilərim',
+                        my_grades_subtitle: 'Qrup və kurs üzrə rəsmi ballarınız, davamiyyət və müəllim rəyləri.',
+                        lbl_select_cohort: 'Qrup seçin:',
+                        lbl_no_enrolled_cohorts: 'Hələ heç bir qrupda qeydiyyatınız yoxdur',
+                        lbl_no_enrolled_cohorts_desc: 'Kurslara qeydiyyatdan keçdikdən və qrupa təyin olunduqdan sonra qiymətləriniz burada görünəcək.',
+                        card_grades_title: 'Qiymətlər',
+                        card_attendance_title: 'Davamiyyət',
+                        card_history_title: 'Davamiyyət Tarixçəsi',
+                        card_feedback_title: 'Müəllimin Şərhləri',
+                        card_cert_status_title: 'Sertifikat Statusu',
+                        lbl_test_avg: 'Test Ortalaması',
+                        lbl_mini_project: 'Mini Layihə',
+                        lbl_final_exam: 'Final İmtahanı',
+                        lbl_overall_score: 'Yekun Bal',
+                        lbl_weights_info: 'Çəkilər:',
+                        lbl_absent_count: 'Qayıb Sayı',
+                        lbl_late_count: 'Gecikmə',
+                        lbl_absence_limit: 'Limit:',
+                        lbl_warning_absence: '⚠️ Qayıb sayı kritik həddə çatır! Limit:',
+                        lbl_dropped_danger: '⛔ Kursdan çıxarılıb (Davamiyyət limiti aşıldı)',
+                        lbl_attendance_ok: 'Davamiyyətiniz qaydasındadır.',
+                        lbl_status_present: 'İştirak',
+                        lbl_status_absent: 'Qayıb',
+                        lbl_status_late: 'Gecikmə',
+                        lbl_status_excused: 'Üzrlü',
+                        lbl_no_attendance_history: 'Hələ heç bir davamiyyət qeydi yoxdur.',
+                        lbl_no_feedback_yet: 'Müəllim tərəfindən hələ rəy bildirilməyib.',
+                        lbl_component_general: 'Ümumi',
+                        lbl_component_mini: 'Mini Layihə',
+                        lbl_component_final: 'Final',
+                        cert_status_pending: 'Gözləmədə',
+                        cert_status_pending_desc: 'Kohort hələ davam edir və ya ballar yekunlaşmayıb.',
+                        cert_status_diploma: 'Diplom qazanılıb',
+                        cert_status_diploma_desc: 'Təbriklər! Yekun balınız ≥ 70.0 və davamiyyətiniz normaya uyğundur.',
+                        cert_status_attendance: 'İştirak Sertifikatı qazanılıb',
+                        cert_status_attendance_desc: 'Dərslərdə iştirakınız təsdiqləndi (bal 70-dən aşağıdır).',
+                        cert_status_not_eligible: 'Sertifikat verilmir',
+                        cert_status_not_eligible_desc: 'Davamiyyət limiti aşıldığı və ya tələblər ödənmədiyi üçün sertifikat nəzərdə tutulmur.',
+                        btn_download_cert_pdf: 'Sertifikatı Endir (.pdf)',
+                        btn_verify_cert: 'Sertifikatı Doğrula ↗',
+                        modal_notes_title: 'Tələbə Şərhləri və Daxili Qeydlər',
+                        tab_note_feedback: 'Tələbəyə Şərh',
+                        tab_note_private: 'Daxili Qeyd',
+                        hint_note_feedback: '👁️ Bu qeydi tələbə öz "Qiymətlərim" səhifəsində görəcək.',
+                        hint_note_private: '🔒 Bu qeyd məxfidir: Yalnız siz və sistem administratoru görəcək.',
+                        lbl_note_type: 'Qeyd növü:',
+                        lbl_note_component: 'Aid olduğu komponent:',
+                        ph_note_text: 'Şərh və ya daxili qeydi bura yazın...',
+                        btn_add_student_note: 'Qeyd Əlavə Et',
+                        btn_update_student_note: 'Qeydi Yenilə',
+                        btn_cancel_edit: 'İmtina',
+                        lbl_existing_notes: 'Mövcud Qeydlər və Rəylər',
+                        lbl_no_notes_for_student: 'Bu tələbə üçün hələ heç bir qeyd və ya şərh yazılmayıb.',
+                        btn_delete_note: 'Sil',
+                        btn_edit_note: 'Redaktə et',
+                        confirm_delete_note: 'Bu qeydi silmək istədiyinizdən əminsiniz? (Əməliyyat audit log-a yazılacaq)'
                     },
                     en: {
                         menu_nav: 'Navigation',
@@ -2153,7 +2646,64 @@
                         admin_cat_desc: 'Short Description',
                         admin_btn_add_cat: 'Add Category',
                         admin_mvc_hint: 'Standalone MVC Admin Portal (src/Pragma.Admin)',
-                        admin_mvc_btn: 'Open ASP.NET Core MVC Admin (Port 5089)'
+                        admin_mvc_btn: 'Open ASP.NET Core MVC Admin (Port 5089)',
+                        nav_my_grades: 'My Grades',
+                        my_grades_title: 'My Academic Performance',
+                        my_grades_subtitle: 'Official grades, attendance records, and instructor feedback for your enrolled groups.',
+                        lbl_select_cohort: 'Select group:',
+                        lbl_no_enrolled_cohorts: 'You are not enrolled in any groups yet',
+                        lbl_no_enrolled_cohorts_desc: 'Once you are enrolled in a course cohort, your grades and attendance will appear here.',
+                        card_grades_title: 'Grades',
+                        card_attendance_title: 'Attendance',
+                        card_history_title: 'Attendance History',
+                        card_feedback_title: 'Instructor Feedback',
+                        card_cert_status_title: 'Certificate Status',
+                        lbl_test_avg: 'Quiz Average',
+                        lbl_mini_project: 'Mini Project',
+                        lbl_final_exam: 'Final Exam',
+                        lbl_overall_score: 'Final Grade',
+                        lbl_weights_info: 'Weights:',
+                        lbl_absent_count: 'Absence Count',
+                        lbl_late_count: 'Lates',
+                        lbl_absence_limit: 'Limit:',
+                        lbl_warning_absence: '⚠️ Absences reaching critical limit! Limit:',
+                        lbl_dropped_danger: '⛔ Dropped from course (Absence limit exceeded)',
+                        lbl_attendance_ok: 'Your attendance is within normal limits.',
+                        lbl_status_present: 'Present',
+                        lbl_status_absent: 'Absent',
+                        lbl_status_late: 'Late',
+                        lbl_status_excused: 'Excused',
+                        lbl_no_attendance_history: 'No attendance records yet.',
+                        lbl_no_feedback_yet: 'No instructor feedback recorded yet.',
+                        lbl_component_general: 'General',
+                        lbl_component_mini: 'Mini Project',
+                        lbl_component_final: 'Final',
+                        cert_status_pending: 'Pending',
+                        cert_status_pending_desc: 'Cohort is in progress or grades are not yet finalized.',
+                        cert_status_diploma: 'Diploma Earned',
+                        cert_status_diploma_desc: 'Congratulations! Final score ≥ 70.0 and attendance requirements met.',
+                        cert_status_attendance: 'Attendance Certificate Earned',
+                        cert_status_attendance_desc: 'Course attendance verified (score below 70.0 threshold).',
+                        cert_status_not_eligible: 'Not Eligible',
+                        cert_status_not_eligible_desc: 'Absence limit exceeded or requirements not met.',
+                        btn_download_cert_pdf: 'Download Certificate (.pdf)',
+                        btn_verify_cert: 'Verify Certificate ↗',
+                        modal_notes_title: 'Student Feedback & Private Notes',
+                        tab_note_feedback: 'Student Feedback',
+                        tab_note_private: 'Private Note',
+                        hint_note_feedback: '👁️ Student will see this note in their "My Grades" page.',
+                        hint_note_private: '🔒 Confidential: Only you and system administrators can see this.',
+                        lbl_note_type: 'Note Type:',
+                        lbl_note_component: 'Related Component:',
+                        ph_note_text: 'Enter your comment or private note here...',
+                        btn_add_student_note: 'Add Note',
+                        btn_update_student_note: 'Update Note',
+                        btn_cancel_edit: 'Cancel',
+                        lbl_existing_notes: 'Existing Notes & Feedback',
+                        lbl_no_notes_for_student: 'No notes or feedback written for this student yet.',
+                        btn_delete_note: 'Delete',
+                        btn_edit_note: 'Edit',
+                        confirm_delete_note: 'Are you sure you want to delete this note? (Action will be logged in audit log)'
                     },
                     ru: {
                         menu_nav: 'Навигация',
@@ -2229,7 +2779,64 @@
                         admin_cat_desc: 'Краткое описание',
                         admin_btn_add_cat: 'Добавить категорию',
                         admin_mvc_hint: 'Отдельный портал ASP.NET Core MVC (src/Pragma.Admin)',
-                        admin_mvc_btn: 'Открыть ASP.NET Core MVC (Порт 5089)'
+                        admin_mvc_btn: 'Открыть ASP.NET Core MVC (Порт 5089)',
+                        nav_my_grades: 'Мои оценки',
+                        my_grades_title: 'Моя успеваемость',
+                        my_grades_subtitle: 'Официальные баллы, посещаемость и отзывы преподавателя по вашей группе.',
+                        lbl_select_cohort: 'Выберите группу:',
+                        lbl_no_enrolled_cohorts: 'Вы пока не зачислены ни в одну группу',
+                        lbl_no_enrolled_cohorts_desc: 'После записи на курс и распределения в группу здесь появятся ваши оценки и посещаемость.',
+                        card_grades_title: 'Оценки',
+                        card_attendance_title: 'Посещаемость',
+                        card_history_title: 'История посещаемости',
+                        card_feedback_title: 'Отзывы преподавателя',
+                        card_cert_status_title: 'Статус сертификата',
+                        lbl_test_avg: 'Средний балл тестов',
+                        lbl_mini_project: 'Мини-проект',
+                        lbl_final_exam: 'Финальный проект',
+                        lbl_overall_score: 'Итоговый балл',
+                        lbl_weights_info: 'Веса:',
+                        lbl_absent_count: 'Пропуски',
+                        lbl_late_count: 'Опоздания',
+                        lbl_absence_limit: 'Лимит:',
+                        lbl_warning_absence: '⚠️ Количество пропусков приближается к критическому лимиту! Лимит:',
+                        lbl_dropped_danger: '⛔ Исключен из курса (Лимит пропусков превышен)',
+                        lbl_attendance_ok: 'Ваша посещаемость в норме.',
+                        lbl_status_present: 'Присутствовал',
+                        lbl_status_absent: 'Пропуск',
+                        lbl_status_late: 'Опоздание',
+                        lbl_status_excused: 'По уважительной',
+                        lbl_no_attendance_history: 'Записей посещаемости пока нет.',
+                        lbl_no_feedback_yet: 'Отзывов от преподавателя пока нет.',
+                        lbl_component_general: 'Общий',
+                        lbl_component_mini: 'Мини-проект',
+                        lbl_component_final: 'Финальный',
+                        cert_status_pending: 'В ожидании',
+                        cert_status_pending_desc: 'Курс продолжается или баллы ещё не утверждены.',
+                        cert_status_diploma: 'Получен Диплом',
+                        cert_status_diploma_desc: 'Поздравляем! Итоговый балл ≥ 70.0 и посещаемость соответствует нормам.',
+                        cert_status_attendance: 'Получен Сертификат об участии',
+                        cert_status_attendance_desc: 'Участие в занятиях подтверждено (балл ниже 70.0).',
+                        cert_status_not_eligible: 'Не выдается',
+                        cert_status_not_eligible_desc: 'Лимит пропусков превышен или условия не выполнены.',
+                        btn_download_cert_pdf: 'Скачать сертификат (.pdf)',
+                        btn_verify_cert: 'Проверить сертификат ↗',
+                        modal_notes_title: 'Отзывы и личные заметки о студенте',
+                        tab_note_feedback: 'Отзыв студенту',
+                        tab_note_private: 'Личная заметка',
+                        hint_note_feedback: '👁️ Студент увидит эту заметку на странице "Мои оценки".',
+                        hint_note_private: '🔒 Конфиденциально: Заметку видите только вы и администратор.',
+                        lbl_note_type: 'Тип заметки:',
+                        lbl_note_component: 'Компонент:',
+                        ph_note_text: 'Введите отзыв или личную заметку...',
+                        btn_add_student_note: 'Добавить заметку',
+                        btn_update_student_note: 'Обновить заметку',
+                        btn_cancel_edit: 'Отмена',
+                        lbl_existing_notes: 'Существующие заметки и отзывы',
+                        lbl_no_notes_for_student: 'Для этого студента пока нет заметок или отзывов.',
+                        btn_delete_note: 'Удалить',
+                        btn_edit_note: 'Редактировать',
+                        confirm_delete_note: 'Вы уверены, что хотите удалить эту заметку? (Действие будет записано в аудит-лог)'
                     }
                 },
 
@@ -3446,7 +4053,7 @@
                 async exportGroupExcel(groupId) {
                     const gId = groupId || this.selectedTeacherGroupId;
                     if (!gId) {
-                        alert('Zəhmət olmasa qrup seçin');
+                        alert(this.t('select_cohort') || 'Zəhmət olmasa qrup seçin');
                         return;
                     }
                     try {
@@ -3454,20 +4061,29 @@
                             headers: { 'Authorization': `Bearer ${this.token}` }
                         });
                         if (!res.ok) {
-                            alert('Excel generasiya edilə bilmədi.');
+                            const err = await res.json().catch(() => ({}));
+                            alert((this.currentLang === 'en' ? 'Excel export failed: ' : 'Excel generasiya edilə bilmədi: ') + (err.detail || res.statusText));
                             return;
                         }
                         const blob = await res.blob();
+                        let fileName = `Pragma_Journal_${gId.substring(0, 8)}.xlsx`;
+                        const disposition = res.headers.get('Content-Disposition');
+                        if (disposition && disposition.indexOf('filename=') !== -1) {
+                            const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                            if (matches != null && matches[1]) {
+                                fileName = matches[1].replace(/['"]/g, '');
+                            }
+                        }
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `Pragma_Gradebook_Group_${gId}.xlsx`;
+                        a.download = fileName;
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
-                        window.URL.revokeObjectURL(url);
+                        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
                     } catch (e) {
-                        alert('Fayl yüklənərkən xəta baş verdi.');
+                        alert(this.currentLang === 'en' ? 'Error downloading file: ' + e.message : 'Fayl yüklənərkən xəta baş verdi: ' + e.message);
                     }
                 },
 
@@ -3678,6 +4294,218 @@
                     } catch (e) {
                         alert('Xəta: ' + e.message);
                     }
+                },
+
+                // ==========================================
+                // MÜƏLLİM ŞƏRHLƏR VƏ DAXİLİ QEYDLƏR (COHORT NOTES)
+                // ==========================================
+                async openNotesModal(studentId, fullName, email) {
+                    if (!this.selectedTeacherGroupId || !studentId) return;
+                    this.selectedStudentForNotes = { studentId, fullName, email };
+                    this.noteForm = {
+                        id: null,
+                        type: 1, // 1: Feedback, 2: Private
+                        text: '',
+                        gradeComponent: null
+                    };
+                    this.showNotesModal = true;
+                    await this.loadStudentNotes(studentId);
+                },
+
+                async loadStudentNotes(studentId) {
+                    if (!this.selectedTeacherGroupId || !studentId) return;
+                    this.notesLoading = true;
+                    this.notesList = [];
+                    try {
+                        const res = await fetch(`/api/cohorts/${this.selectedTeacherGroupId}/students/${studentId}/notes`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.notesList = await res.json();
+                        } else {
+                            console.error('Qeydlər yüklənə bilmədi', res.statusText);
+                        }
+                    } catch (e) {
+                        console.error('Qeydlər yüklənərkən xəta:', e);
+                    } finally {
+                        this.notesLoading = false;
+                    }
+                },
+
+                editNote(note) {
+                    if (!note) return;
+                    this.noteForm = {
+                        id: note.id,
+                        type: note.type,
+                        text: note.text,
+                        gradeComponent: note.gradeComponent
+                    };
+                },
+
+                cancelEditNote() {
+                    this.noteForm = {
+                        id: null,
+                        type: 1,
+                        text: '',
+                        gradeComponent: null
+                    };
+                },
+
+                async saveNote() {
+                    if (!this.noteForm.text.trim()) {
+                        alert(this.currentLang === 'en' ? 'Please enter note text.' : (this.currentLang === 'ru' ? 'Введите текст заметки.' : 'Qeyd mətnini daxil edin.'));
+                        return;
+                    }
+                    this.noteSaving = true;
+                    try {
+                        let res;
+                        const payload = {
+                            text: this.noteForm.text.trim(),
+                            type: parseInt(this.noteForm.type),
+                            gradeComponent: this.noteForm.gradeComponent !== null && this.noteForm.gradeComponent !== undefined && this.noteForm.gradeComponent !== '' ? parseInt(this.noteForm.gradeComponent) : null
+                        };
+                        if (this.noteForm.id) {
+                            res = await fetch(`/api/cohorts/${this.selectedTeacherGroupId}/notes/${this.noteForm.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                        } else {
+                            res = await fetch(`/api/cohorts/${this.selectedTeacherGroupId}/students/${this.selectedStudentForNotes.studentId}/notes`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                        }
+
+                        if (res.ok) {
+                            this.cancelEditNote();
+                            await this.loadStudentNotes(this.selectedStudentForNotes.studentId);
+                            if (this.selectedTeacherGroupId) {
+                                await this.loadGroupStudents(this.selectedTeacherGroupId);
+                            }
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert((this.currentLang === 'en' ? 'Failed to save note: ' : 'Qeyd saxlanıla bilmədi: ') + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    } finally {
+                        this.noteSaving = false;
+                    }
+                },
+
+                async deleteNote(noteId) {
+                    if (!noteId) return;
+                    const msg = this.currentLang === 'en'
+                        ? 'Are you sure you want to delete this note? (Audit log entry will be created)'
+                        : (this.currentLang === 'ru'
+                            ? 'Вы уверены, что хотите удалить эту заметку? (Запись будет создана в аудит-логе)'
+                            : 'Bu qeydi silmək istədiyinizdən əminsiniz? (Əməliyyat audit log-a yazılacaq)');
+                    if (!confirm(msg)) return;
+
+                    try {
+                        const res = await fetch(`/api/cohorts/${this.selectedTeacherGroupId}/notes/${noteId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            await this.loadStudentNotes(this.selectedStudentForNotes.studentId);
+                            if (this.selectedTeacherGroupId) {
+                                await this.loadGroupStudents(this.selectedTeacherGroupId);
+                            }
+                        } else {
+                            const err = await res.json().catch(() => ({}));
+                            alert((this.currentLang === 'en' ? 'Failed to delete note: ' : 'Qeyd silinə bilmədi: ') + (err.detail || res.statusText));
+                        }
+                    } catch (e) {
+                        alert('Xəta: ' + e.message);
+                    }
+                },
+
+                // ==========================================
+                // TƏLƏBƏ: QİYMƏTLƏRİM (STUDENT MY GRADES)
+                // ==========================================
+                async loadStudentGradesData() {
+                    this.studentGradesLoading = true;
+                    this.studentCohorts = [];
+                    this.studentGradeDetails = null;
+                    try {
+                        const res = await fetch('/api/student/my-grades/cohorts', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.studentCohorts = await res.json();
+                            if (this.studentCohorts.length > 0) {
+                                if (!this.selectedStudentCohortId || !this.studentCohorts.some(c => c.cohortId === this.selectedStudentCohortId)) {
+                                    this.selectedStudentCohortId = this.studentCohorts[0].cohortId;
+                                }
+                                await this.loadSelectedCohortGradeDetails();
+                            }
+                        } else {
+                            console.error('Tələbə kohortları yüklənmədi', res.statusText);
+                        }
+                    } catch (e) {
+                        console.error('loadStudentGradesData xətası:', e);
+                    } finally {
+                        this.studentGradesLoading = false;
+                    }
+                },
+
+                async loadSelectedCohortGradeDetails() {
+                    if (!this.selectedStudentCohortId) return;
+                    this.studentGradesLoading = true;
+                    try {
+                        const res = await fetch(`/api/student/my-grades/cohorts/${this.selectedStudentCohortId}`, {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        if (res.ok) {
+                            this.studentGradeDetails = await res.json();
+                        } else {
+                            this.studentGradeDetails = null;
+                            console.error('Kohort qiymət detalları yüklənmədi', res.statusText);
+                        }
+                    } catch (e) {
+                        console.error('loadSelectedCohortGradeDetails xətası:', e);
+                    } finally {
+                        this.studentGradesLoading = false;
+                    }
+                },
+
+                formatDateShort(d) {
+                    if (!d) return '-';
+                    try {
+                        const dt = new Date(d);
+                        return dt.toLocaleDateString(this.currentLang === 'az' ? 'az-AZ' : (this.currentLang === 'ru' ? 'ru-RU' : 'en-US'), { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    } catch { return d; }
+                },
+
+                getDayName(dateStr) {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr + 'T00:00:00');
+                    if (isNaN(d.getTime())) return '';
+                    const day = d.getDay();
+                    const azDays = ['Bazar', 'Bazar ertəsi', 'Çərşənbə axşamı', 'Çərşənbə', 'Cümə axşamı', 'Cümə', 'Şənbə'];
+                    const enDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const ruDays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+                    if (this.currentLang === 'en') return enDays[day];
+                    if (this.currentLang === 'ru') return ruDays[day];
+                    return azDays[day];
+                },
+
+                getAttendanceStatusName(status) {
+                    const s = Number(status);
+                    if (s === 1) return this.t('lbl_status_present') || 'İştirak';
+                    if (s === 2) return this.t('lbl_status_absent') || 'Qayıb';
+                    if (s === 3) return this.t('lbl_status_late') || 'Gecikmə';
+                    if (s === 4) return this.t('lbl_status_excused') || 'Üzrlü';
+                    return '-';
                 }
             }
         }

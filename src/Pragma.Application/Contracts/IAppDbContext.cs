@@ -25,6 +25,14 @@ public interface IAppDbContext
     DbSet<AuthChallenge> AuthChallenges { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<Cohort> Cohorts { get; }
+    DbSet<CohortSchedule> CohortSchedules { get; }
+    DbSet<CohortEnrollment> CohortEnrollments { get; }
+    DbSet<AttendanceRecord> AttendanceRecords { get; }
+    DbSet<CohortGradeEntry> CohortGradeEntries { get; }
+    DbSet<CohortNote> CohortNotes { get; }
+    DbSet<CourseTranslation> CourseTranslations { get; }
+    DbSet<CategoryTranslation> CategoryTranslations { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

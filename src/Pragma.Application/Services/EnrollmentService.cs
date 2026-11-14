@@ -73,28 +73,34 @@ public class EnrollmentService : IEnrollmentService
         return Result<EnrollmentDto>.Success(dto);
     }
 
-    public async Task<IReadOnlyCollection<EnrollmentDto>> GetMyEnrollmentsAsync(Guid studentId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<EnrollmentDto>> GetMyEnrollmentsAsync(Guid studentId, string? language = null, CancellationToken cancellationToken = default)
     {
-        return await _context.Enrollments
+        var lang = LanguageResolutionHelper.NormalizeLanguage(language);
+
+        var enrollments = await _context.Enrollments
             .AsNoTracking()
             .Include(e => e.Course)
+                .ThenInclude(c => c!.Translations)
+            .Include(e => e.Course)
                 .ThenInclude(c => c!.Category)
+                    .ThenInclude(cat => cat!.Translations)
             .Where(e => e.StudentId == studentId && !e.IsDeleted)
             .OrderByDescending(e => e.EnrolledAtUtc)
-            .Select(e => new EnrollmentDto(
-                e.Id,
-                e.CourseId,
-                e.Course != null ? e.Course.Title : string.Empty,
-                e.Course != null ? e.Course.Slug : string.Empty,
-                e.Course != null ? e.Course.ThumbnailUrl : null,
-                e.Course != null && e.Course.Category != null ? e.Course.Category.Name : "Ümumi",
-                "Instructor",
-                e.EnrolledAtUtc,
-                e.ProgressPercentage,
-                e.IsCompleted,
-                e.CompletedAtUtc
-            ))
             .ToListAsync(cancellationToken);
+
+        return enrollments.Select(e => new EnrollmentDto(
+            e.Id,
+            e.CourseId,
+            e.Course != null ? LanguageResolutionHelper.ResolveTitle(e.Course, lang) : string.Empty,
+            e.Course != null ? e.Course.Slug : string.Empty,
+            e.Course != null ? e.Course.ThumbnailUrl : null,
+            e.Course != null && e.Course.Category != null ? LanguageResolutionHelper.ResolveCategoryName(e.Course.Category, lang) : "Ümumi",
+            "Instructor",
+            e.EnrolledAtUtc,
+            e.ProgressPercentage,
+            e.IsCompleted,
+            e.CompletedAtUtc
+        )).ToList();
     }
 
     public async Task<bool> IsEnrolledAsync(Guid courseId, Guid studentId, CancellationToken cancellationToken = default)

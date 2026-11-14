@@ -1,4 +1,4 @@
-@model Pragma.Application.Common.PagedResult<Pragma.Application.DTOs.Courses.CourseSummaryDto>
+@model Pragma.Admin.Models.CourseListViewModel
 @using Pragma.Domain.Enums
 @{
     ViewData["Title"] = "Kursların İdarəsi";
@@ -10,17 +10,23 @@
         <p class="text-muted small mb-0">Platformadakı bütün kursların dərci, statusu və qiymətləndirmə jurnalları.</p>
     </div>
 
-    <!-- Axtarış Qutusu -->
-    <form method="get" class="d-flex gap-2">
-        <input type="text" name="search" value="@ViewData["Search"]" placeholder="Kurs adı ilə axtar..." class="form-control form-control-sm rounded-pill px-3" style="width: 240px;" />
-        <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3">
-            <i class="fa-solid fa-magnifying-glass"></i>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Axtarış Qutusu -->
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="search" value="@ViewData["Search"]" placeholder="Kurs adı ilə axtar..." class="form-control form-control-sm rounded-pill px-3" style="width: 220px;" />
+            <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </form>
+
+        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#createCourseModal">
+            <i class="fa-solid fa-plus me-1"></i> Yeni Kurs
         </button>
-    </form>
+    </div>
 </div>
 
 <div class="card p-4">
-    @if (Model == null || Model.Items.Count == 0)
+    @if (Model == null || Model.Courses.Items.Count == 0)
     {
         <div class="text-center py-5 text-muted">
             <i class="fa-solid fa-box-open fa-2xl mb-3 opacity-50"></i>
@@ -44,7 +50,7 @@
                 </thead>
                 <tbody>
                     @{ int index = 1; }
-                    @foreach (var c in Model.Items)
+                    @foreach (var c in Model.Courses.Items)
                     {
                         <tr>
                             <td class="text-muted small">@index</td>
@@ -114,3 +120,125 @@
         </div>
     }
 </div>
+
+<!-- Yeni Kurs Yarat Modal (Çoxdilli: AZ, EN, RU) -->
+<div class="modal fade" id="createCourseModal" tabindex="-1" aria-labelledby="createCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="createCourseModalLabel">✨ Yeni Kurs Yarat (Çoxdilli)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Bağla"></button>
+            </div>
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body space-y-3">
+                    <!-- Kateqoriya və Səviyyə -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="NewCourse.CategoryId" class="form-label small fw-semibold">Kateqoriya</label>
+                            <select asp-for="NewCourse.CategoryId" class="form-select rounded-3" required>
+                                <option value="">-- Kateqoriya seçin --</option>
+                                @if (Model?.Categories != null)
+                                {
+                                    @foreach (var cat in Model.Categories)
+                                    {
+                                        <option value="@cat.Id">@cat.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="NewCourse.CategoryId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="NewCourse.Level" class="form-label small fw-semibold">Səviyyə</label>
+                            <select asp-for="NewCourse.Level" class="form-select rounded-3">
+                                <option value="@CourseLevel.Beginner">Beginner (Başlanğıc)</option>
+                                <option value="@CourseLevel.Intermediate">Intermediate (Orta)</option>
+                                <option value="@CourseLevel.Advanced">Advanced (İrəli)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Əsas Mətnlər (AZ - Məcburi) -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="fw-bold small text-primary mb-2">🇦🇿 Azərbaycan Dili (Məcburi / Əsas)</div>
+                        <div class="mb-2">
+                            <label asp-for="NewCourse.Title" class="form-label small fw-semibold">Kurs Başlığı (AZ)</label>
+                            <input asp-for="NewCourse.Title" class="form-control rounded-3" placeholder="Məs: C# 14 və .NET 10 ilə Müasir Onion Architecture" required />
+                            <span asp-validation-for="NewCourse.Title" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-2">
+                            <label asp-for="NewCourse.ShortDescription" class="form-label small fw-semibold">Qısa Təsvir (AZ)</label>
+                            <input asp-for="NewCourse.ShortDescription" class="form-control rounded-3" placeholder="Kartda görünən bir cümləlik qısa xülasə" />
+                        </div>
+                        <div>
+                            <label asp-for="NewCourse.Description" class="form-label small fw-semibold">Ətraflı Açıqlama (AZ)</label>
+                            <textarea asp-for="NewCourse.Description" class="form-control rounded-3" rows="2" placeholder="Kursun tam təsviri və məqsədləri..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Çoxdilli Tərcümələr (EN & RU - İxtiyari) -->
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <div class="fw-bold small text-secondary mb-2">🌐 Çoxdilli Tərcümələr (İxtiyari)</div>
+                        
+                        <!-- EN Section -->
+                        <div class="mb-3 p-2 bg-white rounded-2 border">
+                            <div class="fw-semibold small text-muted mb-2">🇬🇧 English Translation</div>
+                            <div class="mb-2">
+                                <label asp-for="NewCourse.TitleEn" class="form-label small text-muted">Title (EN)</label>
+                                <input asp-for="NewCourse.TitleEn" class="form-control form-control-sm rounded-2" placeholder="Course Title in English" />
+                            </div>
+                            <div class="mb-2">
+                                <label asp-for="NewCourse.ShortDescriptionEn" class="form-label small text-muted">Short Description (EN)</label>
+                                <input asp-for="NewCourse.ShortDescriptionEn" class="form-control form-control-sm rounded-2" placeholder="One sentence summary" />
+                            </div>
+                            <div>
+                                <label asp-for="NewCourse.DescriptionEn" class="form-label small text-muted">Full Description (EN)</label>
+                                <textarea asp-for="NewCourse.DescriptionEn" class="form-control form-control-sm rounded-2" rows="2" placeholder="Detailed description in English..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- RU Section -->
+                        <div class="p-2 bg-white rounded-2 border">
+                            <div class="fw-semibold small text-muted mb-2">🇷🇺 Русский перевод</div>
+                            <div class="mb-2">
+                                <label asp-for="NewCourse.TitleRu" class="form-label small text-muted">Название (RU)</label>
+                                <input asp-for="NewCourse.TitleRu" class="form-control form-control-sm rounded-2" placeholder="Название курса на русском" />
+                            </div>
+                            <div class="mb-2">
+                                <label asp-for="NewCourse.ShortDescriptionRu" class="form-label small text-muted">Краткое описание (RU)</label>
+                                <input asp-for="NewCourse.ShortDescriptionRu" class="form-control form-control-sm rounded-2" placeholder="Краткое саммари для карточки" />
+                            </div>
+                            <div>
+                                <label asp-for="NewCourse.DescriptionRu" class="form-label small text-muted">Полное описание (RU)</label>
+                                <textarea asp-for="NewCourse.DescriptionRu" class="form-control form-control-sm rounded-2" rows="2" placeholder="Подробное описание курса..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Qiymət və Qapaq Şəkli -->
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="NewCourse.Price" class="form-label small fw-semibold">Qiymət (AZN)</label>
+                            <input asp-for="NewCourse.Price" type="number" step="0.01" class="form-control rounded-3" value="0.00" />
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex align-items-center">
+                            <div class="form-check mt-3">
+                                <input asp-for="NewCourse.IsFree" class="form-check-input" type="checkbox" checked />
+                                <label asp-for="NewCourse.IsFree" class="form-check-label small fw-semibold">Pulsuzdur (Free)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="NewCourse.ThumbnailUrl" class="form-label small fw-semibold">Thumbnail URL</label>
+                            <input asp-for="NewCourse.ThumbnailUrl" class="form-control rounded-3" placeholder="https://..." />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">İmtina</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Yarat və Saxla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+

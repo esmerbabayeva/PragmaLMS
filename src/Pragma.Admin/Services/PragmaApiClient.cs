@@ -74,6 +74,18 @@ public class PragmaApiClient : IPragmaApiClient
         return JsonSerializer.Deserialize<CourseDetailDto>(json, JsonOptions);
     }
 
+    public async Task<Guid?> CreateCourseAsync(CreateCourseDto dto, CancellationToken ct = default)
+    {
+        AttachBearerToken();
+        var payload = JsonSerializer.Serialize(dto);
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync("courses", content, ct);
+        if (!response.IsSuccessStatusCode) return null;
+        var resultJson = await response.Content.ReadAsStringAsync(ct);
+        if (Guid.TryParse(resultJson.Trim('"'), out var id)) return id;
+        return null;
+    }
+
     public async Task<bool> PublishCourseAsync(Guid id, CancellationToken ct = default)
     {
         AttachBearerToken();

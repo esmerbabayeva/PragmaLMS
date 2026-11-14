@@ -7,8 +7,9 @@ public static class SearchNormalizationHelper
     public static string ToAscii(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalized = text.Replace('İ', 'i').Replace('I', 'i');
         var sb = new StringBuilder();
-        foreach (var ch in text.ToLowerInvariant())
+        foreach (var ch in normalized.ToLowerInvariant())
         {
             sb.Append(ch switch
             {
@@ -19,25 +20,6 @@ public static class SearchNormalizationHelper
                 'ş' => 's',
                 'ç' => 'c',
                 'ğ' => 'g',
-                _ => ch
-            });
-        }
-        return sb.ToString();
-    }
-
-    public static string ToAzeri(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-        var sb = new StringBuilder();
-        foreach (var ch in text.ToLowerInvariant())
-        {
-            sb.Append(ch switch
-            {
-                'u' => 'ü',
-                'o' => 'ö',
-                's' => 'ş',
-                'c' => 'ç',
-                'g' => 'ğ',
                 _ => ch
             });
         }
@@ -55,8 +37,12 @@ public static class SearchNormalizationHelper
         var ascii = ToAscii(raw);
         if (!string.IsNullOrWhiteSpace(ascii)) list.Add(ascii);
 
-        var az = ToAzeri(raw);
-        if (!string.IsNullOrWhiteSpace(az)) list.Add(az);
+        // Əgər sorğuda 'u' varsa 'ü' variantı
+        if (raw.Contains('u')) list.Add(raw.Replace('u', 'ü'));
+        // Əgər sorğuda 'o' varsa 'ö' variantı
+        if (raw.Contains('o')) list.Add(raw.Replace('o', 'ö'));
+        // Əgər sorğuda 'e' varsa 'ə' variantı
+        if (raw.Contains('e')) list.Add(raw.Replace('e', 'ə'));
 
         return [.. list];
     }

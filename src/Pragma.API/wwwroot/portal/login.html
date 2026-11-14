@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pragma LMS — Giriş</title>
+
+    <!-- Favicon & Apple Touch Icons -->
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -32,10 +39,13 @@
         
         <!-- Logo & Header -->
         <div class="text-center space-y-2">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl mx-auto shadow-lg shadow-indigo-500/20">
-                P
+            <div class="w-16 h-16 rounded-2xl bg-blue-50/80 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800/60 p-2.5 flex items-center justify-center mx-auto shadow-md">
+                <img src="/images/logo.png" alt="Pragma LMS" class="w-full h-full object-contain select-none" />
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Pragma LMS</h1>
+            <div class="flex items-center justify-center gap-2 pt-1">
+                <h1 class="text-2xl font-black tracking-tight text-neutral-900 dark:text-white">PRAGMA</h1>
+                <span class="text-xs font-mono font-bold text-sky-600 bg-sky-50 border border-sky-200 dark:text-cyan-400 dark:bg-cyan-950/60 dark:border-cyan-800/80 px-2 py-0.5 rounded leading-none">LMS</span>
+            </div>
             <p class="text-xs text-neutral-500 dark:text-neutral-400">Gələcəyin mühəndislik platformasına daxil olun</p>
         </div>
 

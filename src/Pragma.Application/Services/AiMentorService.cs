@@ -104,10 +104,24 @@ public class AiMentorService : IAiMentorService
                 }));
         }
 
+        var qNorm = question.Trim().ToLowerInvariant();
+        bool isCapabilityQuery = qNorm.Contains("komek") || qNorm.Contains("kömək") || qNorm.Contains("bacar") ||
+                                 qNorm.Contains("imkan") || qNorm.Contains("ne ede bilirsen") || qNorm.Contains("nə edə bilərsən") ||
+                                 qNorm.Contains("ne edirsen") || qNorm.Contains("nə edirsən") || qNorm.Contains("kimsen") || qNorm.Contains("kimsən");
+        bool isPureGreeting = (qNorm.Contains("salam") || qNorm.Contains("hello") || qNorm.Contains("hi") ||
+                               qNorm.Contains("sabah") || qNorm.Contains("axşam") || qNorm.Contains("axs") ||
+                               qNorm.Contains("hər vaxt") || qNorm.Contains("her vaxt")) &&
+                              !qNorm.Contains("qb") && !qNorm.Contains("bal") && !qNorm.Contains("sertifikat") && !qNorm.Contains("cədvəl") && !qNorm.Contains("kurs");
+
         var apiKey = _aiSettings.GeminiApiKey;
         string answer;
 
-        if (!string.IsNullOrWhiteSpace(apiKey))
+        if (isCapabilityQuery || isPureGreeting)
+        {
+            // Salam və ya imkanlar/köməklik sorğularında dərhal zəngin və bənd-bənd dəqiq bələdçi qaytarılır
+            answer = GenerateGlobalAnswer(question);
+        }
+        else if (!string.IsNullOrWhiteSpace(apiKey))
         {
             answer = await GenerateGeminiGlobalResponseAsync(apiKey, question, cancellationToken);
         }
@@ -196,13 +210,40 @@ public class AiMentorService : IAiMentorService
     {
         var q = question.ToLowerInvariant();
 
-        // Salamlaşma
-        if (q.Contains("salam") || q.Contains("merhaba") || q.Contains("hello") || q.Contains("hi"))
+        // 1. Köməkliklər, İmkanlar və AI Səlahiyyətləri (Spesifik bənd-bənd izah)
+        if (q.Contains("komek") || q.Contains("kömək") || q.Contains("bacar") || q.Contains("imkan") ||
+            q.Contains("nə edə bilərsən") || q.Contains("ne ede bilirsen") || q.Contains("nə edirsən") || q.Contains("ne edirsen") ||
+            q.Contains("kimsen") || q.Contains("kimsən") || q.Contains("öhdəlik") || q.Contains("ohdelik") || q.Contains("səlahiyyət") || q.Contains("selahiyyet"))
         {
-            return "Salam! Mən sizin Pragma LMS üzrə rəsmi AI Akademik Köməkçinizəm. Kurslar, dərslər, dərs cədvəli, davamiyyət (qb limitləri), qiymətləndirmə (bal bölgüsü) və sertifikatlar barədə istənilən sualınızı cavablandırmağa hazıram. Buyurun, sizə necə kömək edə bilərəm?";
+            return "💡 **Pragma LMS AI Mentor olaraq sizə aşağıdakı konkret istiqamətlərdə köməklik göstərə bilərəm:**\n\n" +
+                   "1. 📋 **Davamiyyət və Qayıb (QB) İdarəsi:**\n" +
+                   "   • Maksimum qayıb limitiniz (6 qayıb) və cari qayıb vəziyyətiniz.\n" +
+                   "   • 3 gecikmənin 1 qayıb (`floor(Late / 3)`) hesablanması və 4-cü qayıbda avtomatik xəbərdarlıq mexanizmi.\n\n" +
+                   "2. 🎯 **Yekun Bal və Qiymətləndirmə:**\n" +
+                   "   • Kvizlər (30%), Mini Layihələr (30%) və Final Layihə (40%) üzrə bal bölgüsü.\n" +
+                   "   • Keçid həddi (70.0 bal), `AwayFromZero` yuvarlaqlaşdırması və müvəqqəti (`IsProvisional`) balın izahı.\n\n" +
+                   "3. 🎓 **Diplom və Sertifikat Şərtləri:**\n" +
+                   "   • Məzun Diplomu (bal ≥ 70.0 və qayıb ≤ 6) və İştirak Sertifikatı (< 70.0 bal) tələbləri.\n" +
+                   "   • QR kod və unikal şifrə ilə `/verify/{kod}` səhifəsində rəsmi sənəd doğrulanması.\n\n" +
+                   "4. ⏰ **Dərs Cədvəli və Tədris Saatları:**\n" +
+                   "   • Qrupunuzun dərs günləri, başlama/bitmə vaxtları (Bakı vaxtı ilə) və keçilmiş/qalan saatların bölgüsü.\n\n" +
+                   "5. 📚 **Kurrikulum və Texnologiyalar:**\n" +
+                   "   • C# 14, .NET 10 Onion Architecture, Alpine.js, Tailwind CSS və AI inteqrasiyası üzrə suallarınızın cavablandırılması.\n\n" +
+                   "Aşağıdakı düymələrdən birini seçə və ya maraqlandığınız sualı birbaşa ünvanlaya bilərsiniz!";
         }
 
-        // 1. QB / Qayıb / Davamiyyət
+        // 2. Salamlaşma (Giriş / Xoş gəlmisiniz)
+        if (q.Contains("salam") || q.Contains("sabah") || q.Contains("axşam") || q.Contains("axs") || q.Contains("hər vaxt") || q.Contains("her vaxt") || q.Contains("hello") || q.Contains("hi") || q.Contains("merhaba") || q.Contains("necəsən") || q.Contains("necesen"))
+        {
+            return "Salam! Gününüz uğurlu olsun. Pragma LMS üzrə rəsmi AI Akademik Mentorunuzam.\n\n" +
+                   "Sizə bu gün tədrisinizlə bağlı necə kömək edə bilərəm?\n" +
+                   "• Qayıb və ya davamiyyət limitlərinizi öyrənmək istəyirsiniz?\n" +
+                   "• Yekun bal və kviz nəticələrinizin hesablanması ilə maraqlanırsınız?\n" +
+                   "• Dərs cədvəli və ya sertifikat şərtləri barədə sualınız var?\n\n" +
+                   "Zəhmət olmasa maraqlandığınız mövzunu qeyd edin və ya aşağıdakı sürətli düymələrdən birini seçin!";
+        }
+
+        // 3. QB / Qayıb / Davamiyyət
         if (q.Contains("qb") || q.Contains("qayib") || q.Contains("qayıb") || q.Contains("davamiyy") || q.Contains("gecikm") || q.Contains("limit") || q.Contains("absent"))
         {
             return "📋 **Pragma LMS Davamiyyət və Qayıb (QB) Qaydaları:**\n\n" +
@@ -213,7 +254,7 @@ public class AiMentorService : IAiMentorService
                    "• **Üzrlü Qayıblar (Excused):** Sənədlə əsaslandırılmış icazəli dərslər qayıb sayılmır.";
         }
 
-        // 2. Bal / Qiymətləndirmə / İmtahan / Yekun Bal
+        // 4. Bal / Qiymətləndirmə / İmtahan / Yekun Bal
         if (q.Contains("bal") || q.Contains("qiymət") || q.Contains("qiymet") || q.Contains("yekun") || q.Contains("grade") || q.Contains("hesabla") || q.Contains("imtahan") || q.Contains("mini layih") || q.Contains("final"))
         {
             return "🎯 **Pragma LMS Yekun Balının Hesablanma Qaydası:**\n\n" +
@@ -225,7 +266,7 @@ public class AiMentorService : IAiMentorService
                    "• **Keçid Həddi:** 70.0 baldır. Bal 1 onluq rəqəmlə yuvarlaqlaşdırılır (`AwayFromZero`).";
         }
 
-        // 3. Sertifikatlar və Diplom
+        // 5. Sertifikatlar və Diplom
         if (q.Contains("sertifikat") || q.Contains("diplom") || q.Contains("certificate") || q.Contains("məzun") || q.Contains("mezun") || q.Contains("tesdiq") || q.Contains("verify"))
         {
             return "🎓 **Pragma LMS Rəsmi Sertifikat Qərar Qaydaları:**\n\n" +
@@ -236,7 +277,7 @@ public class AiMentorService : IAiMentorService
                    "• **Doğrulama:** Hər bir sənəd unikal şifrə və QR kodla təmin olunur, `/verify/{kod}` ünvanında dərhal təsdiqlənir.";
         }
 
-        // 4. Dərs Cədvəli və Dərs Saatları
+        // 6. Dərs Cədvəli və Dərs Saatları
         if (q.Contains("cədvəl") || q.Contains("cedvel") || q.Contains("saat") || q.Contains("dərs saat") || q.Contains("ders saat") || q.Contains("schedule") || q.Contains("vaxt"))
         {
             return "⏰ **Dərs Saatları və Cədvəl İdarəsi:**\n\n" +
@@ -245,7 +286,7 @@ public class AiMentorService : IAiMentorService
                    "• Bütün dərslər və cədvəllər rəsmi Bakı vaxtı (`Asia/Baku` - UTC+4) ilə tənzimlənir.";
         }
 
-        // 5. Kurslar və Kurrikulum
+        // 7. Kurslar və Kurrikulum
         if (q.Contains("kurs") || q.Contains("c#") || q.Contains(".net") || q.Contains("frontend") || q.Contains("backend") || q.Contains("ai") || q.Contains("gemini") || q.Contains("alpine") || q.Contains("tailwind"))
         {
             return "📚 **Pragma LMS-də Tədris Olunan Əsas Kurslar:**\n\n" +
@@ -255,7 +296,7 @@ public class AiMentorService : IAiMentorService
                    "Hər bir kurs video dərslər, ağıllı saniyəlik qeydlər, tək/çox cavablı kvizlər və rəsmi diplomla təmin olunur.";
         }
 
-        // 6. Digər platforma funksiyaları (Excel, Profil, Rol)
+        // 8. Digər platforma funksiyaları (Excel, Profil, Rol)
         if (q.Contains("excel") || q.Contains("jurnal") || q.Contains("rol") || q.Contains("müəllim") || q.Contains("instructor") || q.Contains("profil"))
         {
             return "⚙️ **Pragma LMS Platforma İmkanları:**\n\n" +
@@ -264,17 +305,35 @@ public class AiMentorService : IAiMentorService
                    "• **Tələbə Portalı:** Dərslər, təkrar video izləmə (saxlanılan saniyədən davam etmə), kvizlər və diplom yüklənməsi.";
         }
 
-        // Ümumi tədris köməkçisi cavabı
-        return "Salam! Mən sizin Pragma LMS üzrə AI Mentorunuzam. Platforma qaydaları, dərslər, kurrikulum, qayıb (qb) limitləri, yekun balın formalaşması və ya sertifikatlar barədə nəyi dəqiqləşdirmək istəyirsinizsə, buyurun soruşun!";
+        // Fallback: Sual kateqoriyalara tam uyğun gəlmədikdə istifadəçiyə dəqiq yönləndirmə təklif edirik
+        return "Sualınızı daha dəqiq cavablandıra bilməyim üçün mövzunu dəqiqləşdirə bilərsinizmi?\n\n" +
+               "Mən yalnız Pragma LMS tədrisi üzrə ixtisaslaşmışam. Məsələn, bunları soruşa bilərsiniz:\n" +
+               "• *'Maksimum qayıb limitim nə qədərdir?'*\n" +
+               "• *'Yekun balım necə hesablanır?'*\n" +
+               "• *'Diplom almaq üçün minimum bal neçədir?'*\n" +
+               "• *'Dərs cədvəlim haradadır?'*\n" +
+               "• Və ya bütün imkanlarımı görmək üçün *'Mənə hansı köməklikləri göstərə bilirsən?'* yazın.";
     }
 
     private static string GenerateGroundedAnswer(string lessonTitle, string moduleTitle, string courseTitle, string question)
     {
         var q = question.ToLowerInvariant();
 
+        // Köməkliklər
+        if (q.Contains("komek") || q.Contains("kömək") || q.Contains("bacar") || q.Contains("imkan") || q.Contains("nə edə bilərsən") || q.Contains("ne ede bilirsen"))
+        {
+            return $"'{courseTitle}' kursunun '{lessonTitle}' dərsi daxilində sizə aşağıdakı konkret istiqamətlərdə kömək edə bilərəm:\n\n" +
+                   "1. 💻 **Kod və Arxitektura İzahı:** Dərsdəki konsepsiyaların, sintaksis və arxitektura prinsiplərinin detallı izahı.\n" +
+                   "2. ❓ **Sual-Cavab və Xətalar:** Kod nümunəsini tətbiq edərkən qarşılaşdığınız çətinliklərin və xətaların analizi.\n" +
+                   "3. 🎯 **Kviz İpucları:** Bu dərsin sonunda təqdim olunacaq test sualları üçün Sokratik ipucları və tövsiyələr.\n" +
+                   "4. 🚀 **Praktiki Tətbiq:** Öyrəndiyiniz metodun real istehsal layihələrində necə istifadə olunması.\n\n" +
+                   "Bu dərs üzrə anlamaqda çətinlik çəkdiyiniz hissəni birbaşa ünvanlaya bilərsiniz!";
+        }
+
+        // Salamlaşma
         if (q.Contains("salam") || q.Contains("necəsən") || q.Contains("necesen"))
         {
-            return $"Salam! Mən sizin Pragma AI Mentorunuzam. Hazırda '{courseTitle}' kursunun '{lessonTitle}' dərsi daxilindəyik. Bu mövzu üzrə anlamaqda çətinlik çəkdiyiniz sualları ünvanlaya bilərsiniz!";
+            return $"Salam! '{courseTitle}' kursunun '{lessonTitle}' dərsinə xoş gəlmisiniz. Mövzu üzrə dərsin video izahı, kod strukturu və ya kvizlə bağlı suallarınızı ünvanlaya bilərsiniz!";
         }
 
         return $"Salam! Mən sizin Pragma AI Mentorunuzam. '{courseTitle}' kursunun '{moduleTitle}' modulundakı '{lessonTitle}' dərsi üzrə sualınızı təhlil etdim:\n\n" +
@@ -297,6 +356,17 @@ public class AiMentorService : IAiMentorService
     private static List<string> GenerateGlobalFollowUps(string question)
     {
         var q = question.ToLowerInvariant();
+        if (q.Contains("komek") || q.Contains("kömək") || q.Contains("bacar") || q.Contains("imkan") || q.Contains("salam"))
+        {
+            return new List<string>
+            {
+                "QB limitim nə qədərdir?",
+                "Yekun balım necə hesablanır?",
+                "Diplom almaq üçün neçə bal lazımdır?",
+                "Dərs saatlarıma haradan baxa bilərəm?"
+            };
+        }
+
         if (q.Contains("qb") || q.Contains("qayib") || q.Contains("davamiyy"))
         {
             return new List<string>
@@ -399,9 +469,12 @@ public class AiMentorService : IAiMentorService
                 "Sən Pragma LMS platformasının rəsmi AI Akademik Köməkçisisən. " +
                 "Pragma LMS qaydaları: " +
                 "1. Davamiyyət/QB: Max qayıb 6, hər 3 gecikmə 1 qayıb, 4-cü qayıbda xəbərdarlıq, limit aşılarsa Dropped. " +
-                "2. Yekun bal: Quizlər 30%, Mini layihələr 30%, Final layihə 40%. Keçid balı 70.0. " +
-                "3. Sertifikat: Bal >= 70 və qayıb <= 6 olduqda Diplom, bal < 70 və qayıb <= 6 olduqda İştirak sertifikatı. Limit aşılarsa sertifikat verilmir. " +
+                "2. Yekun bal: Quizlər 30%, Mini layihələr 30%, Final layihə 40%. Keçid balı 70.0. AwayFromZero yuvarlaqlaşdırması. " +
+                "3. Sertifikat: Bal >= 70 və qayıb <= 6 olduqda Diplom, bal < 70 və qayıb <= 6 olduqda İştirak sertifikatı. Limit aşılarsa sertifikat verilmir. Doğrulama: /verify/{code}. " +
                 "4. Dərs saatları hər qrup üzrə fərdidir. " +
+                "XÜSUSİ TƏLİMATLAR: " +
+                "- İstifadəçi yalnız salam verdikdə, qısa və nəzakətli salamla, nə ilə kömək edə biləcəyini soruş. Şablon ümumi mətni təkrar-təkrar yazma. " +
+                "- İstifadəçi 'nə kömək edə bilərsən?', 'hansı köməklikləri göstərə bilirsən?' və ya imkanların barədə soruşduqda, ümumi sözlər demə, Davamiyyət/QB, Yekun Bal, Diplom/Sertifikat, Dərs cədvəli və Kurrikulum üzrə bənd-bənd və aydın köməklikləri təqdim et. " +
                 "DƏMİR QAYDA: Sənin səlahiyyətin YALNIZ Pragma LMS platforması, dərslər, kurrikulum, dərs cədvəli, qayıblar (qb), qiymətləndirmə və tədris mövzuları ilə məhduddur. " +
                 "Əgər sual hava, idman, yemək, kino, siyasət və ya tədrisdən kənar mövzulardadırsa, qətiyyən ümumi cavab vermə! Yalnız bu rəsmi cümlə ilə cavab ver: " +
                 OutOfScopeMessage;

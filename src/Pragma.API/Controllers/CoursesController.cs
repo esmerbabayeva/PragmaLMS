@@ -30,8 +30,16 @@ public class CoursesController : BaseApiController
     /// Kurs kataloqu: Axtarış, filterlər və paginasiya ilə dərc olunmuş kursların siyahısı.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<PagedResult<CourseSummaryDto>>> GetCourses([FromQuery] CourseFilterDto filter, CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<CourseSummaryDto>>> GetCourses([FromQuery] CourseFilterDto filter, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
+        var resolvedLanguage = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(filter.Language)
+                ? filter.Language
+                : Request.Headers.AcceptLanguage.ToString());
+
+        filter = filter with { Language = resolvedLanguage };
+
         var result = await _courseService.GetCoursesAsync(filter, cancellationToken);
         return Ok(result);
     }
@@ -40,9 +48,10 @@ public class CoursesController : BaseApiController
     /// ID-yə görə kursun detalları, modulları və dərsləri.
     /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<CourseDetailDto>> GetCourseById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<CourseDetailDto>> GetCourseById(Guid id, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var result = await _courseService.GetCourseByIdAsync(id, cancellationToken);
+        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var result = await _courseService.GetCourseByIdAsync(id, language, cancellationToken);
         return HandleResult(result);
     }
 
@@ -50,9 +59,10 @@ public class CoursesController : BaseApiController
     /// SEO-dostu Slug-a görə kursun detalları.
     /// </summary>
     [HttpGet("by-slug/{slug}")]
-    public async Task<ActionResult<CourseDetailDto>> GetCourseBySlug(string slug, CancellationToken cancellationToken)
+    public async Task<ActionResult<CourseDetailDto>> GetCourseBySlug(string slug, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var result = await _courseService.GetCourseBySlugAsync(slug, cancellationToken);
+        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var result = await _courseService.GetCourseBySlugAsync(slug, language, cancellationToken);
         return HandleResult(result);
     }
 

@@ -11,4 +11,5 @@ public record ExcelFileResult(
 public interface IExcelExporter
 {
     Task<Result<ExcelFileResult>> ExportCourseGradebookAsync(Guid courseId, CancellationToken ct = default);
+    Task<Result<ExcelFileResult>> ExportCohortJournalAsync(Guid cohortId, CancellationToken ct = default);
 }

@@ -7,8 +7,8 @@ namespace Pragma.Application.Contracts;
 public interface ICourseService
 {
     Task<PagedResult<CourseSummaryDto>> GetCoursesAsync(CourseFilterDto filter, CancellationToken cancellationToken = default);
-    Task<Result<CourseDetailDto>> GetCourseByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<Result<CourseDetailDto>> GetCourseBySlugAsync(string slug, CancellationToken cancellationToken = default);
+    Task<Result<CourseDetailDto>> GetCourseByIdAsync(Guid id, string? language = null, CancellationToken cancellationToken = default);
+    Task<Result<CourseDetailDto>> GetCourseBySlugAsync(string slug, string? language = null, CancellationToken cancellationToken = default);
     Task<Result<Guid>> CreateCourseAsync(CreateCourseDto dto, Guid instructorId, CancellationToken cancellationToken = default);
     Task<Result> UpdateCourseAsync(Guid id, UpdateCourseDto dto, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);
     Task<Result> DeleteCourseAsync(Guid id, Guid userId, bool isAdmin, CancellationToken cancellationToken = default);

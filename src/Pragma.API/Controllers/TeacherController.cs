@@ -105,17 +105,30 @@ public class TeacherController : BaseApiController
     }
 
     /// <summary>
-    /// Qrupun rəsmi qiymət cədvəlini Excel (.xlsx) olaraq ixrac edir.
+    /// Qrupun (Kohortun) rəsmi akademik qiymət cədvəlini və davamiyyətini Excel (.xlsx) olaraq ixrac edir.
     /// </summary>
     [Authorize(Policy = AuthorizationPolicies.CanViewResults)]
     [HttpGet("groups/{groupId:guid}/export-excel")]
     public async Task<IActionResult> ExportGroupExcel(Guid groupId, CancellationToken ct)
     {
-        var result = await _excelExporter.ExportCourseGradebookAsync(groupId, ct);
-        if (result.IsFailure)
-            return HandleResult(result);
+        var cohortResult = await _excelExporter.ExportCohortJournalAsync(groupId, ct);
+        if (cohortResult.IsSuccess)
+        {
+            var file = cohortResult.Value;
+            return File(file.Content, file.ContentType, file.FileName);
+        }
 
-        var fileResult = result.Value;
-        return File(fileResult.Content, fileResult.ContentType, fileResult.FileName);
+        // Əgər qrup (kohort) tapılmayıbsa, köhnə kurs cədvəli fallback yoxlanılır
+        if (cohortResult.Error.Code == "Cohort.NotFound")
+        {
+            var courseResult = await _excelExporter.ExportCourseGradebookAsync(groupId, ct);
+            if (courseResult.IsSuccess)
+            {
+                var courseFile = courseResult.Value;
+                return File(courseFile.Content, courseFile.ContentType, courseFile.FileName);
+            }
+        }
+
+        return HandleResult(cohortResult);
     }
 }

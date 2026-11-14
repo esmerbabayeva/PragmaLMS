@@ -281,4 +281,44 @@ public class AiMentorAndServiceIntegrationTests
         Assert.Contains("Final Layihə (40%)", result.Value.Answer);
         Assert.Contains("70.0", result.Value.Answer);
     }
+
+    [Fact]
+    public async Task AiMentor_GreetingVersusHelpInquiry_ReturnsDistinctAndSpecificResponses()
+    {
+        // Arrange
+        var contextMock = new Moq.Mock<Pragma.Application.Contracts.IAppDbContext>();
+        var userMock = new Moq.Mock<Pragma.Application.Contracts.ICurrentUserService>();
+        var accessMock = new Moq.Mock<Pragma.Application.Contracts.ICourseAccessService>();
+        var aiSettings = new Pragma.Application.Common.AiSettings { GeminiApiKey = null };
+
+        var service = new Pragma.Application.Services.AiMentorService(
+            contextMock.Object,
+            userMock.Object,
+            accessMock.Object,
+            aiSettings);
+
+        // Act 1: Yalnız salamlaşma
+        var greetingResult = await service.AskGlobalQuestionAsync("Salam");
+
+        // Act 2: Köməklik və imkanlar barədə spesifik sual
+        var helpResult = await service.AskGlobalQuestionAsync("mene hansi komeklikleri gostere bilirsen?");
+
+        // Assert
+        Assert.True(greetingResult.IsSuccess);
+        Assert.True(helpResult.IsSuccess);
+
+        // Cavablar eyni olmamalıdır!
+        Assert.NotEqual(greetingResult.Value.Answer, helpResult.Value.Answer);
+
+        // Köməklik sualında mütləq bənd-bənd 5 istiqamət spesifik təqdim edilməlidir
+        Assert.Contains("Davamiyyət və Qayıb (QB)", helpResult.Value.Answer);
+        Assert.Contains("Yekun Bal və Qiymətləndirmə", helpResult.Value.Answer);
+        Assert.Contains("Diplom və Sertifikat", helpResult.Value.Answer);
+        Assert.Contains("Dərs Cədvəli", helpResult.Value.Answer);
+        Assert.Contains("Kurrikulum", helpResult.Value.Answer);
+
+        // Salamlaşmada isə qısa, xoş qarşılama və istiqamətləndirmə olmalıdır
+        Assert.Contains("Gününüz uğurlu olsun", greetingResult.Value.Answer);
+        Assert.Contains("maraqlandığınız mövzunu qeyd edin", greetingResult.Value.Answer);
+    }
 }

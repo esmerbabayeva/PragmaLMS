@@ -14,5 +14,6 @@ public class Category : BaseEntity
     public int SortOrder { get; set; } = 0;
 
     // Naviqasiya xassələri
+    public ICollection<CategoryTranslation> Translations { get; set; } = new List<CategoryTranslation>();
     public ICollection<Course> Courses { get; set; } = new List<Course>();
 }

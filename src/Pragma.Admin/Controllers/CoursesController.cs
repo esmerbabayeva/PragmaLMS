@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Admin.Models;
 using Pragma.Admin.Services;
+using Pragma.Application.Common;
+using Pragma.Application.DTOs.Courses;
 using Pragma.Domain.Enums;
 
 namespace Pragma.Admin.Controllers;
@@ -19,8 +22,56 @@ public class CoursesController : Controller
     public async Task<IActionResult> Index(string? search = null, int page = 1)
     {
         var courses = await _apiClient.GetCoursesAsync(search, page, pageSize: 50);
+        var categories = await _apiClient.GetCategoriesAsync();
         ViewData["Search"] = search;
-        return View(courses);
+        var viewModel = new CourseListViewModel
+        {
+            Courses = courses ?? new PagedResult<CourseSummaryDto>([], 0, page, 50),
+            Categories = categories ?? [],
+            NewCourse = new CreateCourseViewModel()
+        };
+        return View(viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateCourseViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Məlumatları düzgün doldurun.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var translations = new List<CourseTranslationDto>();
+        if (!string.IsNullOrWhiteSpace(model.TitleEn))
+        {
+            translations.Add(new CourseTranslationDto("en", model.TitleEn, model.ShortDescriptionEn, model.DescriptionEn));
+        }
+        if (!string.IsNullOrWhiteSpace(model.TitleRu))
+        {
+            translations.Add(new CourseTranslationDto("ru", model.TitleRu, model.ShortDescriptionRu, model.DescriptionRu));
+        }
+
+        var dto = new CreateCourseDto(
+            Title: model.Title,
+            ShortDescription: model.ShortDescription,
+            Description: model.Description,
+            Price: model.Price,
+            IsFree: model.IsFree,
+            Level: model.Level,
+            CategoryId: model.CategoryId,
+            ThumbnailUrl: model.ThumbnailUrl,
+            Translations: translations
+        );
+
+        var id = await _apiClient.CreateCourseAsync(dto);
+        if (id.HasValue)
+            TempData["Success"] = "Yeni kurs uğurla yaradıldı və tərcümələri əlavə edildi!";
+        else
+            TempData["Error"] = "Kurs yaradılarkən xəta baş verdi.";
+
+        return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]

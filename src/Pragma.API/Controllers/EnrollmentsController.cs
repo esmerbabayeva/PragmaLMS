@@ -44,12 +44,13 @@ public class EnrollmentsController : BaseApiController
     [Authorize(Policy = AuthorizationPolicies.CanViewOwnCourses)]
     [HttpGet("my-courses")]
     [HttpGet("/api/courses/my-courses")]
-    public async Task<ActionResult<IReadOnlyCollection<EnrollmentDto>>> GetMyEnrollments(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyCollection<EnrollmentDto>>> GetMyEnrollments([FromQuery] string? lang, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.UserId;
         if (!currentUserId.HasValue) return Unauthorized();
 
-        var enrollments = await _enrollmentService.GetMyEnrollmentsAsync(currentUserId.Value, cancellationToken);
+        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var enrollments = await _enrollmentService.GetMyEnrollmentsAsync(currentUserId.Value, language, cancellationToken);
         return Ok(enrollments);
     }
 
