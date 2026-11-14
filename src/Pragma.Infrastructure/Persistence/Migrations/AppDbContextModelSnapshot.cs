@@ -360,7 +360,8 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Categories");
                 });
@@ -666,7 +667,8 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CohortId", "StudentId", "ComponentType")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("CohortGradeEntries");
                 });
@@ -834,7 +836,8 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("Slug")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
 
                     b.ToTable("Courses");
                 });

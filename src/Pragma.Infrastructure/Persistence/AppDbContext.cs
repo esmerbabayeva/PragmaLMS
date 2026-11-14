@@ -49,7 +49,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         // 1. Kurs konfiqurasiyası
         builder.Entity<Course>(entity =>
         {
-            entity.HasIndex(c => c.Slug).IsUnique();
+            entity.HasIndex(c => c.Slug).IsUnique().HasFilter("[IsDeleted] = 0");
             entity.Property(c => c.Title).HasMaxLength(200).IsRequired();
             entity.Property(c => c.Price).HasPrecision(18, 2);
 
@@ -223,7 +223,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<CohortGradeEntry>(entity =>
         {
-            entity.HasIndex(cge => new { cge.CohortId, cge.StudentId, cge.ComponentType }).IsUnique();
+            entity.HasIndex(cge => new { cge.CohortId, cge.StudentId, cge.ComponentType }).IsUnique().HasFilter("[IsDeleted] = 0");
             entity.Property(cge => cge.Score).HasPrecision(5, 2);
 
             entity.HasOne(cge => cge.Cohort)
@@ -246,7 +246,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
         builder.Entity<Category>(entity =>
         {
-            entity.HasIndex(c => c.Slug).IsUnique();
+            entity.HasIndex(c => c.Slug).IsUnique().HasFilter("[IsDeleted] = 0");
         });
 
         builder.Entity<CourseTranslation>(entity =>
