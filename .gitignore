@@ -28,3 +28,7 @@ secrets.json
 .DS_Store
 Thumbs.db
 desktop.ini
+
+## Documents & Plans
+*.pdf
+
