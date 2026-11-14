@@ -172,4 +172,48 @@ public class AuthIntegrationTests : IClassFixture<AuthIntegrationTestsFactory>
         rotatedTokens!.AccessToken.Should().NotBeNullOrEmpty();
         rotatedTokens.RefreshToken.Should().NotBe(initialTokens.RefreshToken);
     }
+
+    [Fact]
+    public async Task PasswordLogin_ReturnsTokens_And_ClaimsMatchRequirements()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequestDto("admin@pragma.edu.az", "PragmaAdmin2026!"));
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+        authResult.Should().NotBeNull();
+        authResult!.AccessToken.Should().NotBeNullOrEmpty();
+        authResult.RefreshToken.Should().NotBeNullOrEmpty();
+        authResult.ExpiresInMinutes.Should().BeGreaterThanOrEqualTo(60);
+        authResult.User.Email.Should().Be("admin@pragma.edu.az");
+        authResult.User.Roles.Should().Contain("Admin");
+
+        // Parse JWT and verify claims
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(authResult.AccessToken);
+        jwt.Claims.Should().Contain(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier || c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+        jwt.Claims.Should().Contain(c => c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email);
+        jwt.Claims.Should().Contain(c => c.Type == System.Security.Claims.ClaimTypes.Role && c.Value == "Admin");
+    }
+
+    [Fact]
+    public async Task PasswordLogin_RefreshToken_CanBeRotated_AndOldTokenCannotBeReused()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequestDto("student@pragma.edu.az", "Password123!"));
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var authResult = await loginResponse.Content.ReadFromJsonAsync<AuthResponseDto>();
+        authResult.Should().NotBeNull();
+        var oldRefreshToken = authResult!.RefreshToken!;
+
+        // 1. Rotate refresh token
+        var refreshResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshTokenRequestDto(oldRefreshToken));
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var rotatedTokens = await refreshResponse.Content.ReadFromJsonAsync<TokenResultDto>();
+        rotatedTokens.Should().NotBeNull();
+        rotatedTokens!.AccessToken.Should().NotBeNullOrEmpty();
+        rotatedTokens.RefreshToken.Should().NotBe(oldRefreshToken);
+
+        // 2. Reusing used refresh token should be rejected (Theft detection -> 401 Unauthorized)
+        var reuseResponse = await _client.PostAsJsonAsync("/api/v1/auth/refresh", new RefreshTokenRequestDto(oldRefreshToken));
+        reuseResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

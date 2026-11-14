@@ -90,7 +90,6 @@ public static class DependencyInjection
 
         // 5. İnfrastruktur servisləri
         services.AddHttpContextAccessor();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserLookupService, UserLookupService>();

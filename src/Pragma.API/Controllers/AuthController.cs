@@ -20,7 +20,6 @@ public class AuthController : BaseApiController
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IGoogleAuthService _googleAuthService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IAuthService _authService;
@@ -31,7 +30,6 @@ public class AuthController : BaseApiController
     public AuthController(
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
-        IJwtTokenGenerator jwtTokenGenerator,
         IGoogleAuthService googleAuthService,
         ICurrentUserService currentUserService,
         IAuthService authService,
@@ -41,7 +39,6 @@ public class AuthController : BaseApiController
     {
         _userManager = userManager;
         _roleManager = roleManager;
-        _jwtTokenGenerator = jwtTokenGenerator;
         _googleAuthService = googleAuthService;
         _currentUserService = currentUserService;
         _authService = authService;
@@ -92,12 +89,22 @@ public class AuthController : BaseApiController
         await _userManager.AddToRoleAsync(user, role);
 
         var roles = new[] { role };
-        var token = _jwtTokenGenerator.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles);
+        var tokenResult = await _tokenService.GenerateTokensAsync(
+            user.Id,
+            user.Email!,
+            user.FullName,
+            roles,
+            GetIpAddress(),
+            GetUserAgent(),
+            cancellationToken: HttpContext.RequestAborted);
+
+        SetRefreshTokenCookie(tokenResult.RefreshToken, tokenResult.ExpiresUtc);
 
         var response = new AuthResponseDto(
-            AccessToken: token,
-            ExpiresInMinutes: 60,
-            User: new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, user.ProfilePictureUrl, roles)
+            AccessToken: tokenResult.AccessToken,
+            ExpiresInMinutes: tokenResult.ExpiresInMinutes,
+            User: new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, user.ProfilePictureUrl, roles),
+            RefreshToken: tokenResult.RefreshToken
         );
 
         return Ok(response);
@@ -132,12 +139,22 @@ public class AuthController : BaseApiController
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        var token = _jwtTokenGenerator.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles);
+        var tokenResult = await _tokenService.GenerateTokensAsync(
+            user.Id,
+            user.Email!,
+            user.FullName,
+            roles,
+            GetIpAddress(),
+            GetUserAgent(),
+            cancellationToken: HttpContext.RequestAborted);
+
+        SetRefreshTokenCookie(tokenResult.RefreshToken, tokenResult.ExpiresUtc);
 
         var response = new AuthResponseDto(
-            AccessToken: token,
-            ExpiresInMinutes: 60,
-            User: new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, user.ProfilePictureUrl, roles)
+            AccessToken: tokenResult.AccessToken,
+            ExpiresInMinutes: tokenResult.ExpiresInMinutes,
+            User: new UserDto(user.Id, user.Email!, user.FirstName, user.LastName, user.FullName, user.ProfilePictureUrl, roles),
+            RefreshToken: tokenResult.RefreshToken
         );
 
         return Ok(response);

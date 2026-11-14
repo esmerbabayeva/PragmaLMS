@@ -30,6 +30,22 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
+    private int GetAccessTokenExpiryMinutes()
+    {
+        if (int.TryParse(_configuration["Jwt:AccessTokenMinutes"], out var minutes) && minutes > 0)
+        {
+            return minutes;
+        }
+
+        if (int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var oldMinutes) && oldMinutes > 0)
+        {
+            return oldMinutes;
+        }
+
+        // Frontend avtomatik token refresh dəstəkləmədiyi üçün sessiyanın vaxtından əvvəl qırılmaması naminə default 60 dəqiqə saxlanılır.
+        return 60;
+    }
+
     public async Task<TokenResultDto> GenerateTokensAsync(
         Guid userId,
         string email,
@@ -46,8 +62,11 @@ public class TokenService : ITokenService
 
         var claims = new List<Claim>
         {
+            new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(ClaimTypes.Email, email),
             new(JwtRegisteredClaimNames.Email, email),
+            new(ClaimTypes.Name, fullName),
             new(JwtRegisteredClaimNames.Name, fullName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
@@ -60,7 +79,8 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiresUtc = DateTime.UtcNow.AddMinutes(15);
+        var expiryMinutes = GetAccessTokenExpiryMinutes();
+        var expiresUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
         var jwt = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
@@ -100,7 +120,7 @@ public class TokenService : ITokenService
         return new TokenResultDto(
             AccessToken: accessToken,
             RefreshToken: rawRefreshToken,
-            ExpiresInMinutes: 15,
+            ExpiresInMinutes: expiryMinutes,
             ExpiresUtc: expiresUtc,
             User: userDto);
     }
@@ -180,8 +200,11 @@ public class TokenService : ITokenService
 
         var claims = new List<Claim>
         {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+            new(ClaimTypes.Name, user.FullName),
             new(JwtRegisteredClaimNames.Name, user.FullName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
@@ -194,7 +217,8 @@ public class TokenService : ITokenService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiresUtc = DateTime.UtcNow.AddMinutes(15);
+        var expiryMinutes = GetAccessTokenExpiryMinutes();
+        var expiresUtc = DateTime.UtcNow.AddMinutes(expiryMinutes);
         var jwt = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
@@ -216,7 +240,7 @@ public class TokenService : ITokenService
         return Result<TokenResultDto>.Success(new TokenResultDto(
             AccessToken: newAccessToken,
             RefreshToken: newRawRefreshToken,
-            ExpiresInMinutes: 15,
+            ExpiresInMinutes: expiryMinutes,
             ExpiresUtc: expiresUtc,
             User: userDto));
     }
