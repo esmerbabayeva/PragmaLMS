@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.Common;
 using Pragma.Application.DTOs.Auth;
 using Pragma.Application.DTOs.Cohorts;
 using Xunit;
@@ -29,7 +30,7 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
     }
 
     [Fact]
-    public async Task GetCohorts_DefaultPagination_ReturnsArrayWithXTotalCountHeader()
+    public async Task GetCohorts_DefaultPagination_ReturnsPagedResultObject()
     {
         var adminToken = await LoginAsync("admin@pragma.edu.az", "PragmaAdmin2026!");
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/cohorts");
@@ -38,16 +39,14 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
         var response = await _client.SendAsync(request);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        response.Headers.Contains("X-Total-Count").Should().BeTrue();
-        var totalCountHeader = response.Headers.GetValues("X-Total-Count").FirstOrDefault();
-        totalCountHeader.Should().NotBeNullOrEmpty();
-        int.TryParse(totalCountHeader, out var totalCount).Should().BeTrue();
-        totalCount.Should().BeGreaterThanOrEqualTo(1);
-
-        var items = await response.Content.ReadFromJsonAsync<List<CohortSummaryDto>>();
-        items.Should().NotBeNull();
-        items!.Count.Should().BeLessThanOrEqualTo(50);
-        items.Count.Should().Be(Math.Min(totalCount, 50));
+        var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        pagedResult.Should().NotBeNull();
+        pagedResult!.TotalCount.Should().BeGreaterThanOrEqualTo(1);
+        pagedResult.PageNumber.Should().Be(1);
+        pagedResult.PageSize.Should().Be(50);
+        pagedResult.Items.Should().NotBeNull();
+        pagedResult.Items.Count.Should().BeLessThanOrEqualTo(50);
+        pagedResult.Items.Count.Should().Be(Math.Min(pagedResult.TotalCount, 50));
     }
 
     [Fact]
@@ -60,23 +59,26 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
         req1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var res1 = await _client.SendAsync(req1);
         res1.StatusCode.Should().Be(HttpStatusCode.OK);
-        res1.Headers.Contains("X-Total-Count").Should().BeTrue();
-        var page1Items = await res1.Content.ReadFromJsonAsync<List<CohortSummaryDto>>();
-        page1Items.Should().NotBeNull();
+        var pagedResult1 = await res1.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        pagedResult1.Should().NotBeNull();
+        pagedResult1!.PageNumber.Should().Be(1);
+        pagedResult1.PageSize.Should().Be(2);
 
-        if (page1Items!.Count == 2)
+        if (pagedResult1.Items.Count == 2)
         {
             // Page 2
             var req2 = new HttpRequestMessage(HttpMethod.Get, "/api/cohorts?pageNumber=2&pageSize=2");
             req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
             var res2 = await _client.SendAsync(req2);
             res2.StatusCode.Should().Be(HttpStatusCode.OK);
-            var page2Items = await res2.Content.ReadFromJsonAsync<List<CohortSummaryDto>>();
-            page2Items.Should().NotBeNull();
+            var pagedResult2 = await res2.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+            pagedResult2.Should().NotBeNull();
+            pagedResult2!.PageNumber.Should().Be(2);
+            pagedResult2.PageSize.Should().Be(2);
 
             // Səhifələrin ID-ləri kəsişməməlidir (disjoint)
-            var p1Ids = page1Items.Select(x => x.Id).ToHashSet();
-            var p2Ids = page2Items!.Select(x => x.Id).ToHashSet();
+            var p1Ids = pagedResult1.Items.Select(x => x.Id).ToHashSet();
+            var p2Ids = pagedResult2.Items.Select(x => x.Id).ToHashSet();
             p1Ids.Overlaps(p2Ids).Should().BeFalse();
         }
     }
@@ -90,11 +92,11 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
 
         var response = await _client.SendAsync(request);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.Contains("X-Total-Count").Should().BeTrue();
 
-        var items = await response.Content.ReadFromJsonAsync<List<CohortSummaryDto>>();
-        items.Should().NotBeNull();
-        items!.Count.Should().BeLessThanOrEqualTo(100);
+        var pagedResult = await response.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        pagedResult.Should().NotBeNull();
+        pagedResult!.PageSize.Should().Be(100);
+        pagedResult.Items.Count.Should().BeLessThanOrEqualTo(100);
     }
 
     [Theory]
@@ -142,7 +144,9 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
         adminReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var adminRes = await _client.SendAsync(adminReq);
         adminRes.StatusCode.Should().Be(HttpStatusCode.OK);
-        var adminTotal = int.Parse(adminRes.Headers.GetValues("X-Total-Count").First());
+        var adminPaged = await adminRes.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        adminPaged.Should().NotBeNull();
+        var adminTotal = adminPaged!.TotalCount;
 
         // 2. Müəllim yalnız təhkim olunduğu kohortları görür
         var teacherToken = await LoginAsync("teacher@pragma.edu.az", "Password123!");
@@ -150,8 +154,9 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
         teacherReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
         var teacherRes = await _client.SendAsync(teacherReq);
         teacherRes.StatusCode.Should().Be(HttpStatusCode.OK);
-        var teacherTotal = int.Parse(teacherRes.Headers.GetValues("X-Total-Count").First());
-        teacherTotal.Should().BeLessThanOrEqualTo(adminTotal);
+        var teacherPaged = await teacherRes.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        teacherPaged.Should().NotBeNull();
+        teacherPaged!.TotalCount.Should().BeLessThanOrEqualTo(adminTotal);
 
         // 3. Tələbə yalnız yazıldığı kohortları görür
         var studentToken = await LoginAsync("student@pragma.edu.az", "Password123!");
@@ -159,7 +164,8 @@ public class CohortPaginationIntegrationTests : IClassFixture<CustomWebApplicati
         studentReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", studentToken);
         var studentRes = await _client.SendAsync(studentReq);
         studentRes.StatusCode.Should().Be(HttpStatusCode.OK);
-        var studentTotal = int.Parse(studentRes.Headers.GetValues("X-Total-Count").First());
-        studentTotal.Should().BeLessThanOrEqualTo(adminTotal);
+        var studentPaged = await studentRes.Content.ReadFromJsonAsync<PagedResult<CohortSummaryDto>>();
+        studentPaged.Should().NotBeNull();
+        studentPaged!.TotalCount.Should().BeLessThanOrEqualTo(adminTotal);
     }
 }

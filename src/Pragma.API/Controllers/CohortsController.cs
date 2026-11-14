@@ -54,10 +54,10 @@ public class CohortsController : BaseApiController
     }
 
     /// <summary>
-    /// Kohortların siyahısını qaytarır (Geriyə uyğun massiv cavabı, optional səhifələmə və X-Total-Count header-i ilə).
+    /// Kohortların səhifələnmiş və filtrlənmiş siyahısını qaytarır (PagedResult obyekti).
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyCollection<CohortSummaryDto>>> GetCohorts(
+    public async Task<ActionResult<PagedResult<CohortSummaryDto>>> GetCohorts(
         [FromQuery] Guid? courseId,
         [FromQuery] Guid? teacherId,
         [FromQuery] CohortStatus? status,
@@ -105,14 +105,7 @@ public class CohortsController : BaseApiController
 
         var isAdmin = _currentUserService.IsInRole(UserRoles.Admin);
         var result = await _cohortService.GetCohortsAsync(courseId, teacherId, status, effectivePageNumber, effectivePageSize, currentUserId.Value, isAdmin, ct);
-        if (result.IsFailure)
-        {
-            return HandleResult(result);
-        }
-
-        Response.Headers["X-Total-Count"] = result.Value.TotalCount.ToString();
-        Response.Headers.Append("Access-Control-Expose-Headers", "X-Total-Count");
-        return Ok(result.Value.Items);
+        return HandleResult(result);
     }
 
     /// <summary>
