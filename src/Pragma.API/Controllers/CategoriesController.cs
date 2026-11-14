@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Categories;
-using Pragma.Domain.Entities;
-using Pragma.Domain.Enums;
 
 namespace Pragma.API.Controllers;
 
@@ -15,61 +12,33 @@ namespace Pragma.API.Controllers;
 [Route("api/categories")]
 public class CategoriesController : BaseApiController
 {
-    private readonly IAppDbContext _context;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(IAppDbContext context)
+    public CategoriesController(ICategoryService categoryService)
     {
-        _context = context;
+        _categoryService = categoryService;
     }
 
     /// <summary>
     /// Bütün aktiv kateqoriyaların siyahısını qaytarır.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyCollection<CategoryDto>>> GetCategories(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyCollection<CategoryDto>>> GetCategories([FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var categories = await _context.Categories
-            .AsNoTracking()
-            .Where(c => !c.IsDeleted)
-            .OrderBy(c => c.SortOrder)
-            .Select(c => new CategoryDto(
-                c.Id,
-                c.Name,
-                c.Slug,
-                c.Description,
-                c.IconName,
-                c.SortOrder,
-                c.Courses.Count(course => course.Status == CourseStatus.Published && !course.IsDeleted)
-            ))
-            .ToListAsync(cancellationToken);
-
-        return Ok(categories);
+        var language = LanguageResolutionHelper.NormalizeLanguage(!string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString());
+        var result = await _categoryService.GetCategoriesAsync(language, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>
     /// ID-yə görə tək bir kateqoriyanın məlumatlarını qaytarır.
     /// </summary>
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var category = await _context.Categories
-            .AsNoTracking()
-            .Where(c => c.Id == id && !c.IsDeleted)
-            .Select(c => new CategoryDto(
-                c.Id,
-                c.Name,
-                c.Slug,
-                c.Description,
-                c.IconName,
-                c.SortOrder,
-                c.Courses.Count(course => course.Status == CourseStatus.Published && !course.IsDeleted)
-            ))
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (category == null)
-            return NotFound("Kateqoriya tapılmadı.");
-
-        return Ok(category);
+        var language = LanguageResolutionHelper.NormalizeLanguage(!string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString());
+        var result = await _categoryService.GetCategoryByIdAsync(id, language, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>
@@ -79,25 +48,24 @@ public class CategoriesController : BaseApiController
     [HttpPost]
     public async Task<ActionResult<Guid>> CreateCategory([FromBody] CreateCategoryDto dto, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
+        var result = await _categoryService.CreateCategoryAsync(dto, cancellationToken);
+        if (result.IsFailure)
         {
-            return BadRequest("Kateqoriya adı mütləq daxil edilməlidir.");
+            return HandleResult(result);
         }
 
-        var slug = dto.Name.ToLowerInvariant().Trim().Replace(' ', '-');
-        var category = new Category
-        {
-            Name = dto.Name.Trim(),
-            Slug = slug,
-            Description = dto.Description,
-            IconName = dto.IconName,
-            SortOrder = dto.SortOrder
-        };
+        return CreatedAtAction(nameof(GetCategoryById), new { id = result.Value }, result.Value);
+    }
 
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category.Id);
+    /// <summary>
+    /// Kateqoriya məlumatlarını yeniləyir (Yalnız Admin və Moderator üçün).
+    /// </summary>
+    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<CategoryDto>> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto dto, CancellationToken cancellationToken)
+    {
+        var result = await _categoryService.UpdateCategoryAsync(id, dto, cancellationToken);
+        return HandleResult(result);
     }
 
     /// <summary>
@@ -107,13 +75,7 @@ public class CategoriesController : BaseApiController
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteCategory(Guid id, CancellationToken cancellationToken)
     {
-        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
-        if (category == null)
-            return NotFound("Kateqoriya tapılmadı.");
-
-        category.MarkDeleted();
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return NoContent();
+        var result = await _categoryService.DeleteCategoryAsync(id, cancellationToken);
+        return HandleResult(result);
     }
 }
