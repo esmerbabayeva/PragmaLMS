@@ -6,6 +6,7 @@ namespace Pragma.Infrastructure.Identity;
 public static class JwtKeyValidator
 {
     public const string DefaultFallbackKey = "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
+    public const string LegacyAppsettingsKey = "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$PragmaLMS";
 
     /// <summary>
     /// JWT SecretKey-i mühitə görə yoxlayır və qaytarır.
@@ -13,7 +14,8 @@ public static class JwtKeyValidator
     /// Digər mühitlərdə (məs. Production, Staging):
     /// - Açar boş və ya whitespace olduqda,
     /// - 32 simvoldan qısa olduqda,
-    /// - Default fallback açara bərabər olduqda,
+    /// - Default fallback açara və ya köhnə appsettings açarına bərabər olduqda,
+    /// - "DevelopmentOnly" ehtiva etdikdə,
     /// - və ya "YourSecretKeyHere" ehtiva etdikdə,
     /// InvalidOperationException atılır (mesajda açarın özü heç vaxt göstərilmir).
     /// </summary>
@@ -37,9 +39,15 @@ public static class JwtKeyValidator
             throw new InvalidOperationException("JWT SecretKey ən azı 32 simvol uzunluğunda olmalıdır.");
         }
 
-        if (string.Equals(secretKey, DefaultFallbackKey, StringComparison.Ordinal))
+        if (string.Equals(secretKey, DefaultFallbackKey, StringComparison.Ordinal)
+            || string.Equals(secretKey, LegacyAppsettingsKey, StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Production mühitində default inkişaf (fallback) JWT açarından istifadə edilə bilməz.");
+        }
+
+        if (secretKey.Contains("DevelopmentOnly", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Production mühitində inkişaf üçün nəzərdə tutulmuş (DevelopmentOnly) JWT açarından istifadə edilə bilməz.");
         }
 
         if (secretKey.Contains("YourSecretKeyHere", StringComparison.OrdinalIgnoreCase))

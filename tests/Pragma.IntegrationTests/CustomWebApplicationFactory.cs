@@ -12,6 +12,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("UseInMemoryDatabase", "true");
         Environment.SetEnvironmentVariable("InMemoryDbName", GlobalDbName);
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+        Environment.SetEnvironmentVariable("Jwt__SecretKey", "TestProductionValidKeyWith32CharsMinimumRequirement!");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

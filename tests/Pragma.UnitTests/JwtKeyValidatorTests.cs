@@ -55,6 +55,27 @@ public class JwtKeyValidatorTests
     }
 
     [Fact]
+    public void ValidateAndGetKey_InProduction_WhenKeyContainsDevelopmentOnly_ThrowsInvalidOperationException()
+    {
+        var devOnlyKey = "ValidLengthKeyWithDevelopmentOnlySubstring123456789!";
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            JwtKeyValidator.ValidateAndGetKey(devOnlyKey, "Production"));
+
+        Assert.Contains("DevelopmentOnly", ex.Message);
+        Assert.DoesNotContain(devOnlyKey, ex.Message);
+    }
+
+    [Fact]
+    public void ValidateAndGetKey_InProduction_WhenKeyEqualsLegacyAppsettingsKey_ThrowsInvalidOperationException()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            JwtKeyValidator.ValidateAndGetKey(JwtKeyValidator.LegacyAppsettingsKey, "Production"));
+
+        Assert.Contains("default inkişaf (fallback)", ex.Message);
+        Assert.DoesNotContain(JwtKeyValidator.LegacyAppsettingsKey, ex.Message);
+    }
+
+    [Fact]
     public void ValidateAndGetKey_InProduction_WhenKeyIsValid_ReturnsKey()
     {
         var result = JwtKeyValidator.ValidateAndGetKey(ValidKey, "Production");

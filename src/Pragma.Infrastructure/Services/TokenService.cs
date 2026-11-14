@@ -52,7 +52,9 @@ public class TokenService : ITokenService
         int? customExpiryMinutes = null,
         CancellationToken cancellationToken = default)
     {
-        var secretKey = _configuration["Jwt:SecretKey"] ?? "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
+        var secretKey = string.IsNullOrWhiteSpace(_configuration["Jwt:SecretKey"])
+            ? JwtKeyValidator.DefaultFallbackKey
+            : _configuration["Jwt:SecretKey"]!;
         var issuer = _configuration["Jwt:Issuer"] ?? "PragmaAPI";
         var audience = _configuration["Jwt:Audience"] ?? "PragmaClient";
 
@@ -190,7 +192,9 @@ public class TokenService : ITokenService
 
         var roles = await _userManager.GetRolesAsync(user);
 
-        var secretKey = _configuration["Jwt:SecretKey"] ?? "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
+        var secretKey = string.IsNullOrWhiteSpace(_configuration["Jwt:SecretKey"])
+            ? JwtKeyValidator.DefaultFallbackKey
+            : _configuration["Jwt:SecretKey"]!;
         var issuer = _configuration["Jwt:Issuer"] ?? "PragmaAPI";
         var audience = _configuration["Jwt:Audience"] ?? "PragmaClient";
 
