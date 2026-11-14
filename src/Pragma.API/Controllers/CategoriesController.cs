@@ -58,9 +58,9 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Kateqoriya məlumatlarını yeniləyir (Yalnız Admin və Moderator üçün).
+    /// Kateqoriya məlumatlarını yeniləyir (Yalnız Admin üçün).
     /// </summary>
-    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CategoryDto>> UpdateCategory(Guid id, [FromBody] UpdateCategoryDto dto, CancellationToken cancellationToken)
     {
@@ -69,9 +69,9 @@ public class CategoriesController : BaseApiController
     }
 
     /// <summary>
-    /// Kateqoriyanı silir (Soft delete, Admin və Moderator üçün).
+    /// Kateqoriyanı silir (Soft delete, Yalnız Admin üçün).
     /// </summary>
-    [Authorize(Policy = AuthorizationPolicies.CanManageCourses)]
+    [Authorize(Policy = AuthorizationPolicies.RequireAdmin)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeleteCategory(Guid id, CancellationToken cancellationToken)
     {

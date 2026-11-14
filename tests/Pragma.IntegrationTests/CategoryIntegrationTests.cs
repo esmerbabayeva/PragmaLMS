@@ -226,7 +226,7 @@ public class CategoryIntegrationTests : IClassFixture<CustomWebApplicationFactor
     }
 
     [Fact]
-    public async Task PutCategory_And_DeleteCategory_AsTeacherOrStudent_Returns403Forbidden()
+    public async Task PutCategory_And_DeleteCategory_AsInstructorTeacherOrStudent_Returns403Forbidden()
     {
         // 1. Admin kimi kateqoriya yarat
         var adminToken = await LoginAsync("admin@pragma.edu.az", "PragmaAdmin2026!");
@@ -236,18 +236,29 @@ public class CategoryIntegrationTests : IClassFixture<CustomWebApplicationFactor
         var postResponse = await _client.PostAsJsonAsync("/api/categories", createDto);
         var categoryId = await postResponse.Content.ReadFromJsonAsync<Guid>();
 
-        // 2. Müəllim kimi PUT və DELETE etməyə cəhd et -> 403
+        var updateDto = new UpdateCategoryDto("Yetkisiz Dəyişiklik", null, null, 1);
+
+        // 2. Instructor kimi PUT və DELETE etməyə cəhd et -> 403 (RequireAdmin siyasəti Admin tələb edir)
+        var instructorToken = await LoginAsync("instructor@pragma.edu.az", "Password123!");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", instructorToken);
+
+        var instructorPutResponse = await _client.PutAsJsonAsync($"/api/categories/{categoryId}", updateDto);
+        instructorPutResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var instructorDeleteResponse = await _client.DeleteAsync($"/api/categories/{categoryId}");
+        instructorDeleteResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        // 3. Müəllim (Teacher) kimi PUT və DELETE etməyə cəhd et -> 403
         var teacherToken = await LoginAsync("teacher@pragma.edu.az", "Password123!");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
 
-        var updateDto = new UpdateCategoryDto("Müəllim Dəyişir", null, null, 1);
         var teacherPutResponse = await _client.PutAsJsonAsync($"/api/categories/{categoryId}", updateDto);
         teacherPutResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var teacherDeleteResponse = await _client.DeleteAsync($"/api/categories/{categoryId}");
         teacherDeleteResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        // 3. Tələbə kimi PUT və DELETE etməyə cəhd et -> 403
+        // 4. Tələbə (Student) kimi PUT və DELETE etməyə cəhd et -> 403
         var studentToken = await LoginAsync("student@pragma.edu.az", "Password123!");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", studentToken);
 
