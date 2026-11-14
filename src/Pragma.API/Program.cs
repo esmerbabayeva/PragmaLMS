@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Pragma.API.Filters;
 using Pragma.API.Middlewares;
 using Pragma.Application;
 using Pragma.Application.Common;
@@ -81,12 +82,25 @@ builder.Services.AddRateLimiter(options =>
                 PermitLimit = 30,
                 Window = TimeSpan.FromMinutes(1)
             }));
+    options.AddPolicy("verify", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
+
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationFilter>();
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -157,13 +171,32 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser());
 });
 
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            if (allowedOrigins.Length > 0)
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            }
+            else
+            {
+                policy.SetIsOriginAllowed(_ => false);
+            }
+        }
     });
 });
 
@@ -179,15 +212,31 @@ app.UseRateLimiter();
 
 app.MapHealthChecks("/health");
 
-app.MapOpenApi();
-app.MapScalarApiReference(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.WithTitle("Pragma LMS API Documentation")
-           .WithTheme(ScalarTheme.DeepSpace)
-           .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("Pragma LMS API Documentation")
+               .WithTheme(ScalarTheme.DeepSpace)
+               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 
-    options.OperationTitleSource = OperationTitleSource.Path;
-});
+        options.OperationTitleSource = OperationTitleSource.Path;
+    });
+
+    app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
+}
+
+app.MapGet("/api/config", (IConfiguration configuration, IWebHostEnvironment environment) =>
+{
+    var adminUrl = configuration["AdminPanel:Url"] ?? "http://localhost:5089";
+    var isDev = environment.IsDevelopment();
+    return Results.Ok(new
+    {
+        adminPanelUrl = adminUrl,
+        isDevelopment = isDev
+    });
+}).AllowAnonymous();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -197,7 +246,6 @@ app.MapGet("/portal", () => Results.Redirect("/portal/index.html"));
 app.MapGet("/app", () => Results.Redirect("/portal/index.html"));
 app.MapGet("/login", () => Results.Redirect("/portal/login.html"));
 app.MapGet("/auth/callback", () => Results.Redirect("/portal/callback.html"));
-app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
 
 if (!app.Environment.IsDevelopment())
 {
@@ -247,6 +295,10 @@ using (var scope = app.Services.CreateScope())
     if (context.Database.IsInMemory())
     {
         await context.Database.EnsureCreatedAsync();
+    }
+    else if (context.Database.IsRelational())
+    {
+        await context.Database.MigrateAsync();
     }
 
     await PragmaDbSeeder.SeedAsync(context, userManager, roleManager, logger);

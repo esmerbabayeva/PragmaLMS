@@ -39,24 +39,30 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/problem+json";
 
-        var (statusCode, title) = exception switch
+        var (statusCode, title, defaultDetail) = exception switch
         {
-            KeyNotFoundException => (HttpStatusCode.NotFound, "Axtarılan resurs tapılmadı."),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Giriş icazəsi yoxdur."),
-            ArgumentException => (HttpStatusCode.BadRequest, "Daxil edilən parametr yanlışdır."),
-            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, "Məlumat başqa bir istifadəçi tərəfindən yenilənib. Zəhmət olmasa səhifəni yeniləyib təkrar cəhd edin."),
-            _ => (HttpStatusCode.InternalServerError, "Serverdə daxili xəta baş verdi.")
+            KeyNotFoundException => (HttpStatusCode.NotFound, "Axtarılan resurs tapılmadı.", "Müraciət olunan resurs sistemdə mövcud deyil."),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Giriş icazəsi yoxdur.", "Bu əməliyyatı icra etmək üçün icazəniz yoxdur."),
+            ArgumentException => (HttpStatusCode.BadRequest, "Daxil edilən parametr yanlışdır.", "Daxil edilən parametr tələblərə uyğun deyil."),
+            DbUpdateConcurrencyException => (HttpStatusCode.Conflict, "Məlumat ziddiyyəti (Concurrency Conflict)", "Məlumat başqa bir istifadəçi tərəfindən yenilənib. Zəhmət olmasa səhifəni yeniləyib təkrar cəhd edin."),
+            DbUpdateException => (HttpStatusCode.Conflict, "Məlumat ziddiyyəti (Unikal indeks və ya məhdudiyyət pozuntusu)", "Daxil edilən məlumat sistemdəki mövcud unikal qeydlərlə ziddiyyət təşkil edir."),
+            _ => (HttpStatusCode.InternalServerError, "Serverdə daxili xəta baş verdi.", "Sistem xətası qeydə alındı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.")
         };
 
         context.Response.StatusCode = (int)statusCode;
         var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+
+        var isDev = _env.IsDevelopment();
+        var detail = isDev
+            ? $"{exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}"
+            : defaultDetail;
 
         var problemDetails = new ProblemDetails
         {
             Status = (int)statusCode,
             Title = title,
             Type = $"https://httpstatuses.com/{(int)statusCode}",
-            Detail = (_env.IsDevelopment() || _env.IsEnvironment("Testing")) ? $"{exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}" : "Sistem xətası qeydə alındı. Zəhmət olmasa bir qədər sonra yenidən yoxlayın.",
+            Detail = detail,
             Instance = context.Request.Path
         };
 
