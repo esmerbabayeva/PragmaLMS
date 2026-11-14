@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Pragma.Application.Common;
 using Pragma.Domain.Entities;
@@ -19,51 +21,123 @@ public static class PragmaDbSeeder
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
-        ILogger logger)
+        ILogger logger,
+        IConfiguration? configuration = null,
+        IHostEnvironment? environment = null)
     {
         await SeedLock.WaitAsync();
         try
         {
             await context.Database.EnsureCreatedAsync();
 
-            // Ensure AuditLogs table exists for existing relational databases
-            if (context.Database.IsRelational())
+            // (a) Mütləq lazım olan hissə: Rollar, AuditLogs və konfiqurasiya olunmuş Admin hesabı (bütün mühitlərdə)
+            await SeedEssentialAsync(context, userManager, roleManager, logger, configuration, environment);
+
+            // (b) Demo məlumatlar üçün qərar:
+            // "Seed:DemoData" konfiqurasiyada varsa, ona üstünlük verilir.
+            // Əks halda, Development və Testing mühitlərində default = true, digər mühitlərdə (məs. Production) default = false.
+            var envName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var isDevOrTest = string.Equals(envName, "Development", StringComparison.OrdinalIgnoreCase)
+                           || string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase);
+
+            bool seedDemo;
+            if (configuration != null && bool.TryParse(configuration["Seed:DemoData"], out var configSeedDemo))
             {
-                await context.Database.ExecuteSqlRawAsync(@"
-                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AuditLogs')
-                    BEGIN
-                        CREATE TABLE [AuditLogs] (
-                            [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-                            [UserId] UNIQUEIDENTIFIER NULL,
-                            [UserEmail] NVARCHAR(256) NULL,
-                            [Action] NVARCHAR(100) NOT NULL,
-                            [EntityName] NVARCHAR(100) NOT NULL,
-                            [EntityId] NVARCHAR(100) NOT NULL,
-                            [Details] NVARCHAR(MAX) NOT NULL,
-                            [IpAddress] NVARCHAR(64) NULL,
-                            [CreatedAtUtc] DATETIME2 NOT NULL,
-                            [UpdatedAtUtc] DATETIME2 NULL,
-                            [IsDeleted] BIT NOT NULL DEFAULT 0,
-                            [RowVersion] ROWVERSION NOT NULL
-                        );
-                        CREATE INDEX [IX_AuditLogs_CreatedAtUtc] ON [AuditLogs] ([CreatedAtUtc]);
-                        CREATE INDEX [IX_AuditLogs_UserId] ON [AuditLogs] ([UserId]);
-                    END
-                ");
+                seedDemo = configSeedDemo;
+            }
+            else
+            {
+                seedDemo = isDevOrTest;
             }
 
-            // 1. Rolların yaradılması
-            string[] roles = [UserRoles.Admin, UserRoles.Instructor, UserRoles.Teacher, UserRoles.Student, UserRoles.Moderator];
-            foreach (var role in roles)
+            if (!seedDemo)
             {
-                if (!await roleManager.RoleExistsAsync(role))
-                {
-                    await roleManager.CreateAsync(new ApplicationRole(role));
-                }
+                logger.LogInformation("PragmaDbSeeder: Demo məlumatlar doldurulmadı (Seed:DemoData = false və ya mühit {Environment} deyil).", envName);
+                return;
             }
 
-            // 2. İstifadəçilərin yaradılması (Admin, Müəllimlər və Tələbələr)
-            var adminUser = await EnsureUserAsync(userManager, "admin@pragma.edu.az", "PragmaAdmin2026!", "Pragma", "SuperAdmin", UserRoles.Admin);
+            // (b) Demo məlumatlar (demo istifadəçilər, nümunə kurslar, modullar, quizlər, kohortlar və s.)
+            await SeedDemoAsync(context, userManager, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "PragmaDbSeeder: Məlumatlar doldurularkən xəta baş verdi: {Message}", ex.Message);
+        }
+        finally
+        {
+            SeedLock.Release();
+        }
+    }
+
+    private static async Task SeedEssentialAsync(
+        AppDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        ILogger logger,
+        IConfiguration? configuration,
+        IHostEnvironment? environment)
+    {
+        // Relational bazalar üçün AuditLogs cədvəlinin mövcudluğunu təmin etmək
+        if (context.Database.IsRelational())
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'AuditLogs')
+                BEGIN
+                    CREATE TABLE [AuditLogs] (
+                        [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+                        [UserId] UNIQUEIDENTIFIER NULL,
+                        [UserEmail] NVARCHAR(256) NULL,
+                        [Action] NVARCHAR(100) NOT NULL,
+                        [EntityName] NVARCHAR(100) NOT NULL,
+                        [EntityId] NVARCHAR(100) NOT NULL,
+                        [Details] NVARCHAR(MAX) NOT NULL,
+                        [IpAddress] NVARCHAR(64) NULL,
+                        [CreatedAtUtc] DATETIME2 NOT NULL,
+                        [UpdatedAtUtc] DATETIME2 NULL,
+                        [IsDeleted] BIT NOT NULL DEFAULT 0,
+                        [RowVersion] ROWVERSION NOT NULL
+                    );
+                    CREATE INDEX [IX_AuditLogs_CreatedAtUtc] ON [AuditLogs] ([CreatedAtUtc]);
+                    CREATE INDEX [IX_AuditLogs_UserId] ON [AuditLogs] ([UserId]);
+                END
+            ");
+        }
+
+        // 1. Rolların yaradılması (bütün mühitlərdə)
+        string[] roles = [UserRoles.Admin, UserRoles.Instructor, UserRoles.Teacher, UserRoles.Student, UserRoles.Moderator];
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new ApplicationRole(role));
+            }
+        }
+
+        // 2. Production (və ya konfiqurasiya olunmuş) Admin hesabı yoxlaması
+        var adminEmail = configuration?["Seed:AdminEmail"];
+        var adminPassword = configuration?["Seed:AdminPassword"];
+
+        var envName = environment?.EnvironmentName ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var isProd = string.Equals(envName, "Production", StringComparison.OrdinalIgnoreCase);
+
+        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+        {
+            var adminUser = await EnsureUserAsync(userManager, adminEmail.Trim(), adminPassword, "Admin", "User", UserRoles.Admin);
+            logger.LogInformation("PragmaDbSeeder: Konfiqurasiyadan oxunmuş admin hesabı ({AdminEmail}) uğurla təmin edildi.", adminEmail.Trim());
+        }
+        else if (isProd)
+        {
+            logger.LogWarning("PragmaDbSeeder: Production mühitində admin hesabı üçün 'Seed:AdminEmail' və ya 'Seed:AdminPassword' konfiqurasiyası təyin edilməyib. İlkin admin hesabı yaradılmadı.");
+        }
+    }
+
+    private static async Task SeedDemoAsync(
+        AppDbContext context,
+        UserManager<ApplicationUser> userManager,
+        ILogger logger)
+    {
+        // 2. İstifadəçilərin yaradılması (Admin, Müəllimlər və Tələbələr)
+        var adminUser = await EnsureUserAsync(userManager, "admin@pragma.edu.az", "PragmaAdmin2026!", "Pragma", "SuperAdmin", UserRoles.Admin);
             var teacherUser = await EnsureUserAsync(userManager, "teacher@pragma.edu.az", "Password123!", "Rəşad", "Əliyev", UserRoles.Teacher);
             if (await userManager.IsInRoleAsync(teacherUser, UserRoles.Instructor))
             {
@@ -460,15 +534,6 @@ public static class PragmaDbSeeder
 
             await context.SaveChangesAsync();
             logger.LogInformation("PragmaDbSeeder: Verilənlər bazası bütün zəngin məlumatlarla (3 kurs, 5 istifadəçi, quiz, streak, sertifikat) uğurla təmin edildi.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "PragmaDbSeeder: Məlumatlar doldurularkən xəta baş verdi: {Message}", ex.Message);
-        }
-        finally
-        {
-            SeedLock.Release();
-        }
     }
 
     private static async Task<ApplicationUser> EnsureUserAsync(

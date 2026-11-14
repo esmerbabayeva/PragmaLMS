@@ -28,7 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment);
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -301,7 +301,7 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
     }
 
-    await PragmaDbSeeder.SeedAsync(context, userManager, roleManager, logger);
+    await PragmaDbSeeder.SeedAsync(context, userManager, roleManager, logger, app.Configuration, app.Environment);
 }
 
 app.Run();

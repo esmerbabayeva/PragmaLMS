@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
@@ -17,7 +18,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment? environment = null)
     {
         // 1. Verilənlər Bazası konfiqurasiyası
         if (configuration.GetValue<bool>("UseInMemoryDatabase"))
@@ -54,7 +56,8 @@ public static class DependencyInjection
         .AddDefaultTokenProviders();
 
         // 3. JWT Autentifikasiyası
-        var secretKey = configuration["Jwt:SecretKey"] ?? "PragmaSuperSecretKeyForDevelopmentOnly1234567890!@#$";
+        var envName = environment?.EnvironmentName ?? "Production";
+        var secretKey = JwtKeyValidator.ValidateAndGetKey(configuration["Jwt:SecretKey"], envName);
         var issuer = configuration["Jwt:Issuer"] ?? "PragmaAPI";
         var audience = configuration["Jwt:Audience"] ?? "PragmaClient";
 
