@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
+using Pragma.Application.DTOs.Notifications;
 using Pragma.Domain.Entities;
 using Pragma.Domain.Enums;
 
@@ -10,13 +11,16 @@ public class AcademicGradeService : IAcademicGradeService
 {
     private readonly IAppDbContext _context;
     private readonly IUserLookupService _userLookup;
+    private readonly INotificationService? _notificationService;
 
     public AcademicGradeService(
         IAppDbContext context,
-        IUserLookupService userLookup)
+        IUserLookupService userLookup,
+        INotificationService? notificationService = null)
     {
         _context = context;
         _userLookup = userLookup;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<StudentAcademicGradeSummary>> CalculateStudentGradeAsync(
@@ -298,6 +302,17 @@ public class AcademicGradeService : IAcademicGradeService
             await _context.SaveChangesAsync(ct);
         }
 
+        if (_notificationService != null)
+        {
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto(
+                UserId: studentId,
+                Title: "Yeni Qiymət Daxil Edildi",
+                Message: $"{cohort.Name} qrupunda {componentType} komponenti üzrə {score} bal qeyd edildi.",
+                Type: NotificationType.GradePosted,
+                TargetUrl: "/portal/grades.html"
+            ), ct);
+        }
+
         return Result<bool>.Success(true);
     }
 
@@ -523,6 +538,17 @@ public class AcademicGradeService : IAcademicGradeService
             return Result<bool>.Failure(Error.Forbidden("Cohort.Forbidden", "Kohort ballarını rəsmiləşdirmək səlahiyyətiniz yoxdur."));
         }
 
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+        if (!FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow))
+        {
+            if (!deadlineUtc.HasValue)
+            {
+                return Result<bool>.Failure(Error.Conflict("Cohort.DeadlineNotConfigured", "Təhvil müddəti təyin olunmayıb."));
+            }
+
+            return Result<bool>.Failure(Error.Conflict("Cohort.DeadlineNotPassed", "Təhvil müddəti bitməyib."));
+        }
+
         var enrollments = cohort.Enrollments.Where(e => !e.IsDeleted).ToList();
         var studentIds = enrollments.Select(e => e.StudentId).Distinct().ToList();
 
@@ -544,6 +570,26 @@ public class AcademicGradeService : IAcademicGradeService
                 .Where(g => g.CohortId == cohortId && studentIds.Contains(g.StudentId) && !g.IsDeleted)
                 .ToListAsync(ct);
             var gradesByStudent = gradeEntries.ToLookup(g => g.StudentId);
+
+            var submittedStudentIds = await _context.FinalSubmissions
+                .AsNoTracking()
+                .Where(s => s.CohortId == cohortId && !s.IsDeleted && !string.IsNullOrWhiteSpace(s.Url))
+                .Select(s => s.StudentId)
+                .ToListAsync(ct);
+
+            var ungradedSubmittedStudents = enrollments
+                .Where(e => submittedStudentIds.Contains(e.StudentId))
+                .Where(e => !gradesByStudent[e.StudentId].Any(g => g.ComponentType == GradeComponentType.Final && !g.IsDeleted))
+                .Select(e => e.StudentId)
+                .ToList();
+
+            if (ungradedSubmittedStudents.Count > 0)
+            {
+                var idsStr = string.Join(", ", ungradedSubmittedStudents);
+                return Result<bool>.Failure(Error.Conflict(
+                    "Cohort.UngradedFinalSubmissions",
+                    $"Təhvil verilmiş, qiymətləndirilməmiş {ungradedSubmittedStudents.Count} final layihə var: [{idsStr}]"));
+            }
 
             foreach (var enr in enrollments)
             {
@@ -567,23 +613,11 @@ public class AcademicGradeService : IAcademicGradeService
                 var finalGradeEntry = studentGrades.FirstOrDefault(g => g.ComponentType == GradeComponentType.Final);
                 decimal? finalScore = finalGradeEntry?.Score;
 
-                var isDeadlinePassed = cohort.Status == CohortStatus.Finished
-                                    || !cohort.EndDate.HasValue
-                                    || cohort.EndDate.Value <= DateTime.UtcNow;
-
                 if (finalGradeEntry == null)
                 {
-                    // Aktiv final qeydi yoxdur
-                    if (isDeadlinePassed)
-                    {
-                        enr.FinalNotSubmitted = true;
-                        finalScore = 0m; // Təhvil tarixi keçibsə final 0 sayılır
-                    }
-                    else
-                    {
-                        enr.FinalNotSubmitted = false;
-                        finalScore = null; // Təhvil tarixi keçməyibsə müvəqqəti proporsional qalır
-                    }
+                    // Təhvil linki də, qiymət də olmayan tələbə
+                    enr.FinalNotSubmitted = true;
+                    finalScore = 0m;
                 }
                 else
                 {
@@ -598,7 +632,7 @@ public class AcademicGradeService : IAcademicGradeService
                     quizWeight: cohort.QuizWeight,
                     miniWeight: cohort.MiniProjectWeight,
                     finalWeight: cohort.FinalWeight,
-                    isCohortFinished: isDeadlinePassed
+                    isCohortFinished: true
                 );
 
                 enr.OfficialFinalScore = officialScore;
@@ -639,8 +673,7 @@ public class AcademicGradeService : IAcademicGradeService
 
             var rounded = Math.Round(total, 1, MidpointRounding.AwayFromZero);
             // Dəmir Qayda (AGENTS.md 3.1): Cohort Finished olduqda və ya Final qiymətləndikdə bal rəsmi olur (IsProvisional=false)
-            var isProvisional = !isCohortFinished && !hasFinal;
-            return (rounded, isProvisional);
+            return (rounded, !isCohortFinished && !hasFinal);
         }
 
         // Çatışmayan komponent varsa: mövcud komponentlər arasında mütənasib bölünmə
@@ -667,13 +700,13 @@ public class AcademicGradeService : IAcademicGradeService
 
         if (totalPresentWeight == 0m)
         {
-            return (0.0m, true);
+            return (0.0m, !isCohortFinished);
         }
 
         var proportionalScore = (weightedSum / (totalPresentWeight / 100m));
         var resultScore = Math.Round(proportionalScore, 1, MidpointRounding.AwayFromZero);
 
-        return (resultScore, true);
+        return (resultScore, !isCohortFinished);
     }
 
     private async Task<List<Guid>> GetCourseQuizIdsAsync(Guid courseId, CancellationToken ct)

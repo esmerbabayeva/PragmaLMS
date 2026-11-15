@@ -1,3 +1,4 @@
+using Pragma.Application.DTOs.Cohorts;
 using Pragma.Domain.Enums;
 
 namespace Pragma.Application.DTOs.Student;
@@ -69,5 +70,10 @@ public record StudentCohortGradeDetailsDto(
     StudentGradeComponentDto Grades,
     StudentAttendanceOverviewDto Attendance,
     IReadOnlyCollection<StudentFeedbackNoteDto> FeedbackNotes,
-    StudentCertificateStatusDto CertificateStatus
+    StudentCertificateStatusDto CertificateStatus,
+    DateTime? FinalDeadlineUtc = null,
+    string? FinalDeadlineLocal = null,
+    bool FinalDeadlineIsEndOfDay = false,
+    bool IsFinalDeadlinePassed = false,
+    StudentFinalSubmissionDto? FinalSubmission = null
 );

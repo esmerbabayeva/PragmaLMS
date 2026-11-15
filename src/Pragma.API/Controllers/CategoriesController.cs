@@ -25,7 +25,17 @@ public class CategoriesController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<IReadOnlyCollection<CategoryDto>>> GetCategories([FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var language = LanguageResolutionHelper.NormalizeLanguage(!string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString());
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+        var rawLanguage = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : Request.Headers.AcceptLanguage.ToString()));
+
+        var language = LanguageResolutionHelper.NormalizeLanguage(rawLanguage);
         var result = await _categoryService.GetCategoriesAsync(language, cancellationToken);
         return HandleResult(result);
     }
@@ -36,7 +46,17 @@ public class CategoriesController : BaseApiController
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CategoryDto>> GetCategoryById(Guid id, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var language = LanguageResolutionHelper.NormalizeLanguage(!string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString());
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+        var rawLanguage = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : Request.Headers.AcceptLanguage.ToString()));
+
+        var language = LanguageResolutionHelper.NormalizeLanguage(rawLanguage);
         var result = await _categoryService.GetCategoryByIdAsync(id, language, cancellationToken);
         return HandleResult(result);
     }

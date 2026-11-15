@@ -167,6 +167,27 @@ public class CourseService : ICourseService
 
         if (course == null)
         {
+            var cohort = await _context.Cohorts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+            if (cohort != null && cohort.CourseId != Guid.Empty)
+            {
+                course = await _context.Courses
+                    .AsNoTracking()
+                    .Include(c => c.Translations)
+                    .Include(c => c.Category)
+                        .ThenInclude(cat => cat!.Translations)
+                    .Include(c => c.Reviews)
+                    .Include(c => c.Enrollments)
+                    .Include(c => c.Modules.OrderBy(m => m.OrderIndex))
+                    .ThenInclude(m => m.Lessons.OrderBy(l => l.OrderIndex))
+                    .ThenInclude(l => l.Quiz)
+                    .FirstOrDefaultAsync(c => c.Id == cohort.CourseId, cancellationToken);
+            }
+        }
+
+        if (course == null)
+        {
             return Result<CourseDetailDto>.Failure(Error.NotFound("Course.NotFound", "Axtarılan kurs tapılmadı."));
         }
 

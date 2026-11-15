@@ -67,3 +67,39 @@ public class CreateCohortScheduleValidator : AbstractValidator<CreateCohortSched
             .WithMessage("Dərsin bitmə vaxtı başlama vaxtından sonra olmalıdır.");
     }
 }
+
+public class SetCohortFinalDeadlineValidator : AbstractValidator<SetCohortFinalDeadlineDto>
+{
+    public SetCohortFinalDeadlineValidator()
+    {
+        RuleFor(x => x.Date)
+            .Must(d => string.IsNullOrWhiteSpace(d) || System.DateOnly.TryParseExact(d.Trim(), "yyyy-MM-dd", out _))
+            .WithMessage("Tarix 'yyyy-MM-dd' formatında olmalıdır.");
+
+        RuleFor(x => x.Time)
+            .Must(t => string.IsNullOrWhiteSpace(t) || System.TimeOnly.TryParseExact(t.Trim(), "HH:mm", out _) || System.TimeOnly.TryParseExact(t.Trim(), "HH:mm:ss", out _))
+            .WithMessage("Saat 'HH:mm' formatında olmalıdır.");
+    }
+}
+
+public class SubmitFinalProjectValidator : AbstractValidator<SubmitFinalProjectDto>
+{
+    public SubmitFinalProjectValidator()
+    {
+        RuleFor(x => x.Url)
+            .NotEmpty().WithMessage("Final layihə linki mütləq daxil edilməlidir.")
+            .MaximumLength(500).WithMessage("Link 500 simvoldan çox ola bilməz.")
+            .Must(u => !string.IsNullOrWhiteSpace(u) && !u.Contains(" "))
+            .WithMessage("Linkdə boşluq ola bilməz.")
+            .Must(u =>
+            {
+                if (string.IsNullOrWhiteSpace(u)) return false;
+                if (!System.Uri.TryCreate(u.Trim(), System.UriKind.Absolute, out var uri)) return false;
+                var scheme = uri.Scheme.ToLowerInvariant();
+                if (scheme != "http" && scheme != "https") return false;
+                if (scheme == "javascript" || scheme == "data" || scheme == "vbscript") return false;
+                return true;
+            })
+            .WithMessage("Link mütləq etibarlı http və ya https formatında olmalıdır.");
+    }
+}

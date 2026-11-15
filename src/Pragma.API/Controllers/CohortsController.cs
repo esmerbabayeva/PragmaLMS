@@ -429,7 +429,7 @@ public class CohortsController : BaseApiController
     }
 
     /// <summary>
-    /// Qeydi silir (Soft delete, audit log-a qeyd olunur).
+    /// Qeydi birdəfəlik silir (Hard delete, audit log-a qeyd olunur).
     /// </summary>
     [Authorize(Policy = AuthorizationPolicies.CanGradeStudents)]
     [HttpDelete("{id:guid}/notes/{noteId:guid}")]
@@ -456,5 +456,71 @@ public class CohortsController : BaseApiController
 
         var fileResult = result.Value;
         return File(fileResult.Content, fileResult.ContentType, fileResult.FileName);
+    }
+
+    /// <summary>
+    /// Kohort üçün Final layihənin təhvil müddətini təyin edir və ya təmizləyir.
+    /// </summary>
+    [HttpPut("{id:guid}/final-deadline")]
+    public async Task<ActionResult<SetFinalDeadlineResultDto>> SetFinalDeadline(
+        Guid id,
+        [FromBody] SetCohortFinalDeadlineDto dto,
+        CancellationToken ct)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue) return Unauthorized();
+
+        var isAdmin = _currentUserService.IsInRole(UserRoles.Admin);
+        var result = await _cohortService.SetFinalDeadlineAsync(id, dto, currentUserId.Value, isAdmin, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Tələbənin Final layihə linkini göndərməsi və ya yeniləməsi (Yalnız aktiv tələbə özü üçün).
+    /// </summary>
+    [HttpPut("{id:guid}/final-submission")]
+    public async Task<ActionResult<StudentFinalSubmissionDto>> SubmitFinalProject(
+        Guid id,
+        [FromBody] SubmitFinalProjectDto dto,
+        CancellationToken ct)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue) return Unauthorized();
+
+        var result = await _cohortService.SubmitFinalProjectAsync(id, dto, currentUserId.Value, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Tələbənin öz Final layihə təhvili məlumatlarını gətirir.
+    /// </summary>
+    [HttpGet("{id:guid}/final-submission")]
+    public async Task<ActionResult<StudentFinalSubmissionDto>> GetMyFinalSubmission(
+        Guid id,
+        CancellationToken ct)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue) return Unauthorized();
+
+        var result = await _cohortService.GetMyFinalSubmissionAsync(id, currentUserId.Value, ct);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Kohort üzrə bütün tələbələrin Final layihə təhvili siyahısını gətirir (Admin, Teacher, Instructor).
+    /// </summary>
+    [HttpGet("{id:guid}/final-submissions")]
+    public async Task<ActionResult<PagedResult<CohortFinalSubmissionItemDto>>> GetCohortFinalSubmissions(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (!currentUserId.HasValue) return Unauthorized();
+
+        var isAdmin = _currentUserService.IsInRole(UserRoles.Admin);
+        var result = await _cohortService.GetCohortFinalSubmissionsAsync(id, page, pageSize, currentUserId.Value, isAdmin, ct);
+        return HandleResult(result);
     }
 }

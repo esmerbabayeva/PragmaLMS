@@ -34,6 +34,11 @@ public static class DependencyInjection
         services.AddScoped<ICohortNoteService, CohortNoteService>();
         services.AddScoped<IStudentGradeService, StudentGradeService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAnnouncementService, AnnouncementService>();
+        services.AddScoped<ILessonQaService, LessonQaService>();
+        services.AddScoped<IQuizTemplateService, QuizTemplateService>();
+        services.AddScoped<IQuizAssignmentService, QuizAssignmentService>();
 
         return services;
     }

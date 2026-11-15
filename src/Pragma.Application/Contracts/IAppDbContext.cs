@@ -33,6 +33,13 @@ public interface IAppDbContext
     DbSet<CohortNote> CohortNotes { get; }
     DbSet<CourseTranslation> CourseTranslations { get; }
     DbSet<CategoryTranslation> CategoryTranslations { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<Announcement> Announcements { get; }
+    DbSet<LessonQuestion> LessonQuestions { get; }
+    DbSet<LessonAnswer> LessonAnswers { get; }
+    DbSet<QuizTemplate> QuizTemplates { get; }
+    DbSet<QuizAssignment> QuizAssignments { get; }
+    DbSet<FinalSubmission> FinalSubmissions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

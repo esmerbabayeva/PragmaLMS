@@ -247,9 +247,22 @@ public class ClosedXMLExcelExporter : IExcelExporter
             $"Final ({cohort.FinalWeight:0}%)",
             "Yekun Bal",
             "Bal Statusu",
-            "Sertifikat Qərarı"
+            "Sertifikat Qərarı",
+            "Final link",
+            "Təhvil vaxtı (Baku)",
+            "Vaxtında?",
+            "Final statusu"
         };
         SetupHeaderRow(sheetGrades, headers1);
+
+        var studentIdsList = studentGrades.Select(g => g.StudentId).Distinct().ToList();
+        var submissions = await _context.FinalSubmissions
+            .AsNoTracking()
+            .Where(s => s.CohortId == cohortId && studentIdsList.Contains(s.StudentId) && !s.IsDeleted)
+            .ToListAsync(ct);
+        var subDict = submissions.ToDictionary(s => s.StudentId);
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+        var isDeadlinePassed = FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow);
 
         int rowIdx = 2;
         int rowNumber = 1;
@@ -275,7 +288,7 @@ public class ClosedXMLExcelExporter : IExcelExporter
             {
                 CertificateEligibilityResult.Diploma => "Diplom",
                 CertificateEligibilityResult.Attendance => "Dərsdə İştirak Sertifikatı",
-                CertificateEligibilityResult.Denied => "Verilmir (Qayıb limiti aşıldı)",
+                CertificateEligibilityResult.Denied => $"Verilmir ({eligibility.Reason})",
                 CertificateEligibilityResult.Pending => "Gözləmədə (Müvəqqəti bal və ya aktiv qrup)",
                 _ => "Verilmir"
             };
@@ -292,6 +305,12 @@ public class ClosedXMLExcelExporter : IExcelExporter
                 ? (grade.IsProvisional ? "Müvəqqəti" : "Rəsmi")
                 : "Qiymətləndirilməyib";
 
+            subDict.TryGetValue(grade.StudentId, out var sub);
+            bool onTime = sub != null && (deadlineUtc == null || sub.SubmittedAtUtc <= deadlineUtc.Value);
+            string finalStatus = grade.FinalScore.HasValue
+                ? "Qiymətləndirilib"
+                : (sub != null ? "Təhvil verilib" : (isDeadlinePassed ? "Gecikib" : "Təhvil verilməyib"));
+
             sheetGrades.Cell(rowIdx, 1).SetValue(rowNumber++);
             SetTextSafe(sheetGrades.Cell(rowIdx, 2), grade.StudentFullName);
             SetTextSafe(sheetGrades.Cell(rowIdx, 3), grade.StudentEmail);
@@ -305,6 +324,10 @@ public class ClosedXMLExcelExporter : IExcelExporter
             SetTextSafe(sheetGrades.Cell(rowIdx, 11), hasAnyGrade ? grade.OfficialScore.ToString("0.0") : "-");
             SetTextSafe(sheetGrades.Cell(rowIdx, 12), scoreStatus);
             SetTextSafe(sheetGrades.Cell(rowIdx, 13), certDecision);
+            SetTextSafe(sheetGrades.Cell(rowIdx, 14), sub?.Url ?? "-");
+            SetTextSafe(sheetGrades.Cell(rowIdx, 15), sub != null ? FinalDeadlineHelper.ToBakuLocalString(sub.SubmittedAtUtc) ?? "-" : "-");
+            SetTextSafe(sheetGrades.Cell(rowIdx, 16), sub != null ? (onTime ? "Bəli" : "Xeyr") : "-");
+            SetTextSafe(sheetGrades.Cell(rowIdx, 17), finalStatus);
 
             // Xəbərdarlıq və ya Dropped üçün vizual vurğu
             if (effectiveAbsences > cohort.MaxAbsenceLimit || enrollment?.Status == CohortEnrollmentStatus.Dropped)
@@ -322,7 +345,23 @@ public class ClosedXMLExcelExporter : IExcelExporter
             ApplyRowZebra(sheetGrades.Row(rowIdx), rowIdx);
             rowIdx++;
         }
-        sheetGrades.Columns().AdjustToContents();
+        sheetGrades.Column(1).Width = 6;
+        sheetGrades.Column(2).Width = 26;
+        sheetGrades.Column(3).Width = 28;
+        sheetGrades.Column(4).Width = 14;
+        sheetGrades.Column(5).Width = 10;
+        sheetGrades.Column(6).Width = 10;
+        sheetGrades.Column(7).Width = 24;
+        sheetGrades.Column(8).Width = 14;
+        sheetGrades.Column(9).Width = 18;
+        sheetGrades.Column(10).Width = 14;
+        sheetGrades.Column(11).Width = 14;
+        sheetGrades.Column(12).Width = 16;
+        sheetGrades.Column(13).Width = 26;
+        sheetGrades.Column(14).Width = 35;
+        sheetGrades.Column(15).Width = 20;
+        sheetGrades.Column(16).Width = 12;
+        sheetGrades.Column(17).Width = 18;
 
         // -------------------------------------------------------------
         // Vərəq 2: "Davamiyyət Jurnalı" (Gündəlik İştirak Matrisi)
@@ -393,7 +432,15 @@ public class ClosedXMLExcelExporter : IExcelExporter
             ApplyRowZebra(sheetAttendance.Row(rowIdx), rowIdx);
             rowIdx++;
         }
-        sheetAttendance.Columns().AdjustToContents();
+        int summaryColStart = 4 + daySheets.Count;
+        sheetAttendance.Column(1).Width = 6;
+        sheetAttendance.Column(2).Width = 26;
+        sheetAttendance.Column(3).Width = 28;
+        for (int c = 4; c < summaryColStart; c++) sheetAttendance.Column(c).Width = 14;
+        sheetAttendance.Column(summaryColStart).Width = 10;
+        sheetAttendance.Column(summaryColStart + 1).Width = 10;
+        sheetAttendance.Column(summaryColStart + 2).Width = 18;
+        sheetAttendance.Column(summaryColStart + 3).Width = 24;
 
         // -------------------------------------------------------------
         // Vərəq 3: "Kohort Məlumatı" (Metadata və Akademik Parametrlər)
@@ -435,7 +482,8 @@ public class ClosedXMLExcelExporter : IExcelExporter
             ApplyRowZebra(sheetMeta.Row(rowIdx), rowIdx);
             rowIdx++;
         }
-        sheetMeta.Columns().AdjustToContents();
+        sheetMeta.Column(1).Width = 28;
+        sheetMeta.Column(2).Width = 45;
 
         using var memoryStream = new MemoryStream();
         workbook.SaveAs(memoryStream);

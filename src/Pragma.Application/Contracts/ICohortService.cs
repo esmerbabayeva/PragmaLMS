@@ -80,4 +80,30 @@ public interface ICohortService
         Guid currentUserId,
         bool isAdmin,
         CancellationToken ct = default);
+
+    Task<Result<SetFinalDeadlineResultDto>> SetFinalDeadlineAsync(
+        Guid cohortId,
+        SetCohortFinalDeadlineDto dto,
+        Guid currentUserId,
+        bool isAdmin,
+        CancellationToken ct = default);
+
+    Task<Result<StudentFinalSubmissionDto>> SubmitFinalProjectAsync(
+        Guid cohortId,
+        SubmitFinalProjectDto dto,
+        Guid studentId,
+        CancellationToken ct = default);
+
+    Task<Result<StudentFinalSubmissionDto>> GetMyFinalSubmissionAsync(
+        Guid cohortId,
+        Guid studentId,
+        CancellationToken ct = default);
+
+    Task<Result<PagedResult<CohortFinalSubmissionItemDto>>> GetCohortFinalSubmissionsAsync(
+        Guid cohortId,
+        int page,
+        int pageSize,
+        Guid currentUserId,
+        bool isAdmin,
+        CancellationToken ct = default);
 }

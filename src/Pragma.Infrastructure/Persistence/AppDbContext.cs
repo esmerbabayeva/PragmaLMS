@@ -41,6 +41,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<CohortNote> CohortNotes => Set<CohortNote>();
     public DbSet<CourseTranslation> CourseTranslations => Set<CourseTranslation>();
     public DbSet<CategoryTranslation> CategoryTranslations => Set<CategoryTranslation>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Announcement> Announcements => Set<Announcement>();
+    public DbSet<LessonQuestion> LessonQuestions => Set<LessonQuestion>();
+    public DbSet<LessonAnswer> LessonAnswers => Set<LessonAnswer>();
+    public DbSet<QuizTemplate> QuizTemplates => Set<QuizTemplate>();
+    public DbSet<QuizAssignment> QuizAssignments => Set<QuizAssignment>();
+    public DbSet<FinalSubmission> FinalSubmissions => Set<FinalSubmission>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -137,6 +144,72 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                   .WithOne(a => a.QuizAttempt)
                   .HasForeignKey(a => a.QuizAttemptId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // 3.1 QuizTemplate və QuizAssignment konfiqurasiyası (İki mərhələli Quiz Sistemi)
+        builder.Entity<QuizTemplate>(entity =>
+        {
+            entity.HasIndex(t => t.TeacherId);
+            entity.Property(t => t.Title).HasMaxLength(250).IsRequired();
+
+            entity.HasOne(t => t.Course)
+                  .WithMany()
+                  .HasForeignKey(t => t.CourseId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(t => t.Assignments)
+                  .WithOne(a => a.Template)
+                  .HasForeignKey(a => a.TemplateId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<QuizAssignment>(entity =>
+        {
+            entity.HasIndex(a => a.TemplateId);
+            entity.HasIndex(a => a.TeacherId);
+            entity.HasIndex(a => a.CohortId);
+            entity.HasIndex(a => a.CourseId);
+            entity.Property(a => a.Title).HasMaxLength(250).IsRequired();
+
+            entity.HasOne(a => a.Cohort)
+                  .WithMany()
+                  .HasForeignKey(a => a.CohortId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Course)
+                  .WithMany()
+                  .HasForeignKey(a => a.CourseId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Lesson)
+                  .WithMany()
+                  .HasForeignKey(a => a.LessonId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.Quiz)
+                  .WithMany()
+                  .HasForeignKey(a => a.QuizId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(a => a.Attempts)
+                  .WithOne(qa => qa.QuizAssignment)
+                  .HasForeignKey(qa => qa.QuizAssignmentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // 3.2 FinalSubmission konfiqurasiyası (Final layihə link təhvili)
+        builder.Entity<FinalSubmission>(entity =>
+        {
+            entity.HasIndex(s => new { s.CohortId, s.StudentId })
+                  .IsUnique()
+                  .HasFilter("[IsDeleted] = 0");
+
+            entity.Property(s => s.Url).HasMaxLength(500).IsRequired();
+
+            entity.HasOne(s => s.Cohort)
+                  .WithMany()
+                  .HasForeignKey(s => s.CohortId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Review>(entity =>
@@ -276,6 +349,53 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<Notification>(entity =>
+        {
+            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+            entity.Property(n => n.Message).HasMaxLength(2000).IsRequired();
+            entity.Property(n => n.TargetUrl).HasMaxLength(500);
+            entity.HasIndex(n => new { n.UserId, n.IsRead });
+            entity.HasIndex(n => n.CreatedAtUtc);
+        });
+
+        builder.Entity<Announcement>(entity =>
+        {
+            entity.Property(a => a.Title).HasMaxLength(200).IsRequired();
+            entity.Property(a => a.Content).HasMaxLength(4000).IsRequired();
+            entity.HasIndex(a => a.CohortId);
+            entity.HasIndex(a => a.CreatedAtUtc);
+
+            entity.HasOne(a => a.Cohort)
+                  .WithMany()
+                  .HasForeignKey(a => a.CohortId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LessonQuestion>(entity =>
+        {
+            entity.Property(q => q.Title).HasMaxLength(200).IsRequired();
+            entity.Property(q => q.Content).HasMaxLength(4000).IsRequired();
+            entity.HasIndex(q => q.LessonId);
+            entity.HasIndex(q => q.StudentId);
+
+            entity.HasOne(q => q.Lesson)
+                  .WithMany()
+                  .HasForeignKey(q => q.LessonId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(q => q.Answers)
+                  .WithOne(a => a.Question)
+                  .HasForeignKey(a => a.QuestionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LessonAnswer>(entity =>
+        {
+            entity.Property(a => a.Content).HasMaxLength(4000).IsRequired();
+            entity.HasIndex(a => a.QuestionId);
+            entity.HasIndex(a => a.AuthorId);
+        });
+
         // 5. Global Query Filters (Soft delete)
         builder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<Course>().HasQueryFilter(e => !e.IsDeleted);
@@ -302,6 +422,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<AttendanceRecord>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<CohortGradeEntry>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<CohortNote>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Announcement>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<LessonQuestion>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<LessonAnswer>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<QuizTemplate>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<QuizAssignment>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<FinalSubmission>().HasQueryFilter(e => !e.IsDeleted);
 
         builder.Entity<AuthChallenge>(entity =>
         {

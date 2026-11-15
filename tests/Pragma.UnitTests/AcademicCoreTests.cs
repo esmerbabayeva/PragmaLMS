@@ -1597,7 +1597,8 @@ public class AcademicCoreTests
             QuizWeight = 30,
             MiniProjectWeight = 30,
             FinalWeight = 40,
-            Status = CohortStatus.Active
+            Status = CohortStatus.Active,
+            EndDate = DateTime.UtcNow.AddDays(-2)
         };
         context.Cohorts.Add(cohort);
         await context.SaveChangesAsync();
@@ -1648,7 +1649,8 @@ public class AcademicCoreTests
             QuizWeight = 30,
             MiniProjectWeight = 30,
             FinalWeight = 40,
-            Status = CohortStatus.Active
+            Status = CohortStatus.Active,
+            EndDate = DateTime.UtcNow.AddDays(-2)
         };
         context.Cohorts.Add(cohort);
 
@@ -1791,11 +1793,10 @@ public class AcademicCoreTests
         var service = new AcademicGradeService(context, new Mock<IUserLookupService>().Object);
         var result = await service.FinalizeCohortGradesAsync(cohort.Id, instructorId, isAdmin: false);
 
-        Assert.True(result.IsSuccess);
-        var updated = await context.CohortEnrollments.FirstAsync(e => e.StudentId == studentId);
-        Assert.True(updated.IsProvisional);
-        Assert.Equal(70.0m, updated.OfficialFinalScore);
-        Assert.False(updated.FinalNotSubmitted);
+        // Stage 3.1: Son müddət keçməyibsə (IsFinalDeadlinePassed false), Finalize edilə bilməz -> 409 Conflict
+        Assert.True(result.IsFailure);
+        Assert.Equal(ErrorType.Conflict, result.Error.Type);
+        Assert.Equal("Cohort.DeadlineNotPassed", result.Error.Code);
     }
 
     [Fact]
@@ -1879,7 +1880,7 @@ public class AcademicCoreTests
             MiniProjectWeight = 30,
             FinalWeight = 40,
             Status = CohortStatus.Finished,
-            EndDate = DateTime.UtcNow.AddDays(-1)
+            EndDate = DateTime.UtcNow.AddDays(-2)
         };
         context.Cohorts.Add(cohort);
 
@@ -1909,9 +1910,9 @@ public class AcademicCoreTests
     }
 
     [Fact]
-    public async Task CertificateService_WhenFinalNotSubmitted_ReturnsConflict409_EvenIfScoreAbove70()
+    public async Task CertificateService_WhenFinalNotSubmitted_IssuesAttendanceCertificate_EvenIfScoreAbove70()
     {
-        // (d) Final yox, quiz+mini ilə bal 70-dən çox olsa belə -> sertifikat 409
+        // Rule A: Final layihə təhvil verməyən tələbə Diplom ala bilməz, lakin qayıb limiti aşılmayıbsa İştirak sertifikatı (Attendance) alır
         using var context = CreateInMemoryContext();
         var studentId = Guid.NewGuid();
         var course = new Course
@@ -1956,25 +1957,29 @@ public class AcademicCoreTests
         var currentUserServiceMock = new Mock<ICurrentUserService>();
         currentUserServiceMock.Setup(u => u.UserId).Returns(studentId);
 
+        var certGenMock = new Mock<ICertificateGenerator>();
+        certGenMock.Setup(g => g.GeneratePdf(It.IsAny<CertificateRenderModel>()))
+            .Returns(new byte[] { 1, 2, 3 });
+
         var policy = new CertificateEligibilityPolicy();
         var service = new CertificateService(
             context,
             currentUserServiceMock.Object,
             new Mock<IUserLookupService>().Object,
-            new Mock<ICertificateGenerator>().Object,
+            certGenMock.Object,
             policy,
             new Mock<IAuditLogService>().Object
         );
 
-        // Policy yoxlayırıq: Denied qaytarmalıdır
+        // Policy yoxlayırıq: Final təhvil verilməyib, amma qayıb limiti aşılmayıb -> Attendance qaytarmalıdır
         var eval = policy.Evaluate(cohortEnr, 75.0m, 0, 6, isCohortFinished: true);
-        Assert.Equal(CertificateEligibilityResult.Denied, eval.Result);
+        Assert.Equal(CertificateEligibilityResult.Attendance, eval.Result);
 
-        // Service çağırırıq: Conflict (409) ProblemDetails qaytarmalıdır
+        // Service çağırırıq: Attendance sertifikatı uğurla verilməlidir
         var result = await service.GenerateCertificateAsync(course.Id);
-        Assert.True(result.IsFailure);
-        Assert.Equal(ErrorType.Conflict, result.Error.Type);
-        Assert.Equal("Certificate.FinalNotSubmitted", result.Error.Code);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(CertificateType.Attendance, result.Value.Type);
+        Assert.StartsWith("PRAGMA-ATT-", result.Value.CertificateCode);
     }
 
     [Fact]

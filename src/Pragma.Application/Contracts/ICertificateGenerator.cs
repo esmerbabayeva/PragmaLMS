@@ -1,3 +1,5 @@
+using Pragma.Domain.Enums;
+
 namespace Pragma.Application.Contracts;
 
 public record CertificateRenderModel(
@@ -6,7 +8,9 @@ public record CertificateRenderModel(
     string CourseTitle,
     string InstructorName,
     DateTime IssuedAtUtc,
-    string VerificationUrl
+    string VerificationUrl,
+    CertificateType Type = CertificateType.Diploma,
+    double GradePercentage = 100.0
 );
 
 public interface ICertificateGenerator

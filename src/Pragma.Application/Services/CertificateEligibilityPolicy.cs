@@ -30,21 +30,7 @@ public class CertificateEligibilityPolicy : ICertificateEligibilityPolicy
             );
         }
 
-        // 3. Final layihə təhvil verilməyibsə -> Denied (balından asılı olmayaraq sertifikat verilmir)
-        if (enrollment.FinalNotSubmitted)
-        {
-            return new CertificateEligibilityEvaluation(
-                Result: CertificateEligibilityResult.Denied,
-                OfficialGrade: roundedGrade,
-                TotalAbsences: totalAbsences,
-                MaxAbsenceLimit: maxAbsenceLimit,
-                IsProvisional: false,
-                IsCohortFinished: isCohortFinished,
-                Reason: "Final layihə təhvil verilmədiyi üçün sertifikat verilmir."
-            );
-        }
-
-        // 4. Qayıb sayı limiti aşıbsa və ya status Dropped-dirsə -> Denied
+        // 3. Qayıb sayı limiti aşıbsa və ya status Dropped-dirsə -> Denied (heç bir sertifikat verilmir)
         if (totalAbsences > maxAbsenceLimit || enrollment.Status == CohortEnrollmentStatus.Dropped)
         {
             return new CertificateEligibilityEvaluation(
@@ -58,7 +44,21 @@ public class CertificateEligibilityPolicy : ICertificateEligibilityPolicy
             );
         }
 
-        // 4. Bal >= 70.0 -> Fəxri Diplom (Diploma)
+        // 4. Final layihə təhvil verilməyibsə -> Fəxri Diplom verilmir, amma qayıb limiti aşılmadığı üçün İştirak Sertifikatı (Attendance) verilir!
+        if (enrollment.FinalNotSubmitted)
+        {
+            return new CertificateEligibilityEvaluation(
+                Result: CertificateEligibilityResult.Attendance,
+                OfficialGrade: roundedGrade,
+                TotalAbsences: totalAbsences,
+                MaxAbsenceLimit: maxAbsenceLimit,
+                IsProvisional: false,
+                IsCohortFinished: isCohortFinished,
+                Reason: "Final layihə təhvil verilmədiyi üçün Fəxri Diplom verilmir, Dinləyici İştirak Sertifikatı (Attendance) verilir."
+            );
+        }
+
+        // 5. Bal >= 70.0 -> Fəxri Diplom (Diploma)
         if (roundedGrade >= 70.0m)
         {
             return new CertificateEligibilityEvaluation(
@@ -72,7 +72,7 @@ public class CertificateEligibilityPolicy : ICertificateEligibilityPolicy
             );
         }
 
-        // 5. Bal < 70.0 və Qayıb <= Limit -> Dinləyici İştirak Sertifikatı (Attendance)
+        // 6. Bal < 70.0 və Qayıb <= Limit -> Dinləyici İştirak Sertifikatı (Attendance)
         return new CertificateEligibilityEvaluation(
             Result: CertificateEligibilityResult.Attendance,
             OfficialGrade: roundedGrade,

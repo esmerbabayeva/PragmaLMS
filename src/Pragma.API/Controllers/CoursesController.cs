@@ -32,11 +32,18 @@ public class CoursesController : BaseApiController
     [HttpGet]
     public async Task<ActionResult<PagedResult<CourseSummaryDto>>> GetCourses([FromQuery] CourseFilterDto filter, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+
         var resolvedLanguage = !string.IsNullOrWhiteSpace(lang)
             ? lang
-            : (!string.IsNullOrWhiteSpace(filter.Language)
-                ? filter.Language
-                : Request.Headers.AcceptLanguage.ToString());
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : (!string.IsNullOrWhiteSpace(filter.Language)
+                        ? filter.Language
+                        : Request.Headers.AcceptLanguage.ToString())));
 
         filter = filter with { Language = resolvedLanguage };
 
@@ -50,7 +57,16 @@ public class CoursesController : BaseApiController
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CourseDetailDto>> GetCourseById(Guid id, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+        var language = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : Request.Headers.AcceptLanguage.ToString()));
+
         var result = await _courseService.GetCourseByIdAsync(id, language, cancellationToken);
         return HandleResult(result);
     }
@@ -61,7 +77,16 @@ public class CoursesController : BaseApiController
     [HttpGet("by-slug/{slug}")]
     public async Task<ActionResult<CourseDetailDto>> GetCourseBySlug(string slug, [FromQuery] string? lang, CancellationToken cancellationToken)
     {
-        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+        var language = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : Request.Headers.AcceptLanguage.ToString()));
+
         var result = await _courseService.GetCourseBySlugAsync(slug, language, cancellationToken);
         return HandleResult(result);
     }

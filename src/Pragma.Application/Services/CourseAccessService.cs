@@ -27,6 +27,11 @@ public class CourseAccessService : ICourseAccessService
             .AnyAsync(c => c.Id == courseId && (c.InstructorId == userId || c.InstructorId == Guid.Empty), cancellationToken);
         if (isInstructor) return true;
 
+        var isCohortTeacher = await _context.Cohorts
+            .AsNoTracking()
+            .AnyAsync(c => c.CourseId == courseId && c.TeacherId == userId && !c.IsDeleted, cancellationToken);
+        if (isCohortTeacher) return true;
+
         if (_userLookup != null)
         {
             var teacherIds = await _userLookup.GetUserIdsInRoleAsync(UserRoles.Teacher, cancellationToken);

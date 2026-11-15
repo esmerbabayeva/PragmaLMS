@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
 using Pragma.Application.DTOs.Certificates;
+using Pragma.Application.DTOs.Notifications;
 using Pragma.Domain.Entities;
 using Pragma.Domain.Enums;
 
@@ -15,6 +16,7 @@ public class CertificateService : ICertificateService
     private readonly ICertificateGenerator _certificateGenerator;
     private readonly ICertificateEligibilityPolicy _eligibilityPolicy;
     private readonly IAuditLogService _auditLog;
+    private readonly INotificationService? _notificationService;
 
     public CertificateService(
         IAppDbContext context,
@@ -22,7 +24,8 @@ public class CertificateService : ICertificateService
         IUserLookupService userLookup,
         ICertificateGenerator certificateGenerator,
         ICertificateEligibilityPolicy eligibilityPolicy,
-        IAuditLogService auditLog)
+        IAuditLogService auditLog,
+        INotificationService? notificationService = null)
     {
         _context = context;
         _currentUserService = currentUserService;
@@ -30,6 +33,7 @@ public class CertificateService : ICertificateService
         _certificateGenerator = certificateGenerator;
         _eligibilityPolicy = eligibilityPolicy;
         _auditLog = auditLog;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<CertificateDto>> GenerateCertificateAsync(Guid courseId, CancellationToken cancellationToken = default)
@@ -68,27 +72,45 @@ public class CertificateService : ICertificateService
             return Result<CertificateDto>.Failure(Error.Validation("Certificate.NotEligible", "Sertifikat əldə etmək üçün bütün dərsləri 100% tamamlamalısınız."));
 
         CohortEnrollment? cohortEnr = null;
+        var certType = CertificateType.Diploma;
+        double gradePercentage = enrollment.ProgressPercentage;
+
         if (course.DeliveryMode == DeliveryMode.Cohort)
         {
             cohortEnr = await _context.CohortEnrollments
                 .Include(ce => ce.Cohort)
+                    .ThenInclude(c => c!.AttendanceRecords)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(ce => ce.StudentId == studentId.Value && ce.Cohort != null && ce.Cohort.CourseId == courseId && !ce.IsDeleted, cancellationToken);
 
             if (cohortEnr != null)
             {
-                var isDeadlinePassed = cohortEnr.Cohort == null
-                                    || cohortEnr.Cohort.Status == CohortStatus.Finished
-                                    || !cohortEnr.Cohort.EndDate.HasValue
-                                    || cohortEnr.Cohort.EndDate.Value <= DateTime.UtcNow;
-
-                var hasFinalGrade = await _context.CohortGradeEntries
-                    .AnyAsync(g => g.CohortId == cohortEnr.CohortId && g.StudentId == studentId.Value && g.ComponentType == GradeComponentType.Final && !g.IsDeleted, cancellationToken);
-
-                if (cohortEnr.FinalNotSubmitted || (isDeadlinePassed && !hasFinalGrade))
+                if (cohortEnr.Cohort == null || !cohortEnr.OfficialFinalScore.HasValue)
                 {
-                    return Result<CertificateDto>.Failure(Error.Conflict("Certificate.FinalNotSubmitted", "Final layihə təhvil verilmədiyi üçün sertifikat verilə bilməz."));
+                    return Result<CertificateDto>.Failure(Error.Conflict("Certificate.NotFinalized", "Kohort qiymətləndirməsi hələ yekunlaşdırılmayıb (Finalize olunmayıb)."));
                 }
+
+                var records = cohortEnr.Cohort.AttendanceRecords.Where(r => r.StudentId == studentId.Value && !r.IsDeleted).ToList();
+                var absents = records.Count(r => r.Status == AttendanceStatus.Absent);
+                var lates = records.Count(r => r.Status == AttendanceStatus.Late);
+                var ratio = cohortEnr.Cohort.LateToAbsenceRatio > 0 ? cohortEnr.Cohort.LateToAbsenceRatio : 3;
+                var effectiveAbsences = absents + (lates / ratio);
+
+                var isCohortFinished = cohortEnr.Cohort.Status == CohortStatus.Finished;
+                var eval = _eligibilityPolicy.Evaluate(cohortEnr, cohortEnr.OfficialFinalScore.Value, effectiveAbsences, cohortEnr.Cohort.MaxAbsenceLimit, isCohortFinished);
+
+                if (eval.Result == CertificateEligibilityResult.Denied)
+                {
+                    return Result<CertificateDto>.Failure(Error.Conflict("Certificate.NotEligible", eval.Reason));
+                }
+
+                if (eval.Result == CertificateEligibilityResult.Pending)
+                {
+                    return Result<CertificateDto>.Failure(Error.Conflict("Certificate.Pending", eval.Reason));
+                }
+
+                certType = eval.Result == CertificateEligibilityResult.Diploma ? CertificateType.Diploma : CertificateType.Attendance;
+                gradePercentage = (double)eval.OfficialGrade;
             }
         }
 
@@ -97,7 +119,8 @@ public class CertificateService : ICertificateService
 
         var slugPart = course.Slug.Length >= 4 ? course.Slug[..4].ToUpperInvariant() : "LMS";
         var randomPart = Guid.NewGuid().ToString("N")[..5].ToUpperInvariant();
-        var certCode = $"PRAGMA-{DateTime.UtcNow.Year}-{slugPart}-{randomPart}";
+        var prefix = certType == CertificateType.Diploma ? "PRAGMA-DIP" : "PRAGMA-ATT";
+        var certCode = $"{prefix}-{DateTime.UtcNow.Year}-{slugPart}-{randomPart}";
         var verifySecret = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")[..8];
 
         var cert = new Certificate
@@ -105,19 +128,28 @@ public class CertificateService : ICertificateService
             StudentId = studentId.Value,
             CourseId = courseId,
             CohortId = cohortEnr?.CohortId,
-            Type = CertificateType.Diploma,
+            Type = certType,
             CertificateCode = certCode,
             VerificationCode = verifySecret,
             StudentFullName = fullName,
             CourseTitle = course.Title,
-            GradePercentage = (course.DeliveryMode == DeliveryMode.Cohort && cohortEnr?.OfficialFinalScore.HasValue == true)
-                ? (double)cohortEnr.OfficialFinalScore.Value
-                : enrollment.ProgressPercentage,
+            GradePercentage = gradePercentage,
             IssuedAtUtc = DateTime.UtcNow
         };
 
         _context.Certificates.Add(cert);
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (_notificationService != null)
+        {
+            await _notificationService.CreateNotificationAsync(new CreateNotificationDto(
+                UserId: studentId.Value,
+                Title: "Təbriklər! Sertifikatınız Hazırdır",
+                Message: $"{course.Title} kursunu tamamladınız. Sertifikatınızı yükləyə və doğrulaya bilərsiniz.",
+                Type: NotificationType.CertificateReady,
+                TargetUrl: $"/verify/{cert.CertificateCode}"
+            ), cancellationToken);
+        }
 
         return Result<CertificateDto>.Success(MapToDto(cert, instructorName));
     }
@@ -164,7 +196,9 @@ public class CertificateService : ICertificateService
             cert.CourseTitle,
             instructorName,
             cert.IssuedAtUtc,
-            $"https://pragma.edu.az/verify/{cert.VerificationCode}"
+            $"https://pragma.edu.az/verify/{cert.CertificateCode}",
+            cert.Type,
+            cert.GradePercentage
         );
 
         var pdfBytes = _certificateGenerator.GeneratePdf(renderModel);
@@ -360,6 +394,7 @@ public class CertificateService : ICertificateService
 
         var certDict = existingCerts.ToDictionary(c => c.StudentId);
         int issuedCount = 0;
+        var issuedCertificates = new List<(Guid StudentId, string Code, CertificateType Type)>();
         var isFinished = cohort.Status == CohortStatus.Finished;
 
         foreach (var enr in enrollments)
@@ -399,10 +434,27 @@ public class CertificateService : ICertificateService
 
                 _context.Certificates.Add(certificate);
                 issuedCount++;
+                issuedCertificates.Add((enr.StudentId, certCode, certType));
             }
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (_notificationService != null)
+        {
+            foreach (var (stId, cCode, cType) in issuedCertificates)
+            {
+                var docType = cType == CertificateType.Diploma ? "Diplomunuz" : "İştirak Sertifikatınız";
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto(
+                    UserId: stId,
+                    Title: $"Təbriklər! {docType} Hazırdır",
+                    Message: $"{cohort.Name} qrupu üzrə {docType.ToLowerInvariant()} tərtib edildi. Doğrulama kodu: {cCode}.",
+                    Type: NotificationType.CertificateReady,
+                    TargetUrl: $"/verify/{cCode}"
+                ), cancellationToken);
+            }
+        }
+
         return Result<int>.Success(issuedCount);
     }
 

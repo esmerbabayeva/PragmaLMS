@@ -63,7 +63,10 @@ public record CohortDetailDto(
     int LateToAbsenceRatio,
     CohortStatus Status,
     int EnrolledStudentCount,
-    IReadOnlyCollection<CohortScheduleDto> Schedules
+    IReadOnlyCollection<CohortScheduleDto> Schedules,
+    DateTime? FinalDeadlineUtc = null,
+    string? FinalDeadlineLocal = null,
+    bool FinalDeadlineIsEndOfDay = true
 );
 
 public record CohortSummaryDto(
@@ -77,7 +80,52 @@ public record CohortSummaryDto(
     int EnrolledStudentCount,
     double CompletedHours,
     double TotalHours,
-    DateTime StartDate
+    DateTime StartDate,
+    DateTime? FinalDeadlineUtc = null,
+    string? FinalDeadlineLocal = null,
+    bool FinalDeadlineIsEndOfDay = true
+);
+
+public record SetCohortFinalDeadlineDto(
+    string? Date,
+    string? Time = null,
+    bool IsEndOfDay = false,
+    bool ClearToDefault = false
+);
+
+public record SetFinalDeadlineResultDto(
+    DateTime? FinalDeadlineUtc,
+    string? FinalDeadlineLocal,
+    bool IsEndOfDay,
+    bool IsPastWarning,
+    string? WarningMessage = null
+);
+
+public record SubmitFinalProjectDto(
+    string Url
+);
+
+public record StudentFinalSubmissionDto(
+    string? Url,
+    DateTime? SubmittedAtUtc,
+    DateTime? UpdatedAtUtc,
+    string? FinalDeadlineLocal,
+    bool IsDeadlinePassed,
+    bool IsGraded,
+    decimal? FinalGrade,
+    string Status
+);
+
+public record CohortFinalSubmissionItemDto(
+    Guid StudentId,
+    string FullName,
+    string Email,
+    string? Url,
+    DateTime? SubmittedAtUtc,
+    bool OnTime,
+    bool HasFinalGrade,
+    decimal? FinalGrade,
+    string Status
 );
 
 public record EnrollStudentInCohortDto(

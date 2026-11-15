@@ -54,9 +54,14 @@ public class TeacherService : ITeacherService
                 var totalHours = c.TotalHours > 0 ? c.TotalHours : (totalLessons * 2.0);
                 var completedHours = c.CompletedHours;
                 var remainingHours = Math.Max(0.0, Math.Round(totalHours - completedHours, 1));
+                var cohortCode = c.Name.Contains(':') ? c.Name.Split(':')[0].Trim() : null;
                 var courseTitle = !string.IsNullOrWhiteSpace(c.Course?.Title)
-                    ? $"{c.Name} ({c.Course.Title})"
+                    ? (cohortCode != null ? $"{cohortCode}: {c.Course.Title}" : c.Course.Title)
                     : c.Name;
+
+                var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(c);
+                var deadlineLocal = FinalDeadlineHelper.ToBakuLocalString(deadlineUtc);
+                var isEod = c.FinalDeadlineUtc.HasValue ? FinalDeadlineHelper.IsEndOfDay(c.FinalDeadlineUtc.Value) : true;
 
                 cohortList.Add(new AssignedGroupSummaryDto(
                     c.Id,
@@ -68,7 +73,12 @@ public class TeacherService : ITeacherService
                     completedHours,
                     remainingHours,
                     0.0,
-                    c.Id
+                    c.Id,
+                    c.CourseId,
+                    deadlineUtc,
+                    deadlineLocal,
+                    isEod,
+                    c.Status.ToString()
                 ));
             }
             return Result<IReadOnlyCollection<AssignedGroupSummaryDto>>.Success(cohortList);
@@ -124,7 +134,8 @@ public class TeacherService : ITeacherService
                 completedHours,
                 remainingHours,
                 avgGrade,
-                null
+                null,
+                course.Id
             ));
         }
 
@@ -171,6 +182,12 @@ public class TeacherService : ITeacherService
                 .AsNoTracking()
                 .Where(qa => quizzes.Contains(qa.QuizId) && studentIds.Contains(qa.StudentId) && !qa.IsDeleted)
                 .ToListAsync(ct);
+
+            var submissions = await _context.FinalSubmissions
+                .AsNoTracking()
+                .Where(s => s.CohortId == groupId && studentIds.Contains(s.StudentId) && !s.IsDeleted)
+                .ToListAsync(ct);
+            var subDict = submissions.ToDictionary(s => s.StudentId);
 
             var cohortStudentList = new List<GroupStudentDto>();
 
@@ -235,6 +252,8 @@ public class TeacherService : ITeacherService
                     status = "Aktiv";
                 }
 
+                subDict.TryGetValue(enr.StudentId, out var sub);
+
                 cohortStudentList.Add(new GroupStudentDto(
                     enr.StudentId,
                     fullName,
@@ -250,7 +269,9 @@ public class TeacherService : ITeacherService
                     officialScore,
                     isProvisional,
                     miniEntry?.Notes ?? finalEntry?.Notes,
-                    status
+                    status,
+                    sub?.Url,
+                    sub?.SubmittedAtUtc
                 ));
             }
 
@@ -371,6 +392,176 @@ public class TeacherService : ITeacherService
         bool isAdmin,
         CancellationToken ct = default)
     {
+        // 1. Əvvəlcə qrupun Kohort olub-olmaması yoxlanılır (Stage 2/3 Akademik Model)
+        var cohort = await _context.Cohorts
+            .Include(c => c.Course)
+            .Include(c => c.Enrollments)
+            .Include(c => c.GradeEntries)
+            .Include(c => c.AttendanceRecords)
+            .FirstOrDefaultAsync(c => c.Id == dto.GroupId && !c.IsDeleted, ct);
+
+        if (cohort != null)
+        {
+            if (!isAdmin && cohort.TeacherId != teacherId && cohort.Course?.InstructorId != teacherId)
+            {
+                return Result<bool>.Failure(Error.Forbidden("Group.Forbidden", "Yalnız sizə təyin olunmuş qrupun tələbələrinə bal verə bilərsiniz."));
+            }
+
+            var cohortEnrollment = cohort.Enrollments.FirstOrDefault(e => e.StudentId == dto.StudentId && !e.IsDeleted);
+            if (cohortEnrollment == null)
+            {
+                return Result<bool>.Failure(Error.NotFound("Enrollment.NotFound", "Tələbə bu qrupda qeydiyyatda deyil."));
+            }
+
+            var now = DateTime.UtcNow;
+
+            // 1.1 Mini Layihə balı
+            if (dto.MiniProjectGrade.HasValue)
+            {
+                if (dto.MiniProjectGrade.Value < 0 || dto.MiniProjectGrade.Value > 100)
+                    return Result<bool>.Failure(Error.Validation("Grade.Invalid", "Mini layihə balı 0 ilə 100 arasında olmalıdır."));
+
+                var existingMini = cohort.GradeEntries.FirstOrDefault(g => g.StudentId == dto.StudentId && g.ComponentType == GradeComponentType.MiniProject && !g.IsDeleted);
+                if (existingMini != null)
+                {
+                    existingMini.Score = Math.Round(dto.MiniProjectGrade.Value, 1, MidpointRounding.AwayFromZero);
+                    existingMini.GradedByTeacherId = teacherId;
+                    existingMini.GradedAtUtc = now;
+                    if (!string.IsNullOrWhiteSpace(dto.TeacherFeedback)) existingMini.Notes = dto.TeacherFeedback.Trim();
+                    existingMini.MarkUpdated();
+                }
+                else
+                {
+                    _context.CohortGradeEntries.Add(new CohortGradeEntry
+                    {
+                        CohortId = cohort.Id,
+                        StudentId = dto.StudentId,
+                        ComponentType = GradeComponentType.MiniProject,
+                        Score = Math.Round(dto.MiniProjectGrade.Value, 1, MidpointRounding.AwayFromZero),
+                        GradedByTeacherId = teacherId,
+                        GradedAtUtc = now,
+                        Notes = dto.TeacherFeedback?.Trim()
+                    });
+                }
+            }
+
+            // 1.2 Final Layihə balı
+            if (dto.FinalGrade.HasValue)
+            {
+                if (dto.FinalGrade.Value < 0 || dto.FinalGrade.Value > 100)
+                    return Result<bool>.Failure(Error.Validation("Grade.Invalid", "Final balı 0 ilə 100 arasında olmalıdır."));
+
+                var existingFinal = cohort.GradeEntries.FirstOrDefault(g => g.StudentId == dto.StudentId && g.ComponentType == GradeComponentType.Final && !g.IsDeleted);
+                if (existingFinal != null)
+                {
+                    existingFinal.Score = Math.Round(dto.FinalGrade.Value, 1, MidpointRounding.AwayFromZero);
+                    existingFinal.GradedByTeacherId = teacherId;
+                    existingFinal.GradedAtUtc = now;
+                    if (!string.IsNullOrWhiteSpace(dto.TeacherFeedback)) existingFinal.Notes = dto.TeacherFeedback.Trim();
+                    existingFinal.MarkUpdated();
+                }
+                else
+                {
+                    _context.CohortGradeEntries.Add(new CohortGradeEntry
+                    {
+                        CohortId = cohort.Id,
+                        StudentId = dto.StudentId,
+                        ComponentType = GradeComponentType.Final,
+                        Score = Math.Round(dto.FinalGrade.Value, 1, MidpointRounding.AwayFromZero),
+                        GradedByTeacherId = teacherId,
+                        GradedAtUtc = now,
+                        Notes = dto.TeacherFeedback?.Trim()
+                    });
+                }
+            }
+
+            // 1.3 Davamiyyət (Qayıb və Gecikmə)
+            if (dto.AbsentCount.HasValue || dto.LateCount.HasValue)
+            {
+                var targetAbsents = Math.Max(0, dto.AbsentCount ?? 0);
+                var targetLates = Math.Max(0, dto.LateCount ?? 0);
+
+                var existingRecords = cohort.AttendanceRecords.Where(a => a.StudentId == dto.StudentId && !a.IsDeleted).ToList();
+                var currentAbsents = existingRecords.Where(a => a.Status == AttendanceStatus.Absent).ToList();
+                var currentLates = existingRecords.Where(a => a.Status == AttendanceStatus.Late).ToList();
+
+                // Qayıbları sinxronlaşdır
+                while (currentAbsents.Count < targetAbsents)
+                {
+                    var newDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-currentAbsents.Count));
+                    var rec = new AttendanceRecord
+                    {
+                        CohortId = cohort.Id,
+                        StudentId = dto.StudentId,
+                        Date = newDate,
+                        Status = AttendanceStatus.Absent,
+                        RecordedByUserId = teacherId,
+                        RecordedAtUtc = now
+                    };
+                    _context.AttendanceRecords.Add(rec);
+                    currentAbsents.Add(rec);
+                }
+                while (currentAbsents.Count > targetAbsents && currentAbsents.Count > 0)
+                {
+                    var last = currentAbsents[^1];
+                    _context.AttendanceRecords.Remove(last);
+                    currentAbsents.RemoveAt(currentAbsents.Count - 1);
+                }
+
+                // Gecikmələri sinxronlaşdır
+                while (currentLates.Count < targetLates)
+                {
+                    var newDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-10 - currentLates.Count));
+                    var rec = new AttendanceRecord
+                    {
+                        CohortId = cohort.Id,
+                        StudentId = dto.StudentId,
+                        Date = newDate,
+                        Status = AttendanceStatus.Late,
+                        RecordedByUserId = teacherId,
+                        RecordedAtUtc = now
+                    };
+                    _context.AttendanceRecords.Add(rec);
+                    currentLates.Add(rec);
+                }
+                while (currentLates.Count > targetLates && currentLates.Count > 0)
+                {
+                    var last = currentLates[^1];
+                    _context.AttendanceRecords.Remove(last);
+                    currentLates.RemoveAt(currentLates.Count - 1);
+                }
+
+                var ratio = cohort.LateToAbsenceRatio > 0 ? cohort.LateToAbsenceRatio : 3;
+                var effective = targetAbsents + (targetLates / ratio);
+                if (effective > cohort.MaxAbsenceLimit)
+                {
+                    cohortEnrollment.Status = CohortEnrollmentStatus.Dropped;
+                }
+                else if (cohortEnrollment.Status == CohortEnrollmentStatus.Dropped)
+                {
+                    cohortEnrollment.Status = CohortEnrollmentStatus.Enrolled;
+                }
+            }
+
+            // 1.4 Müəllim şərhi
+            if (!string.IsNullOrWhiteSpace(dto.TeacherFeedback))
+            {
+                var note = new CohortNote
+                {
+                    CohortId = cohort.Id,
+                    StudentId = dto.StudentId,
+                    AuthorTeacherId = teacherId,
+                    Type = CohortNoteType.Feedback,
+                    Text = dto.TeacherFeedback.Trim()
+                };
+                _context.CohortNotes.Add(note);
+            }
+
+            await _context.SaveChangesAsync(ct);
+            return Result<bool>.Success(true);
+        }
+
+        // 2. Əgər kohort deyilsə, klassik Kurs yoxlanılır (Köhnə arxitektura fallback)
         var course = await _context.Courses
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == dto.GroupId && !c.IsDeleted, ct);
@@ -380,7 +571,6 @@ public class TeacherService : ITeacherService
             return Result<bool>.Failure(Error.NotFound("Group.NotFound", "Qrup tapılmadı."));
         }
 
-        // Resource-based yoxlama: Müəllimin öz qrupudurmu?
         if (!isAdmin && course.InstructorId != teacherId)
         {
             return Result<bool>.Failure(Error.Forbidden("Group.Forbidden", "Yalnız sizə təyin olunmuş qrupun tələbələrinə bal verə bilərsiniz."));
@@ -394,12 +584,10 @@ public class TeacherService : ITeacherService
             return Result<bool>.Failure(Error.NotFound("Enrollment.NotFound", "Tələbə bu qrupda qeydiyyatda deyil."));
         }
 
-        // Balların və davamiyyətin daxil edilməsi
         if (dto.MiniProjectGrade.HasValue)
         {
             if (dto.MiniProjectGrade.Value < 0 || dto.MiniProjectGrade.Value > 100)
                 return Result<bool>.Failure(Error.Validation("Grade.Invalid", "Mini layihə balı 0 ilə 100 arasında olmalıdır."));
-
             enrollment.MiniProjectGrade = dto.MiniProjectGrade.Value;
         }
 
@@ -407,7 +595,6 @@ public class TeacherService : ITeacherService
         {
             if (dto.FinalGrade.Value < 0 || dto.FinalGrade.Value > 100)
                 return Result<bool>.Failure(Error.Validation("Grade.Invalid", "Final balı 0 ilə 100 arasında olmalıdır."));
-
             enrollment.FinalGrade = dto.FinalGrade.Value;
         }
 
@@ -415,7 +602,6 @@ public class TeacherService : ITeacherService
         {
             if (dto.AbsentCount.Value < 0)
                 return Result<bool>.Failure(Error.Validation("Attendance.Invalid", "Qayıb sayı mənfi ola bilməz."));
-
             enrollment.AbsentCount = dto.AbsentCount.Value;
         }
 
@@ -423,7 +609,6 @@ public class TeacherService : ITeacherService
         {
             if (dto.LateCount.Value < 0)
                 return Result<bool>.Failure(Error.Validation("Attendance.Invalid", "Gecikmə sayı mənfi ola bilməz."));
-
             enrollment.LateCount = dto.LateCount.Value;
         }
 
@@ -454,13 +639,41 @@ public class TeacherService : ITeacherService
 
         if (course == null)
         {
+            // Qrup ID-si kohort da ola bilər (Stage 2/3)
+            var cohort = await _context.Cohorts
+                .AsNoTracking()
+                .Include(c => c.Course)
+                    .ThenInclude(crs => crs!.Modules)
+                        .ThenInclude(m => m.Lessons)
+                            .ThenInclude(l => l.Quiz)
+                                .ThenInclude(q => q!.Questions)
+                .FirstOrDefaultAsync(c => c.Id == groupId && !c.IsDeleted, ct);
+
+            if (cohort != null && cohort.Course != null)
+            {
+                if (!isAdmin && cohort.TeacherId != teacherId && cohort.Course.InstructorId != teacherId)
+                {
+                    return Result<IReadOnlyCollection<TeacherQuizSummaryDto>>.Failure(Error.Forbidden("Group.Forbidden", "Bu qrupun kvizlərinə baxmaq səlahiyyətiniz yoxdur."));
+                }
+                course = cohort.Course;
+            }
+        }
+
+        if (course == null)
+        {
             return Result<IReadOnlyCollection<TeacherQuizSummaryDto>>.Failure(Error.NotFound("Group.NotFound", "Kurs və ya qrup tapılmadı."));
         }
 
-        // Resource-based yoxlama
+        // Resource-based yoxlama (Əgər birbaşa kurs ID-si verilibsə)
         if (!isAdmin && course.InstructorId != teacherId)
         {
-            return Result<IReadOnlyCollection<TeacherQuizSummaryDto>>.Failure(Error.Forbidden("Group.Forbidden", "Bu kursun kvizlərinə baxmaq səlahiyyətiniz yoxdur."));
+            var isCohortTeacher = await _context.Cohorts
+                .AsNoTracking()
+                .AnyAsync(c => c.CourseId == course.Id && c.TeacherId == teacherId && !c.IsDeleted, ct);
+            if (!isCohortTeacher)
+            {
+                return Result<IReadOnlyCollection<TeacherQuizSummaryDto>>.Failure(Error.Forbidden("Group.Forbidden", "Bu kursun kvizlərinə baxmaq səlahiyyətiniz yoxdur."));
+            }
         }
 
         var list = new List<TeacherQuizSummaryDto>();

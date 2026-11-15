@@ -13,6 +13,12 @@ public class QuizAttempt : BaseEntity
     public Guid QuizId { get; set; }
     public Quiz? Quiz { get; set; }
 
+    /// <summary>
+    /// Əgər imtahan QuizAssignment vasitəsilə verilibsə.
+    /// </summary>
+    public Guid? QuizAssignmentId { get; set; }
+    public QuizAssignment? QuizAssignment { get; set; }
+
     public int AttemptNumber { get; set; } = 1;
     public int TotalQuestions { get; set; } = 0;
     public int CorrectAnswers { get; set; } = 0;

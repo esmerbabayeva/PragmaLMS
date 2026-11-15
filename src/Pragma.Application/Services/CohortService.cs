@@ -133,6 +133,7 @@ public class CohortService : ICohortService
             .Select(s => new CohortScheduleDto(s.Id, s.DayOfWeek, s.StartTime, s.EndTime, s.RoomOrMeetingUrl))
             .ToList();
 
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
         var dto = new CohortDetailDto(
             Id: cohort.Id,
             Name: cohort.Name,
@@ -151,7 +152,10 @@ public class CohortService : ICohortService
             LateToAbsenceRatio: cohort.LateToAbsenceRatio,
             Status: cohort.Status,
             EnrolledStudentCount: cohort.Enrollments.Count(e => !e.IsDeleted),
-            Schedules: schedules
+            Schedules: schedules,
+            FinalDeadlineUtc: deadlineUtc,
+            FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(deadlineUtc),
+            FinalDeadlineIsEndOfDay: FinalDeadlineHelper.IsEndOfDay(deadlineUtc)
         );
 
         return Result<CohortDetailDto>.Success(dto);
@@ -215,6 +219,7 @@ public class CohortService : ICohortService
         var items = cohorts.Select(c =>
         {
             var teacher = teacherDict.TryGetValue(c.TeacherId, out var u) ? u : null;
+            var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(c);
             return new CohortSummaryDto(
                 Id: c.Id,
                 Name: c.Name,
@@ -226,7 +231,10 @@ public class CohortService : ICohortService
                 EnrolledStudentCount: c.Enrollments.Count(e => !e.IsDeleted),
                 CompletedHours: c.CompletedHours,
                 TotalHours: c.TotalHours,
-                StartDate: c.StartDate
+                StartDate: c.StartDate,
+                FinalDeadlineUtc: deadlineUtc,
+                FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(deadlineUtc),
+                FinalDeadlineIsEndOfDay: FinalDeadlineHelper.IsEndOfDay(deadlineUtc)
             );
         }).ToList();
 
@@ -672,6 +680,329 @@ public class CohortService : ICohortService
         );
 
         return Result<IReadOnlyCollection<CohortStudentDto>>.Success([dto]);
+    }
+
+    public async Task<Result<SetFinalDeadlineResultDto>> SetFinalDeadlineAsync(
+        Guid cohortId,
+        SetCohortFinalDeadlineDto dto,
+        Guid currentUserId,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        var cohort = await _context.Cohorts
+            .Include(c => c.Course)
+            .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
+
+        if (cohort == null)
+        {
+            return Result<SetFinalDeadlineResultDto>.Failure(Error.NotFound("Cohort.NotFound", "Kohort tapılmadı."));
+        }
+
+        if (!isAdmin && cohort.TeacherId != currentUserId && cohort.Course?.InstructorId != currentUserId)
+        {
+            return Result<SetFinalDeadlineResultDto>.Failure(Error.Forbidden("Cohort.Forbidden", "Final müddətini təyin etmək səlahiyyətiniz yoxdur."));
+        }
+
+        if (cohort.Status == CohortStatus.Finished)
+        {
+            return Result<SetFinalDeadlineResultDto>.Failure(Error.Conflict("Cohort.AlreadyFinished", "Finalize olunmuş kohortun təhvil müddəti dəyişdirilə bilməz."));
+        }
+
+        // Əgər tarix boşdursa, xüsusi müddət təmizlənir və standart EndDate əsas götürülür
+        if (string.IsNullOrWhiteSpace(dto.Date))
+        {
+            cohort.FinalDeadlineUtc = null;
+            cohort.MarkUpdated();
+            await _context.SaveChangesAsync(ct);
+
+            var defaultDeadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+            return Result<SetFinalDeadlineResultDto>.Success(new SetFinalDeadlineResultDto(
+                FinalDeadlineUtc: defaultDeadlineUtc,
+                FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(defaultDeadlineUtc),
+                IsEndOfDay: FinalDeadlineHelper.IsEndOfDay(defaultDeadlineUtc),
+                IsPastWarning: false,
+                WarningMessage: "Müddət təmizləndi və standart EndDate tarixinə qaytarıldı."
+            ));
+        }
+
+        if (!DateOnly.TryParseExact(dto.Date.Trim(), "yyyy-MM-dd", out var date))
+        {
+            return Result<SetFinalDeadlineResultDto>.Failure(Error.Validation("FinalDeadline.InvalidDate", "Tarix 'yyyy-MM-dd' formatında olmalıdır."));
+        }
+
+        TimeOnly time = new TimeOnly(23, 59, 59);
+        if (!string.IsNullOrWhiteSpace(dto.Time))
+        {
+            if (TimeOnly.TryParseExact(dto.Time.Trim(), "HH:mm", out var parsedTime) ||
+                TimeOnly.TryParseExact(dto.Time.Trim(), "HH:mm:ss", out parsedTime))
+            {
+                time = parsedTime;
+            }
+            else
+            {
+                return Result<SetFinalDeadlineResultDto>.Failure(Error.Validation("FinalDeadline.InvalidTime", "Saat 'HH:mm' formatında olmalıdır."));
+            }
+        }
+
+        var startBaku = DateOnly.FromDateTime(FinalDeadlineHelper.ToBakuLocal(cohort.StartDate));
+        if (date < startBaku)
+        {
+            return Result<SetFinalDeadlineResultDto>.Failure(Error.Validation("FinalDeadline.BeforeStart", "Final müddəti kohortun başlama tarixindən əvvəl ola bilməz."));
+        }
+
+        var deadlineUtc = FinalDeadlineHelper.ConvertBakuToUtc(date, time);
+        bool isPastWarning = deadlineUtc < DateTime.UtcNow;
+        string? warningMessage = isPastWarning ? "Xəbərdarlıq: Təyin edilmiş müddət keçmiş zamana təsadüf edir." : null;
+
+        cohort.FinalDeadlineUtc = deadlineUtc;
+        cohort.MarkUpdated();
+        await _context.SaveChangesAsync(ct);
+
+        return Result<SetFinalDeadlineResultDto>.Success(new SetFinalDeadlineResultDto(
+            FinalDeadlineUtc: cohort.FinalDeadlineUtc,
+            FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(cohort.FinalDeadlineUtc),
+            IsEndOfDay: FinalDeadlineHelper.IsEndOfDay(cohort.FinalDeadlineUtc),
+            IsPastWarning: isPastWarning,
+            WarningMessage: warningMessage
+        ));
+    }
+
+    public async Task<Result<StudentFinalSubmissionDto>> SubmitFinalProjectAsync(
+        Guid cohortId,
+        SubmitFinalProjectDto dto,
+        Guid studentId,
+        CancellationToken ct = default)
+    {
+        var cohort = await _context.Cohorts
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
+
+        if (cohort == null)
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.NotFound("Cohort.NotFound", "Kohort tapılmadı."));
+        }
+
+        var enrollment = cohort.Enrollments.FirstOrDefault(e => e.StudentId == studentId && !e.IsDeleted);
+        if (enrollment == null)
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.Forbidden("Cohort.NotEnrolled", "Tələbə bu kohortda qeydiyyatda deyil."));
+        }
+
+        if (enrollment.Status == CohortEnrollmentStatus.Dropped)
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.Forbidden("Cohort.Dropped", "Qrupdan xaric edilmiş (Dropped) tələbələr final layihə təhvil verə bilməz."));
+        }
+
+        if (FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow))
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.Conflict("FinalSubmission.DeadlinePassed", "Təhvil müddəti bitib."));
+        }
+
+        var submission = await _context.FinalSubmissions
+            .FirstOrDefaultAsync(s => s.CohortId == cohortId && s.StudentId == studentId && !s.IsDeleted, ct);
+
+        var now = DateTime.UtcNow;
+        if (submission != null)
+        {
+            submission.Url = dto.Url.Trim();
+            submission.MarkUpdated();
+        }
+        else
+        {
+            submission = new FinalSubmission
+            {
+                CohortId = cohortId,
+                StudentId = studentId,
+                Url = dto.Url.Trim(),
+                SubmittedAtUtc = now
+            };
+            _context.FinalSubmissions.Add(submission);
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        var gradeEntry = await _context.CohortGradeEntries
+            .FirstOrDefaultAsync(g => g.CohortId == cohortId && g.StudentId == studentId && g.ComponentType == GradeComponentType.Final && !g.IsDeleted, ct);
+
+        bool isGraded = gradeEntry != null;
+        decimal? finalGrade = gradeEntry?.Score;
+        string status = isGraded ? "Graded" : "Submitted";
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+
+        return Result<StudentFinalSubmissionDto>.Success(new StudentFinalSubmissionDto(
+            Url: submission.Url,
+            SubmittedAtUtc: submission.SubmittedAtUtc,
+            UpdatedAtUtc: submission.UpdatedAtUtc,
+            FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(deadlineUtc),
+            IsDeadlinePassed: false,
+            IsGraded: isGraded,
+            FinalGrade: finalGrade,
+            Status: status
+        ));
+    }
+
+    public async Task<Result<StudentFinalSubmissionDto>> GetMyFinalSubmissionAsync(
+        Guid cohortId,
+        Guid studentId,
+        CancellationToken ct = default)
+    {
+        var cohort = await _context.Cohorts
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
+
+        if (cohort == null)
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.NotFound("Cohort.NotFound", "Kohort tapılmadı."));
+        }
+
+        var enrollment = cohort.Enrollments.FirstOrDefault(e => e.StudentId == studentId && !e.IsDeleted);
+        if (enrollment == null)
+        {
+            return Result<StudentFinalSubmissionDto>.Failure(Error.Forbidden("Cohort.NotEnrolled", "Tələbə bu kohortda qeydiyyatda deyil."));
+        }
+
+        var submission = await _context.FinalSubmissions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.CohortId == cohortId && s.StudentId == studentId && !s.IsDeleted, ct);
+
+        var gradeEntry = await _context.CohortGradeEntries
+            .AsNoTracking()
+            .FirstOrDefaultAsync(g => g.CohortId == cohortId && g.StudentId == studentId && g.ComponentType == GradeComponentType.Final && !g.IsDeleted, ct);
+
+        bool isGraded = gradeEntry != null;
+        decimal? finalGrade = gradeEntry?.Score;
+        bool isDeadlinePassed = FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow);
+
+        string status;
+        if (isGraded)
+        {
+            status = "Graded";
+        }
+        else if (submission != null && !string.IsNullOrWhiteSpace(submission.Url))
+        {
+            status = "Submitted";
+        }
+        else if (isDeadlinePassed)
+        {
+            status = "Missed";
+        }
+        else
+        {
+            status = "NotSubmitted";
+        }
+
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+
+        return Result<StudentFinalSubmissionDto>.Success(new StudentFinalSubmissionDto(
+            Url: submission?.Url,
+            SubmittedAtUtc: submission?.SubmittedAtUtc,
+            UpdatedAtUtc: submission?.UpdatedAtUtc,
+            FinalDeadlineLocal: FinalDeadlineHelper.ToBakuLocalString(deadlineUtc),
+            IsDeadlinePassed: isDeadlinePassed,
+            IsGraded: isGraded,
+            FinalGrade: finalGrade,
+            Status: status
+        ));
+    }
+
+    public async Task<Result<PagedResult<CohortFinalSubmissionItemDto>>> GetCohortFinalSubmissionsAsync(
+        Guid cohortId,
+        int page,
+        int pageSize,
+        Guid currentUserId,
+        bool isAdmin,
+        CancellationToken ct = default)
+    {
+        var cohort = await _context.Cohorts
+            .Include(c => c.Course)
+            .Include(c => c.Enrollments)
+            .FirstOrDefaultAsync(c => c.Id == cohortId && !c.IsDeleted, ct);
+
+        if (cohort == null)
+        {
+            return Result<PagedResult<CohortFinalSubmissionItemDto>>.Failure(Error.NotFound("Cohort.NotFound", "Kohort tapılmadı."));
+        }
+
+        if (!isAdmin && cohort.TeacherId != currentUserId && cohort.Course?.InstructorId != currentUserId)
+        {
+            return Result<PagedResult<CohortFinalSubmissionItemDto>>.Failure(Error.Forbidden("Cohort.Forbidden", "Final təhvili siyahısına baxmaq səlahiyyətiniz yoxdur."));
+        }
+
+        if (pageSize > 100) pageSize = 100;
+        if (pageSize < 1) pageSize = 20;
+        if (page < 1) page = 1;
+
+        var activeEnrollments = cohort.Enrollments
+            .Where(e => !e.IsDeleted)
+            .OrderByDescending(e => e.EnrolledAtUtc)
+            .ToList();
+
+        var totalCount = activeEnrollments.Count;
+        var pagedEnrollments = activeEnrollments
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        var pagedStudentIds = pagedEnrollments.Select(e => e.StudentId).ToList();
+        var userDict = await _userLookup.GetUsersByIdsAsync(pagedStudentIds, ct);
+
+        var submissions = await _context.FinalSubmissions
+            .AsNoTracking()
+            .Where(s => s.CohortId == cohortId && pagedStudentIds.Contains(s.StudentId) && !s.IsDeleted)
+            .ToListAsync(ct);
+        var subDict = submissions.ToDictionary(s => s.StudentId);
+
+        var grades = await _context.CohortGradeEntries
+            .AsNoTracking()
+            .Where(g => g.CohortId == cohortId && pagedStudentIds.Contains(g.StudentId) && g.ComponentType == GradeComponentType.Final && !g.IsDeleted)
+            .ToListAsync(ct);
+        var gradeDict = grades.ToDictionary(g => g.StudentId);
+
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+        var isDeadlinePassed = FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow);
+
+        var items = new List<CohortFinalSubmissionItemDto>();
+        foreach (var enr in pagedEnrollments)
+        {
+            userDict.TryGetValue(enr.StudentId, out var user);
+            subDict.TryGetValue(enr.StudentId, out var sub);
+            gradeDict.TryGetValue(enr.StudentId, out var grade);
+
+            bool hasFinalGrade = grade != null;
+            bool onTime = sub != null && (deadlineUtc == null || sub.SubmittedAtUtc <= deadlineUtc.Value);
+
+            string status;
+            if (hasFinalGrade)
+            {
+                status = "Graded";
+            }
+            else if (sub != null && !string.IsNullOrWhiteSpace(sub.Url))
+            {
+                status = "Submitted";
+            }
+            else if (isDeadlinePassed)
+            {
+                status = "Missed";
+            }
+            else
+            {
+                status = "NotSubmitted";
+            }
+
+            items.Add(new CohortFinalSubmissionItemDto(
+                StudentId: enr.StudentId,
+                FullName: user?.FullName ?? "Tələbə",
+                Email: user?.Email ?? string.Empty,
+                Url: sub?.Url,
+                SubmittedAtUtc: sub?.SubmittedAtUtc,
+                OnTime: onTime,
+                HasFinalGrade: hasFinalGrade,
+                FinalGrade: grade?.Score,
+                Status: status
+            ));
+        }
+
+        return Result<PagedResult<CohortFinalSubmissionItemDto>>.Success(new PagedResult<CohortFinalSubmissionItemDto>(items, totalCount, page, pageSize));
     }
 
     private async Task<bool> IsUserInRoleAsync(Guid userId, string role, CancellationToken ct)

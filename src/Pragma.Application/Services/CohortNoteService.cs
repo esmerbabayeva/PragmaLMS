@@ -101,7 +101,7 @@ public class CohortNoteService : ICohortNoteService
         var note = await _context.CohortNotes
             .Include(n => n.Cohort)
                 .ThenInclude(c => c!.Course)
-            .FirstOrDefaultAsync(n => n.Id == noteId && n.CohortId == cohortId && !n.IsDeleted, ct);
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.CohortId == cohortId, ct);
 
         if (note == null)
         {
@@ -172,7 +172,7 @@ public class CohortNoteService : ICohortNoteService
         var note = await _context.CohortNotes
             .Include(n => n.Cohort)
                 .ThenInclude(c => c!.Course)
-            .FirstOrDefaultAsync(n => n.Id == noteId && n.CohortId == cohortId && !n.IsDeleted, ct);
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.CohortId == cohortId, ct);
 
         if (note == null)
         {
@@ -203,7 +203,7 @@ public class CohortNoteService : ICohortNoteService
             ipAddress: null,
             cancellationToken: ct);
 
-        note.MarkDeleted();
+        _context.CohortNotes.Remove(note);
         await _context.SaveChangesAsync(ct);
 
         return Result<bool>.Success(true);

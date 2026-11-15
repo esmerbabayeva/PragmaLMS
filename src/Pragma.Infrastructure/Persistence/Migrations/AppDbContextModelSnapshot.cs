@@ -125,6 +125,54 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.Announcement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CohortId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CohortId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.ToTable("Announcements");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.AnswerOption", b =>
                 {
                     b.Property<Guid>("Id")
@@ -505,6 +553,9 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FinalDeadlineUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<decimal>("FinalWeight")
@@ -963,6 +1014,49 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.ToTable("Enrollments");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.FinalSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CohortId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SubmittedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CohortId", "StudentId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("FinalSubmissions");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.Lesson", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1014,6 +1108,49 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasIndex("ModuleId");
 
                     b.ToTable("Lessons");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.LessonAnswer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsInstructorAnswer")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("LessonAnswers");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.LessonNote", b =>
@@ -1104,6 +1241,57 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.ToTable("LessonProgresses");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.LessonQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LessonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("PositionSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("LessonQuestions");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.LessonResource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1187,6 +1375,61 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasIndex("CourseId");
 
                     b.ToTable("Modules");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TargetUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.Question", b =>
@@ -1279,6 +1522,97 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.ToTable("Quizzes");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CohortId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CustomTimeLimitMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EndDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PassingScorePercentage")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PointsPerQuestion")
+                        .HasColumnType("int");
+
+                    b.Property<string>("QuestionsSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("QuizId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("StartDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("StudentIdsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CohortId");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("QuizAssignments");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.QuizAttempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1305,6 +1639,9 @@ namespace Pragma.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("IsPassed")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("QuizAssignmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("QuizId")
                         .HasColumnType("uniqueidentifier");
@@ -1336,6 +1673,8 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("QuizAssignmentId");
 
                     b.HasIndex("QuizId");
 
@@ -1383,6 +1722,65 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.HasIndex("SelectedOptionId");
 
                     b.ToTable("QuizAttemptAnswers");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CourseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DefaultMaxAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultPassingScorePercentage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultPointsPerQuestion")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DefaultTimeLimitMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("QuestionsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("QuizTemplates");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.RefreshToken", b =>
@@ -1742,6 +2140,16 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.Announcement", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.Cohort", "Cohort")
+                        .WithMany()
+                        .HasForeignKey("CohortId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Cohort");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.AnswerOption", b =>
                 {
                     b.HasOne("Pragma.Domain.Entities.Question", "Question")
@@ -1881,6 +2289,17 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Navigation("Course");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.FinalSubmission", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.Cohort", "Cohort")
+                        .WithMany()
+                        .HasForeignKey("CohortId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cohort");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.Lesson", b =>
                 {
                     b.HasOne("Pragma.Domain.Entities.Module", "Module")
@@ -1890,6 +2309,17 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.LessonAnswer", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.LessonQuestion", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.LessonNote", b =>
@@ -1907,6 +2337,17 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("Pragma.Domain.Entities.Lesson", "Lesson")
                         .WithMany("Progresses")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.LessonQuestion", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
                         .HasForeignKey("LessonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1958,8 +2399,52 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Navigation("Lesson");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizAssignment", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.Cohort", "Cohort")
+                        .WithMany()
+                        .HasForeignKey("CohortId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pragma.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pragma.Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pragma.Domain.Entities.Quiz", "Quiz")
+                        .WithMany()
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pragma.Domain.Entities.QuizTemplate", "Template")
+                        .WithMany("Assignments")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cohort");
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("Template");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.QuizAttempt", b =>
                 {
+                    b.HasOne("Pragma.Domain.Entities.QuizAssignment", "QuizAssignment")
+                        .WithMany("Attempts")
+                        .HasForeignKey("QuizAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Pragma.Domain.Entities.Quiz", "Quiz")
                         .WithMany("Attempts")
                         .HasForeignKey("QuizId")
@@ -1967,6 +2452,8 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Quiz");
+
+                    b.Navigation("QuizAssignment");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.QuizAttemptAnswer", b =>
@@ -1992,6 +2479,16 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Navigation("QuizAttempt");
 
                     b.Navigation("SelectedOption");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizTemplate", b =>
+                {
+                    b.HasOne("Pragma.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("Pragma.Domain.Entities.Review", b =>
@@ -2051,6 +2548,11 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Navigation("Resources");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.LessonQuestion", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.Module", b =>
                 {
                     b.Navigation("Lessons");
@@ -2068,9 +2570,19 @@ namespace Pragma.Infrastructure.Persistence.Migrations
                     b.Navigation("Questions");
                 });
 
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizAssignment", b =>
+                {
+                    b.Navigation("Attempts");
+                });
+
             modelBuilder.Entity("Pragma.Domain.Entities.QuizAttempt", b =>
                 {
                     b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("Pragma.Domain.Entities.QuizTemplate", b =>
+                {
+                    b.Navigation("Assignments");
                 });
 #pragma warning restore 612, 618
         }

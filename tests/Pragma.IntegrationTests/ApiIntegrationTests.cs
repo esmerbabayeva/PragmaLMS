@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Pragma.Application.DTOs.Certificates;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -70,5 +71,33 @@ public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
         response.Headers.GetValues("X-Frame-Options").First().Should().Be("SAMEORIGIN");
 
         response.Headers.Should().ContainKey("Referrer-Policy");
+    }
+
+    [Fact]
+    public async Task VerifyCertificate_WhenCodeDoesNotExist_ReturnsSuccessDtoWithFalseStatus()
+    {
+        var response = await _client.GetAsync("/api/certificates/verify/NON-EXISTENT-CODE");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await response.Content.ReadFromJsonAsync<CertificateVerificationDto>();
+        dto.Should().NotBeNull();
+        dto!.IsValid.Should().BeFalse();
+        dto.IsRevoked.Should().BeFalse();
+        dto.Message.Should().Contain("tapılmadı");
+    }
+
+    [Fact]
+    public async Task VerifyRoute_RedirectsToPortalVerifyPage()
+    {
+        var client = new CustomWebApplicationFactory().CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+
+        var response = await client.GetAsync("/verify/PRAGMA-DIP-2026-TEST");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location.Should().NotBeNull();
+        response.Headers.Location!.ToString().Should().Be("/portal/verify.html?code=PRAGMA-DIP-2026-TEST");
     }
 }

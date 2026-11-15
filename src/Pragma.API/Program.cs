@@ -246,6 +246,8 @@ app.MapGet("/portal", () => Results.Redirect("/portal/index.html"));
 app.MapGet("/app", () => Results.Redirect("/portal/index.html"));
 app.MapGet("/login", () => Results.Redirect("/portal/login.html"));
 app.MapGet("/auth/callback", () => Results.Redirect("/portal/callback.html"));
+app.MapGet("/verify/{code}", (string code) => Results.Redirect($"/portal/verify.html?code={Uri.EscapeDataString(code)}")).AllowAnonymous();
+app.MapGet("/verify", () => Results.Redirect("/portal/verify.html")).AllowAnonymous();
 
 if (!app.Environment.IsDevelopment())
 {

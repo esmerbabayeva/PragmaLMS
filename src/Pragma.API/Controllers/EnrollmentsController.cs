@@ -49,7 +49,16 @@ public class EnrollmentsController : BaseApiController
         var currentUserId = _currentUserService.UserId;
         if (!currentUserId.HasValue) return Unauthorized();
 
-        var language = !string.IsNullOrWhiteSpace(lang) ? lang : Request.Headers.AcceptLanguage.ToString();
+        var cookieLang = Request.Cookies["pragma-lang"];
+        var headerLang = Request.Headers["X-Language"].ToString();
+        var language = !string.IsNullOrWhiteSpace(lang)
+            ? lang
+            : (!string.IsNullOrWhiteSpace(headerLang)
+                ? headerLang
+                : (!string.IsNullOrWhiteSpace(cookieLang)
+                    ? cookieLang
+                    : Request.Headers.AcceptLanguage.ToString()));
+
         var enrollments = await _enrollmentService.GetMyEnrollmentsAsync(currentUserId.Value, language, cancellationToken);
         return Ok(enrollments);
     }

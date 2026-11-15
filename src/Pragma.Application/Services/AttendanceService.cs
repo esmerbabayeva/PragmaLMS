@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
+using Pragma.Application.DTOs.Notifications;
 using Pragma.Domain.Entities;
 using Pragma.Domain.Enums;
 
@@ -12,17 +13,20 @@ public class AttendanceService : IAttendanceService
     private readonly IUserLookupService _userLookup;
     private readonly IAuditLogService _auditLog;
     private readonly TimeProvider _timeProvider;
+    private readonly INotificationService? _notificationService;
 
     public AttendanceService(
         IAppDbContext context,
         IUserLookupService userLookup,
         IAuditLogService auditLog,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationService? notificationService = null)
     {
         _context = context;
         _userLookup = userLookup;
         _auditLog = auditLog;
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<bool>> RecordBulkAttendanceAsync(
@@ -143,8 +147,22 @@ public class AttendanceService : IAttendanceService
             // Düstur: Qayıb = Absent + floor(Late / LateToAbsenceRatio)
             var effectiveAbsences = absentCount + (lateCount / cohort.LateToAbsenceRatio);
 
+            var hadWarning = enrollment.HasAbsenceWarning;
+            var isAtOrAboveWarning = effectiveAbsences >= (cohort.MaxAbsenceLimit - 2);
+
             // 4-cü qayıbda (və ya limitə 2 vahid qalanda) xəbərdarlıq flag-ı
-            enrollment.HasAbsenceWarning = effectiveAbsences >= (cohort.MaxAbsenceLimit - 2);
+            enrollment.HasAbsenceWarning = isAtOrAboveWarning;
+
+            if (!hadWarning && isAtOrAboveWarning && _notificationService != null)
+            {
+                await _notificationService.CreateNotificationAsync(new CreateNotificationDto(
+                    studentId,
+                    "Davamiyyət Xəbərdarlığı",
+                    $"{cohort.Name} qrupunda qayıb limitinizə 2 vahid qaldı ({effectiveAbsences}/{cohort.MaxAbsenceLimit}). Limiti aşsanız qrupdan kənarlaşdırılacaqsınız.",
+                    NotificationType.AbsenceWarning,
+                    "/portal/attendance.html"
+                ), ct);
+            }
 
             // Qayıb > MaxAbsenceLimit olduqda avtomatik Dropped
             if (effectiveAbsences > cohort.MaxAbsenceLimit)
@@ -154,6 +172,17 @@ public class AttendanceService : IAttendanceService
                     enrollment.Status = CohortEnrollmentStatus.Dropped;
                     enrollment.DroppedAtUtc = utcNow;
                     enrollment.DroppedReason = $"Qayıb limiti aşıldı ({effectiveAbsences}/{cohort.MaxAbsenceLimit}).";
+
+                    if (_notificationService != null)
+                    {
+                        await _notificationService.CreateNotificationAsync(new CreateNotificationDto(
+                            studentId,
+                            "Qrupdan Kənarlaşdırılma (Dropped)",
+                            $"{cohort.Name} qrupunda icazə verilən qayıb limitini ({cohort.MaxAbsenceLimit}) aşdığınız üçün statusunuz Dropped oldu.",
+                            NotificationType.AbsenceWarning,
+                            "/portal/attendance.html"
+                        ), ct);
+                    }
                 }
             }
             else

@@ -1,6 +1,7 @@
 using System.Text;
 using Pragma.Application.Contracts;
 using Pragma.Domain.Entities;
+using Pragma.Domain.Enums;
 using Pragma.Infrastructure.Services;
 
 namespace Pragma.UnitTests;
@@ -29,6 +30,58 @@ public class GamificationAndCertificateTests
         Assert.True(pdfBytes.Length > 1000, "PDF faylının həcmi 1 KB-dan çox olmalıdır.");
 
         // PDF faylı '%PDF-' başlığı ilə başlamalıdır (RFC / PDF spesifikasiyası)
+        var header = Encoding.ASCII.GetString(pdfBytes.Take(5).ToArray());
+        Assert.Equal("%PDF-", header);
+    }
+
+    [Fact]
+    public void QuestPdfCertificateGenerator_WhenDiploma_GeneratesValidPdfWithHonorsLayout()
+    {
+        // Arrange
+        var generator = new QuestPdfCertificateGenerator();
+        var model = new CertificateRenderModel(
+            CertificateCode: "PRAGMA-DIP-2026-9A1B2C3D",
+            StudentFullName: "Murad Əliyev",
+            CourseTitle: "Enterprise Backend Architecture",
+            InstructorName: "Kənan Əliyev",
+            IssuedAtUtc: DateTime.UtcNow,
+            VerificationUrl: "https://pragma.edu.az/verify/PRAGMA-DIP-2026-9A1B2C3D",
+            Type: CertificateType.Diploma,
+            GradePercentage: 94.5
+        );
+
+        // Act
+        var pdfBytes = generator.GeneratePdf(model);
+
+        // Assert
+        Assert.NotNull(pdfBytes);
+        Assert.True(pdfBytes.Length > 1000);
+        var header = Encoding.ASCII.GetString(pdfBytes.Take(5).ToArray());
+        Assert.Equal("%PDF-", header);
+    }
+
+    [Fact]
+    public void QuestPdfCertificateGenerator_WhenAttendance_GeneratesValidPdfWithAttendanceLayout()
+    {
+        // Arrange
+        var generator = new QuestPdfCertificateGenerator();
+        var model = new CertificateRenderModel(
+            CertificateCode: "PRAGMA-ATT-2026-8X7Y6Z5W",
+            StudentFullName: "Leyla Məmmədova",
+            CourseTitle: "Enterprise Backend Architecture",
+            InstructorName: "Kənan Əliyev",
+            IssuedAtUtc: DateTime.UtcNow,
+            VerificationUrl: "https://pragma.edu.az/verify/PRAGMA-ATT-2026-8X7Y6Z5W",
+            Type: CertificateType.Attendance,
+            GradePercentage: 62.0
+        );
+
+        // Act
+        var pdfBytes = generator.GeneratePdf(model);
+
+        // Assert
+        Assert.NotNull(pdfBytes);
+        Assert.True(pdfBytes.Length > 1000);
         var header = Encoding.ASCII.GetString(pdfBytes.Take(5).ToArray());
         Assert.Equal("%PDF-", header);
     }

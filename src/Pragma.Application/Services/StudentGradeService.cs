@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Pragma.Application.Common;
 using Pragma.Application.Contracts;
+using Pragma.Application.DTOs.Cohorts;
 using Pragma.Application.DTOs.Student;
 using Pragma.Domain.Enums;
 
@@ -212,6 +213,29 @@ public class StudentGradeService : IStudentGradeService
             existingCert != null ? $"/api/courses/{cohort.CourseId}/certificate/download" : null
         );
 
+        var deadlineUtc = FinalDeadlineHelper.GetFinalDeadlineUtc(cohort);
+        var deadlineLocal = FinalDeadlineHelper.ToBakuLocalString(deadlineUtc);
+        var isEod = cohort.FinalDeadlineUtc.HasValue ? FinalDeadlineHelper.IsEndOfDay(cohort.FinalDeadlineUtc.Value) : true;
+        var isDeadlinePassed = FinalDeadlineHelper.IsFinalDeadlinePassed(cohort, DateTime.UtcNow);
+
+        var sub = await _context.FinalSubmissions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.CohortId == cohort.Id && s.StudentId == currentStudentId && !s.IsDeleted, ct);
+
+        bool isGraded = finalScore.HasValue;
+        string subStatus = isGraded ? "Graded" : (sub != null ? "Submitted" : (isDeadlinePassed ? "Overdue" : "NotSubmitted"));
+
+        var submissionDto = new StudentFinalSubmissionDto(
+            Url: sub?.Url,
+            SubmittedAtUtc: sub?.SubmittedAtUtc,
+            UpdatedAtUtc: sub?.UpdatedAtUtc,
+            FinalDeadlineLocal: deadlineLocal,
+            IsDeadlinePassed: isDeadlinePassed,
+            IsGraded: isGraded,
+            FinalGrade: finalScore,
+            Status: subStatus
+        );
+
         var resultDetails = new StudentCohortGradeDetailsDto(
             cohort.Id,
             cohort.Name,
@@ -221,7 +245,12 @@ public class StudentGradeService : IStudentGradeService
             gradesDto,
             attendanceDto,
             feedbackNotesDto,
-            certificateDto
+            certificateDto,
+            deadlineUtc,
+            deadlineLocal,
+            isEod,
+            isDeadlinePassed,
+            submissionDto
         );
 
         return Result<StudentCohortGradeDetailsDto>.Success(resultDetails);

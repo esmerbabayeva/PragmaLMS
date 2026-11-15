@@ -22,6 +22,12 @@ public class Cohort : BaseEntity
     public DateTime? EndDate { get; set; }
 
     /// <summary>
+    /// Final layihənin son təhvil verilmə tarixi və saatı (UTC).
+    /// Əgər boşdursa, EndDate gününün sonu (23:59:59 Asia/Baku) əsas götürülür.
+    /// </summary>
+    public DateTime? FinalDeadlineUtc { get; set; }
+
+    /// <summary>
     /// Proqram üzrə cəmi planlaşdırılan saatlar (default 80 saat).
     /// </summary>
     public double TotalHours { get; set; } = 80.0;

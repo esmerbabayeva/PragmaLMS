@@ -14,7 +14,12 @@ public record AssignedGroupSummaryDto(
     double CompletedHours,
     double RemainingHours,
     double AverageGrade,
-    Guid? CohortId = null
+    Guid? CohortId = null,
+    Guid? CourseId = null,
+    DateTime? FinalDeadlineUtc = null,
+    string? FinalDeadlineLocal = null,
+    bool FinalDeadlineIsEndOfDay = false,
+    string? Status = null
 );
 
 /// <summary>
@@ -35,7 +40,9 @@ public record GroupStudentDto(
     decimal? FinalScore,
     bool IsProvisional,
     string? TeacherFeedback,
-    string Status
+    string Status,
+    string? FinalSubmissionUrl = null,
+    DateTime? FinalSubmittedAtUtc = null
 );
 
 /// <summary>
