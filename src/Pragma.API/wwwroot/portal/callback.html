@@ -60,7 +60,7 @@
                     const roles = data.user?.roles || [];
                     setTimeout(() => {
                         if (roles.includes('Admin')) {
-                            window.location.href = 'http://localhost:5089';
+                            window.location.href = '/portal/index.html?view=admin';
                         } else if (roles.includes('Instructor')) {
                             window.location.href = '/portal/index.html?view=instructor';
                         } else if (roles.includes('Teacher')) {
